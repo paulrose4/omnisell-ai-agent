@@ -1,0 +1,502 @@
+[
+  {
+    "id": "th_logistics_01",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #1",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "发货时效",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long does shipping take after I place an order?",
+        "answer": "In-stock items usually ship within 1 to 2 business days. Presale items show the estimated shipping date on the product page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #1",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #1",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_02",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #2",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "物流追踪",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How can I track my package?",
+        "answer": "After shipment, the order detail page shows the tracking number and latest carrier events."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #2",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #2",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_03",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #3",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "跨境物流",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do you support international shipping?",
+        "answer": "Some countries and regions are supported. Available shipping methods appear automatically at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #3",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #3",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_04",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #4",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "运费",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is shipping fee calculated?",
+        "answer": "Shipping fee is calculated by destination, weight, parcel volume, and active promotions before payment."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #4",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #4",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_05",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #5",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "签收异常",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "The parcel says delivered but I did not receive it. What should I do?",
+        "answer": "Please check with family, reception, or pickup points first. If it is still missing, contact support for carrier investigation."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #5",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #5",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_06",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #6",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "地址修改",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I change my shipping address?",
+        "answer": "You can usually request an address change before shipment. After shipment, it depends on carrier rules."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #6",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #6",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_07",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #7",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "物流拦截",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can a package be intercepted after shipping?",
+        "answer": "Some logistics channels support interception, but success depends on parcel status and carrier policy."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #7",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #7",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_08",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #8",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "物流异常",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if tracking has not updated for a long time?",
+        "answer": "If there is no update for more than 48 hours, submit the order number and support will check with the carrier."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #8",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #8",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_09",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #9",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "自提",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I pick up the parcel at a pickup point?",
+        "answer": "Some regions support pickup points or convenience store pickup. You can select available services at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #9",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #9",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_logistics_10",
+    "question": "คำถามเกี่ยวกับการจัดส่ง #10",
+    "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า",
+    "category": "โลจิสติกส์",
+    "tags": [
+      "分包裹",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Will multiple items ship together?",
+        "answer": "Items from the same warehouse usually ship together; different warehouses or presale items may ship separately."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #10",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #10",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "th_returns_01",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #1",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "退货政策",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Which items support 7-day no-reason returns?",
+        "answer": "Unused regular items with complete packaging and resale condition usually support 7-day no-reason returns."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #1",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #1",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_02",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #2",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "退货申请",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I request a return?",
+        "answer": "Open the order detail page, choose after-sales service, enter the reason, upload proof, and submit."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #2",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #2",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_03",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #3",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "换货时效",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long does an exchange take?",
+        "answer": "After the warehouse receives and checks the returned item, replacement shipment usually takes 2 to 3 business days."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #3",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #3",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_04",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #4",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "退货运费",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Who pays return shipping?",
+        "answer": "For quality issues, the platform or seller pays shipping. For non-quality reasons, buyers usually pay."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #4",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #4",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_05",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #5",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "食品售后",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can food items be returned?",
+        "answer": "Opened food, fresh food, and short-dated items usually do not support no-reason returns unless there is a quality issue."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #5",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #5",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_06",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #6",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "包装要求",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do I need to keep the original packaging?",
+        "answer": "Please keep original packaging, accessories, gifts, and invoice to avoid affecting after-sales review."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #6",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #6",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_07",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #7",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "退款到账",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "When will my refund arrive?",
+        "answer": "After approval, refunds return to the original payment method, usually within 1 to 7 business days."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #7",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #7",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_08",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #8",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "破损处理",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if the item arrived damaged?",
+        "answer": "Take photos as soon as possible after receipt and submit the damage details through after-sales service."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #8",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #8",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_09",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #9",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "部分退货",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I return only one item from an order?",
+        "answer": "Partial returns are supported. Select the exact item and quantity when applying."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #9",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #9",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "th_returns_10",
+    "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #10",
+    "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ",
+    "category": "คืนสินค้า",
+    "tags": [
+      "售后复核",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if my return request is rejected?",
+        "answer": "Check the rejection reason, add proof, resubmit, or contact support for manual review."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #10",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #10",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  }
+]

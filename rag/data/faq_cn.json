@@ -1,0 +1,1252 @@
+[
+  {
+    "id": "cn_logistics_01",
+    "question": "下单后多久发货？",
+    "answer": "现货商品通常在1到2个工作日内发货，预售商品会在商品页标注预计发货时间。",
+    "category": "物流",
+    "tags": [
+      "发货时效",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long does shipping take after I place an order?",
+        "answer": "In-stock items usually ship within 1 to 2 business days. Presale items show the estimated shipping date on the product page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #1",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #1",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_02",
+    "question": "如何查询物流轨迹？",
+    "answer": "订单发货后可在订单详情页查看物流单号和最新轨迹，系统也会同步推送节点。",
+    "category": "物流",
+    "tags": [
+      "物流追踪",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How can I track my package?",
+        "answer": "After shipment, the order detail page shows the tracking number and latest carrier events."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #2",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #2",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_03",
+    "question": "是否支持跨境配送？",
+    "answer": "支持部分国家和地区的跨境配送，结算页会根据收货地址自动展示可用渠道。",
+    "category": "物流",
+    "tags": [
+      "跨境物流",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do you support international shipping?",
+        "answer": "Some countries and regions are supported. Available shipping methods appear automatically at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #3",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #3",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_04",
+    "question": "运费如何计算？",
+    "answer": "运费会根据收货地区、商品重量、体积和促销活动自动计算，并在付款前展示。",
+    "category": "物流",
+    "tags": [
+      "运费",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is shipping fee calculated?",
+        "answer": "Shipping fee is calculated by destination, weight, parcel volume, and active promotions before payment."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #4",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #4",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_05",
+    "question": "包裹显示签收但没收到怎么办？",
+    "answer": "请先确认门卫、代收点或家人是否代收；仍未找到时可联系客服发起物流核查。",
+    "category": "物流",
+    "tags": [
+      "签收异常",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "The parcel says delivered but I did not receive it. What should I do?",
+        "answer": "Please check with family, reception, or pickup points first. If it is still missing, contact support for carrier investigation."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #5",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #5",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_06",
+    "question": "可以修改收货地址吗？",
+    "answer": "订单未发货前通常可以申请修改地址；已发货订单需要联系承运商或等待派送沟通。",
+    "category": "物流",
+    "tags": [
+      "地址修改",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I change my shipping address?",
+        "answer": "You can usually request an address change before shipment. After shipment, it depends on carrier rules."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #6",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #6",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_07",
+    "question": "发货后可以拦截包裹吗？",
+    "answer": "部分物流渠道支持拦截，但成功率取决于包裹状态和承运商规则。",
+    "category": "物流",
+    "tags": [
+      "物流拦截",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can a package be intercepted after shipping?",
+        "answer": "Some logistics channels support interception, but success depends on parcel status and carrier policy."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #7",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #7",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_08",
+    "question": "物流长时间不更新怎么办？",
+    "answer": "若超过48小时无更新，请提交订单号，客服会向承运商发起异常查询。",
+    "category": "物流",
+    "tags": [
+      "物流异常",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if tracking has not updated for a long time?",
+        "answer": "If there is no update for more than 48 hours, submit the order number and support will check with the carrier."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #8",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #8",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_09",
+    "question": "是否支持自提点取货？",
+    "answer": "部分地区支持自提点或便利店取货，可在结算页选择可用自提服务。",
+    "category": "物流",
+    "tags": [
+      "自提",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I pick up the parcel at a pickup point?",
+        "answer": "Some regions support pickup points or convenience store pickup. You can select available services at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #9",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #9",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_logistics_10",
+    "question": "多件商品会一起发吗？",
+    "answer": "同仓商品通常合并发货，不同仓或预售商品可能分包裹配送。",
+    "category": "物流",
+    "tags": [
+      "分包裹",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Will multiple items ship together?",
+        "answer": "Items from the same warehouse usually ship together; different warehouses or presale items may ship separately."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #10",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #10",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_01",
+    "question": "哪些商品支持7天无理由退货？",
+    "answer": "未使用、包装完整且不影响二次销售的普通商品通常支持7天无理由退货。",
+    "category": "退换货",
+    "tags": [
+      "退货政策",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Which items support 7-day no-reason returns?",
+        "answer": "Unused regular items with complete packaging and resale condition usually support 7-day no-reason returns."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #1",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #1",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_02",
+    "question": "如何申请退货？",
+    "answer": "进入订单详情页选择申请售后，填写原因、上传凭证并提交即可。",
+    "category": "退换货",
+    "tags": [
+      "退货申请",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I request a return?",
+        "answer": "Open the order detail page, choose after-sales service, enter the reason, upload proof, and submit."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #2",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #2",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_03",
+    "question": "换货需要多久处理？",
+    "answer": "仓库收到退回商品并验收后，通常在2到3个工作日内安排换货发出。",
+    "category": "退换货",
+    "tags": [
+      "换货时效",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long does an exchange take?",
+        "answer": "After the warehouse receives and checks the returned item, replacement shipment usually takes 2 to 3 business days."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #3",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #3",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_04",
+    "question": "退货运费由谁承担？",
+    "answer": "商品质量问题由平台或卖家承担运费，非质量原因通常由买家承担。",
+    "category": "退换货",
+    "tags": [
+      "退货运费",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Who pays return shipping?",
+        "answer": "For quality issues, the platform or seller pays shipping. For non-quality reasons, buyers usually pay."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #4",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #4",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_05",
+    "question": "食品可以退货吗？",
+    "answer": "已拆封食品、生鲜和临期商品通常不支持无理由退货，质量问题除外。",
+    "category": "退换货",
+    "tags": [
+      "食品售后",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can food items be returned?",
+        "answer": "Opened food, fresh food, and short-dated items usually do not support no-reason returns unless there is a quality issue."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #5",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #5",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_06",
+    "question": "退货需要保留原包装吗？",
+    "answer": "建议保留原包装、配件、赠品和发票，以免影响售后审核。",
+    "category": "退换货",
+    "tags": [
+      "包装要求",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do I need to keep the original packaging?",
+        "answer": "Please keep original packaging, accessories, gifts, and invoice to avoid affecting after-sales review."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #6",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #6",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_07",
+    "question": "退款多久到账？",
+    "answer": "退款审核通过后通常原路退回，到账时间取决于支付机构，一般为1到7个工作日。",
+    "category": "退换货",
+    "tags": [
+      "退款到账",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "When will my refund arrive?",
+        "answer": "After approval, refunds return to the original payment method, usually within 1 to 7 business days."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #7",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #7",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_08",
+    "question": "收到破损商品怎么办？",
+    "answer": "请在签收后尽快拍照留证，并在售后入口提交破损说明。",
+    "category": "退换货",
+    "tags": [
+      "破损处理",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if the item arrived damaged?",
+        "answer": "Take photos as soon as possible after receipt and submit the damage details through after-sales service."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #8",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #8",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_09",
+    "question": "可以只退订单中的一件商品吗？",
+    "answer": "支持部分商品售后，申请时选择需要退货的具体商品和数量。",
+    "category": "退换货",
+    "tags": [
+      "部分退货",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I return only one item from an order?",
+        "answer": "Partial returns are supported. Select the exact item and quantity when applying."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #9",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #9",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_returns_10",
+    "question": "退货审核被拒怎么办？",
+    "answer": "可查看拒绝原因并补充凭证重新提交，或联系人工客服复核。",
+    "category": "退换货",
+    "tags": [
+      "售后复核",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if my return request is rejected?",
+        "answer": "Check the rejection reason, add proof, resubmit, or contact support for manual review."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #10",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #10",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "cn_product_01",
+    "question": "如何确认商品是否适合我的设备？",
+    "answer": "请查看商品详情页的兼容型号、接口规格和使用场景，也可以提供设备型号给客服确认。",
+    "category": "产品咨询",
+    "tags": [
+      "兼容性",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I know whether a product fits my device?",
+        "answer": "Check compatible models, interface specs, and usage scenarios on the product page, or send your device model to support."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #1",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #1",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_02",
+    "question": "服装尺码怎么选？",
+    "answer": "建议参考尺码表中的肩宽、胸围、腰围和衣长，并结合平时穿着习惯选择。",
+    "category": "产品咨询",
+    "tags": [
+      "尺码",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How should I choose clothing size?",
+        "answer": "Refer to shoulder, chest, waist, and length measurements in the size chart and compare with your usual fit."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #2",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #2",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_03",
+    "question": "商品颜色会有色差吗？",
+    "answer": "因屏幕显示和拍摄光线不同，实物可能存在轻微色差，请以实物为准。",
+    "category": "产品咨询",
+    "tags": [
+      "颜色",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Will product colors differ from photos?",
+        "answer": "Slight color differences may occur because of screen settings and lighting. Please refer to the physical item."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #3",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #3",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_04",
+    "question": "电子产品保修多久？",
+    "answer": "大多数电子产品提供6到12个月保修，具体以商品详情页保修说明为准。",
+    "category": "产品咨询",
+    "tags": [
+      "保修",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long is the warranty for electronics?",
+        "answer": "Most electronics include 6 to 12 months of warranty. Please check the product detail page for exact terms."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #4",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #4",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_05",
+    "question": "美妆产品适合敏感肌吗？",
+    "answer": "敏感肌建议先查看成分表并进行局部测试，如有不适请停止使用。",
+    "category": "产品咨询",
+    "tags": [
+      "成分咨询",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Are beauty products suitable for sensitive skin?",
+        "answer": "Sensitive skin users should check ingredients and patch test first. Stop using if irritation occurs."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #5",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #5",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_06",
+    "question": "商品是否包含电池？",
+    "answer": "是否含电池会在规格参数中标注，跨境运输商品可能因航空规则不含电池。",
+    "category": "产品咨询",
+    "tags": [
+      "配件",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Does the item include batteries?",
+        "answer": "Battery inclusion is shown in specifications. Some cross-border products exclude batteries because of air shipping rules."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #6",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #6",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_07",
+    "question": "如何查看商品材质？",
+    "answer": "商品材质会在详情页规格、材质说明或包装信息中展示。",
+    "category": "产品咨询",
+    "tags": [
+      "材质",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Where can I find material information?",
+        "answer": "Material details appear in specifications, material notes, or package information on the product page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #7",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #7",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_08",
+    "question": "家居商品如何保养？",
+    "answer": "请参考商品页保养说明，通常建议避免暴晒、潮湿和强腐蚀清洁剂。",
+    "category": "产品咨询",
+    "tags": [
+      "保养",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I care for home products?",
+        "answer": "Follow the care instructions. In general, avoid direct sun, damp storage, and strong corrosive cleaners."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #8",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #8",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_09",
+    "question": "食品保质期多久？",
+    "answer": "食品保质期和生产批次会在商品详情或包装标签中展示。",
+    "category": "产品咨询",
+    "tags": [
+      "保质期",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "What is the shelf life of food products?",
+        "answer": "Shelf life and production batch are shown on the product page or package label."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #9",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #9",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_product_10",
+    "question": "可以批量采购吗？",
+    "answer": "支持批量采购咨询，可联系客服获取阶梯价、库存和发货方案。",
+    "category": "产品咨询",
+    "tags": [
+      "批发",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do you support bulk purchasing?",
+        "answer": "Bulk purchase inquiries are supported. Contact support for tiered pricing, stock, and shipping plans."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #10",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #10",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_01",
+    "question": "支持哪些支付方式？",
+    "answer": "通常支持银行卡、信用卡、电子钱包和部分本地支付方式，具体以结算页为准。",
+    "category": "支付",
+    "tags": [
+      "支付方式",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "What payment methods are supported?",
+        "answer": "Bank cards, credit cards, e-wallets, and some local payment methods are usually supported. Checkout shows the exact options."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #1",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #1",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_02",
+    "question": "支付失败怎么办？",
+    "answer": "请检查余额、限额、网络和银行风控提示，也可以更换支付方式重试。",
+    "category": "支付",
+    "tags": [
+      "支付失败",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if payment fails?",
+        "answer": "Check balance, payment limits, network, and bank risk-control messages, or try another payment method."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #2",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #2",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_03",
+    "question": "订单已扣款但显示未支付怎么办？",
+    "answer": "可能存在支付回调延迟，请等待10分钟；仍异常时联系客服核查流水。",
+    "category": "支付",
+    "tags": [
+      "支付同步",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "I was charged but the order is unpaid. What should I do?",
+        "answer": "Payment callbacks may be delayed. Wait 10 minutes; if it remains abnormal, contact support with the transaction record."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #3",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #3",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_04",
+    "question": "可以开发票吗？",
+    "answer": "支持的订单可在订单详情页申请发票，填写抬头和税号信息。",
+    "category": "支付",
+    "tags": [
+      "发票",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I request an invoice?",
+        "answer": "Eligible orders can request invoices from the order detail page by entering title and tax information."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #4",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #4",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_05",
+    "question": "优惠券为什么不能用？",
+    "answer": "优惠券需满足有效期、适用品类、最低消费和账号限制等条件。",
+    "category": "支付",
+    "tags": [
+      "优惠券",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Why cannot I use my coupon?",
+        "answer": "Coupons must meet validity, category, minimum spend, and account restrictions."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #5",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #5",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_06",
+    "question": "支付时汇率如何计算？",
+    "answer": "跨币种支付会按支付机构或银行实时汇率结算，页面会展示预估金额。",
+    "category": "支付",
+    "tags": [
+      "汇率",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is exchange rate calculated?",
+        "answer": "Cross-currency payments use the real-time rate from the payment provider or bank, with an estimated amount shown on the page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #6",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #6",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_07",
+    "question": "可以货到付款吗？",
+    "answer": "部分地区和商品支持货到付款，可用性会在结算页展示。",
+    "category": "支付",
+    "tags": [
+      "货到付款",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Is cash on delivery supported?",
+        "answer": "Some regions and products support cash on delivery. Availability appears at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #7",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #7",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_08",
+    "question": "取消订单后钱怎么退？",
+    "answer": "取消成功后款项会按原支付路径退回，实际到账以支付机构处理时间为准。",
+    "category": "支付",
+    "tags": [
+      "取消退款",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is money refunded after cancellation?",
+        "answer": "After successful cancellation, money is returned through the original payment channel according to provider processing time."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #8",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #8",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_09",
+    "question": "为什么需要支付验证？",
+    "answer": "支付验证用于保护账户安全，可能由银行、钱包或平台风控触发。",
+    "category": "支付",
+    "tags": [
+      "支付安全",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Why is payment verification required?",
+        "answer": "Payment verification protects account security and may be triggered by the bank, wallet, or platform risk controls."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #9",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #9",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_payment_10",
+    "question": "积分可以抵扣吗？",
+    "answer": "若订单满足积分规则，可在结算页选择可用积分进行抵扣。",
+    "category": "支付",
+    "tags": [
+      "积分",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can points be used as a discount?",
+        "answer": "If the order meets points rules, available points can be selected at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #10",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #10",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "cn_account_01",
+    "question": "如何注册账号？",
+    "answer": "可使用手机号、邮箱或第三方账号注册，并按提示完成验证。",
+    "category": "账号",
+    "tags": [
+      "注册",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I register an account?",
+        "answer": "You can register with a phone number, email, or third-party account and complete verification."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #1",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #1",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_02",
+    "question": "忘记密码怎么办？",
+    "answer": "在登录页选择忘记密码，通过邮箱或手机号验证码重置密码。",
+    "category": "账号",
+    "tags": [
+      "密码找回",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if I forgot my password?",
+        "answer": "Choose Forgot Password on the login page and reset it with email or SMS verification."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #2",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #2",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_03",
+    "question": "如何修改手机号？",
+    "answer": "进入账号安全设置，完成旧手机号或身份验证后即可绑定新手机号。",
+    "category": "账号",
+    "tags": [
+      "手机号",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I change my phone number?",
+        "answer": "Go to account security settings and verify your old phone number or identity before binding a new number."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #3",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #3",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_04",
+    "question": "账号被锁定怎么办？",
+    "answer": "账号因多次登录失败或安全风险可能被临时锁定，可按页面提示解锁或联系客服。",
+    "category": "账号",
+    "tags": [
+      "账号锁定",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if my account is locked?",
+        "answer": "Accounts may be temporarily locked after repeated failed logins or risk alerts. Follow page instructions or contact support."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #4",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #4",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_05",
+    "question": "如何注销账号？",
+    "answer": "在账号设置中提交注销申请，系统会提示未完成订单、余额和售后风险。",
+    "category": "账号",
+    "tags": [
+      "注销",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How can I delete my account?",
+        "answer": "Submit an account deletion request in settings. The system will remind you about unfinished orders, balance, and after-sales risks."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #5",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #5",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_06",
+    "question": "可以绑定多个店铺吗？",
+    "answer": "卖家账号可按平台规则绑定多个店铺，需完成授权和权限配置。",
+    "category": "账号",
+    "tags": [
+      "店铺绑定",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I bind multiple shops?",
+        "answer": "Seller accounts can bind multiple shops according to platform rules after authorization and permission setup."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #6",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #6",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_07",
+    "question": "如何开启两步验证？",
+    "answer": "进入账号安全页面，绑定邮箱、手机号或验证器应用后开启两步验证。",
+    "category": "账号",
+    "tags": [
+      "两步验证",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I enable two-step verification?",
+        "answer": "Open account security, bind email, phone, or authenticator app, and enable two-step verification."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #7",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #7",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_08",
+    "question": "收不到验证码怎么办？",
+    "answer": "请检查号码或邮箱是否正确、垃圾箱和短信拦截，也可稍后重试。",
+    "category": "账号",
+    "tags": [
+      "验证码",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if I cannot receive the verification code?",
+        "answer": "Check whether the phone or email is correct, inspect spam or SMS blocking, and try again later."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #8",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #8",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_09",
+    "question": "如何修改昵称和头像？",
+    "answer": "进入个人资料页面即可修改昵称、头像和基础资料。",
+    "category": "账号",
+    "tags": [
+      "资料修改",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I edit nickname and avatar?",
+        "answer": "Open your profile page to change nickname, avatar, and basic information."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #9",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #9",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "cn_account_10",
+    "question": "账号权限如何分配？",
+    "answer": "主账号可在成员管理中为子账号分配客服、运营、财务等角色权限。",
+    "category": "账号",
+    "tags": [
+      "权限",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How are account permissions assigned?",
+        "answer": "The main account can assign customer service, operations, finance, and other roles in member management."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #10",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #10",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  }
+]

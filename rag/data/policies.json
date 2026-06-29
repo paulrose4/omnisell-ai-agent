@@ -1,0 +1,77 @@
+[
+  {
+    "id": "shipping_policy",
+    "category": "物流",
+    "tags": [
+      "shipping",
+      "delivery",
+      "logistics"
+    ],
+    "content": {
+      "zh": "现货订单通常在1到2个工作日内发货。跨境订单会根据目的地、清关和承运商时效产生差异。用户可以在订单详情页查看物流轨迹、包裹拆分和预计送达时间。若物流超过48小时未更新，可提交订单号由客服协助核查。",
+      "en": "In-stock orders usually ship within 1 to 2 business days. Cross-border delivery varies by destination, customs clearance, and carrier performance. Customers can view tracking, split parcels, and estimated delivery time in order details.",
+      "th": "คำสั่งซื้อพร้อมส่งมักจัดส่งภายใน 1 ถึง 2 วันทำการ การจัดส่งข้ามประเทศขึ้นอยู่กับปลายทาง ศุลกากร และผู้ให้บริการขนส่ง",
+      "vi": "Đơn hàng có sẵn thường được gửi trong 1 đến 2 ngày làm việc. Giao hàng quốc tế phụ thuộc vào điểm đến, hải quan và đơn vị vận chuyển."
+    }
+  },
+  {
+    "id": "return_policy",
+    "category": "退换货",
+    "tags": [
+      "return",
+      "exchange",
+      "refund"
+    ],
+    "content": {
+      "zh": "普通商品在未使用、包装完整且不影响二次销售的情况下通常支持7天无理由退货。食品、美妆、贴身衣物和定制商品可能受特殊限制。质量问题请上传照片、视频或检测说明，审核通过后按原支付方式退款。",
+      "en": "Regular items usually support 7-day no-reason returns if unused, complete in packaging, and suitable for resale. Food, beauty, intimate apparel, and customized items may have special restrictions. Quality issues require photos, videos, or inspection notes.",
+      "th": "สินค้าทั่วไปสามารถคืนได้ภายใน 7 วันหากยังไม่ใช้งาน บรรจุภัณฑ์ครบ และไม่กระทบต่อการขายต่อ สินค้าบางประเภทมีข้อจำกัดพิเศษ",
+      "vi": "Sản phẩm thông thường có thể đổi trả trong 7 ngày nếu chưa sử dụng, còn nguyên bao bì và không ảnh hưởng đến việc bán lại. Một số nhóm hàng có hạn chế riêng."
+    }
+  },
+  {
+    "id": "payment_policy",
+    "category": "支付",
+    "tags": [
+      "payment",
+      "invoice",
+      "coupon"
+    ],
+    "content": {
+      "zh": "平台支持银行卡、信用卡、电子钱包和部分本地支付方式。优惠券、积分和跨币种汇率会在结算页展示。支付异常时，请保留支付流水号并等待系统同步；超过10分钟仍异常可联系客服核查。",
+      "en": "The platform supports bank cards, credit cards, e-wallets, and selected local payment methods. Coupons, points, and cross-currency exchange estimates are shown at checkout. Keep the transaction record if payment status is abnormal.",
+      "th": "แพลตฟอร์มรองรับบัตรธนาคาร บัตรเครดิต กระเป๋าเงินอิเล็กทรอนิกส์ และวิธีชำระเงินท้องถิ่นบางรายการ หากชำระเงินผิดปกติให้เก็บเลขธุรกรรมไว้",
+      "vi": "Nền tảng hỗ trợ thẻ ngân hàng, thẻ tín dụng, ví điện tử và một số phương thức địa phương. Nếu thanh toán bất thường, hãy giữ mã giao dịch để kiểm tra."
+    }
+  },
+  {
+    "id": "privacy_policy",
+    "category": "隐私",
+    "tags": [
+      "privacy",
+      "security",
+      "data"
+    ],
+    "content": {
+      "zh": "平台仅在订单履约、客服支持、支付风控和法律合规所需范围内处理用户数据。敏感信息会按权限控制访问，并采取加密、审计和最小化保留策略。用户可在账号设置中管理个人资料和授权。",
+      "en": "User data is processed only for order fulfillment, customer support, payment risk control, and legal compliance. Sensitive information is protected with access control, encryption, audit logs, and minimized retention.",
+      "th": "แพลตฟอร์มประมวลผลข้อมูลผู้ใช้เท่าที่จำเป็นสำหรับคำสั่งซื้อ การบริการลูกค้า ความปลอดภัยการชำระเงิน และข้อกำหนดทางกฎหมาย",
+      "vi": "Nền tảng chỉ xử lý dữ liệu người dùng khi cần cho hoàn tất đơn hàng, hỗ trợ khách hàng, kiểm soát rủi ro thanh toán và tuân thủ pháp luật."
+    }
+  },
+  {
+    "id": "account_policy",
+    "category": "账号",
+    "tags": [
+      "account",
+      "security",
+      "permission"
+    ],
+    "content": {
+      "zh": "用户应妥善保管账号、密码和验证码。卖家主账号可以创建子账号并分配客服、运营、财务等角色权限。若发现异常登录或权限滥用，应立即修改密码、开启两步验证并联系客服。",
+      "en": "Users should protect account credentials and verification codes. Seller main accounts can create subaccounts and assign service, operations, and finance roles. For suspicious login or permission abuse, reset password and enable two-step verification.",
+      "th": "ผู้ใช้ควรรักษาบัญชี รหัสผ่าน และรหัสยืนยันให้ปลอดภัย บัญชีผู้ขายหลักสามารถสร้างบัญชีย่อยและกำหนดสิทธิ์ตามบทบาทได้",
+      "vi": "Người dùng cần bảo vệ tài khoản, mật khẩu và mã xác minh. Tài khoản người bán chính có thể tạo tài khoản phụ và phân quyền theo vai trò."
+    }
+  }
+]

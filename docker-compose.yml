@@ -1,0 +1,50 @@
+﻿services:
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: omnisell-chromadb
+    environment:
+      ALLOW_RESET: "true"
+      IS_PERSISTENT: "true"
+    volumes:
+      - ./chroma_data:/chroma/chroma
+    ports:
+      - "8001:8000"
+    networks:
+      - omnisell-net
+
+  mock-platform:
+    build:
+      context: ./mock_platform
+    container_name: omnisell-mock-platform
+    volumes:
+      - ./mock_platform/data:/app/data
+    ports:
+      - "8002:8000"
+    networks:
+      - omnisell-net
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: omnisell-api
+    env_file:
+      - .env
+    environment:
+      VLLM_BASE_URL: http://host.docker.internal:11434/v1
+      VLLM_MODEL_NAME: qwen2.5:3b
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      MOCK_PLATFORM_URL: http://mock-platform:8000
+    ports:
+      - "8080:8000"
+    depends_on:
+      - chromadb
+      - mock-platform
+    networks:
+      - omnisell-net
+
+networks:
+  omnisell-net:
+    name: omnisell-net
+    driver: bridge

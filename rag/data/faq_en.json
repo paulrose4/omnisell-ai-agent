@@ -1,0 +1,1252 @@
+[
+  {
+    "id": "en_logistics_01",
+    "question": "How long does shipping take after I place an order?",
+    "answer": "In-stock items usually ship within 1 to 2 business days. Presale items show the estimated shipping date on the product page.",
+    "category": "Logistics",
+    "tags": [
+      "发货时效",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long does shipping take after I place an order?",
+        "answer": "In-stock items usually ship within 1 to 2 business days. Presale items show the estimated shipping date on the product page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #1",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #1",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_02",
+    "question": "How can I track my package?",
+    "answer": "After shipment, the order detail page shows the tracking number and latest carrier events.",
+    "category": "Logistics",
+    "tags": [
+      "物流追踪",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How can I track my package?",
+        "answer": "After shipment, the order detail page shows the tracking number and latest carrier events."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #2",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #2",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_03",
+    "question": "Do you support international shipping?",
+    "answer": "Some countries and regions are supported. Available shipping methods appear automatically at checkout.",
+    "category": "Logistics",
+    "tags": [
+      "跨境物流",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do you support international shipping?",
+        "answer": "Some countries and regions are supported. Available shipping methods appear automatically at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #3",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #3",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_04",
+    "question": "How is shipping fee calculated?",
+    "answer": "Shipping fee is calculated by destination, weight, parcel volume, and active promotions before payment.",
+    "category": "Logistics",
+    "tags": [
+      "运费",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is shipping fee calculated?",
+        "answer": "Shipping fee is calculated by destination, weight, parcel volume, and active promotions before payment."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #4",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #4",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_05",
+    "question": "The parcel says delivered but I did not receive it. What should I do?",
+    "answer": "Please check with family, reception, or pickup points first. If it is still missing, contact support for carrier investigation.",
+    "category": "Logistics",
+    "tags": [
+      "签收异常",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "The parcel says delivered but I did not receive it. What should I do?",
+        "answer": "Please check with family, reception, or pickup points first. If it is still missing, contact support for carrier investigation."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #5",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #5",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_06",
+    "question": "Can I change my shipping address?",
+    "answer": "You can usually request an address change before shipment. After shipment, it depends on carrier rules.",
+    "category": "Logistics",
+    "tags": [
+      "地址修改",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I change my shipping address?",
+        "answer": "You can usually request an address change before shipment. After shipment, it depends on carrier rules."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #6",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #6",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_07",
+    "question": "Can a package be intercepted after shipping?",
+    "answer": "Some logistics channels support interception, but success depends on parcel status and carrier policy.",
+    "category": "Logistics",
+    "tags": [
+      "物流拦截",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can a package be intercepted after shipping?",
+        "answer": "Some logistics channels support interception, but success depends on parcel status and carrier policy."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #7",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #7",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_08",
+    "question": "What if tracking has not updated for a long time?",
+    "answer": "If there is no update for more than 48 hours, submit the order number and support will check with the carrier.",
+    "category": "Logistics",
+    "tags": [
+      "物流异常",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if tracking has not updated for a long time?",
+        "answer": "If there is no update for more than 48 hours, submit the order number and support will check with the carrier."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #8",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #8",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_09",
+    "question": "Can I pick up the parcel at a pickup point?",
+    "answer": "Some regions support pickup points or convenience store pickup. You can select available services at checkout.",
+    "category": "Logistics",
+    "tags": [
+      "自提",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I pick up the parcel at a pickup point?",
+        "answer": "Some regions support pickup points or convenience store pickup. You can select available services at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #9",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #9",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_logistics_10",
+    "question": "Will multiple items ship together?",
+    "answer": "Items from the same warehouse usually ship together; different warehouses or presale items may ship separately.",
+    "category": "Logistics",
+    "tags": [
+      "分包裹",
+      "物流",
+      "Logistics"
+    ],
+    "languages": {
+      "en": {
+        "question": "Will multiple items ship together?",
+        "answer": "Items from the same warehouse usually ship together; different warehouses or presale items may ship separately."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการจัดส่ง #10",
+        "answer": "โดยทั่วไประบบจะแสดงสถานะและรายละเอียดการจัดส่งในหน้าคำสั่งซื้อ หากมีปัญหาโปรดติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về vận chuyển #10",
+        "answer": "Thông tin vận chuyển và trạng thái giao hàng sẽ hiển thị trong chi tiết đơn hàng. Nếu có bất thường, vui lòng liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_returns_01",
+    "question": "Which items support 7-day no-reason returns?",
+    "answer": "Unused regular items with complete packaging and resale condition usually support 7-day no-reason returns.",
+    "category": "Returns",
+    "tags": [
+      "退货政策",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Which items support 7-day no-reason returns?",
+        "answer": "Unused regular items with complete packaging and resale condition usually support 7-day no-reason returns."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #1",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #1",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_02",
+    "question": "How do I request a return?",
+    "answer": "Open the order detail page, choose after-sales service, enter the reason, upload proof, and submit.",
+    "category": "Returns",
+    "tags": [
+      "退货申请",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I request a return?",
+        "answer": "Open the order detail page, choose after-sales service, enter the reason, upload proof, and submit."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #2",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #2",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_03",
+    "question": "How long does an exchange take?",
+    "answer": "After the warehouse receives and checks the returned item, replacement shipment usually takes 2 to 3 business days.",
+    "category": "Returns",
+    "tags": [
+      "换货时效",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long does an exchange take?",
+        "answer": "After the warehouse receives and checks the returned item, replacement shipment usually takes 2 to 3 business days."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #3",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #3",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_04",
+    "question": "Who pays return shipping?",
+    "answer": "For quality issues, the platform or seller pays shipping. For non-quality reasons, buyers usually pay.",
+    "category": "Returns",
+    "tags": [
+      "退货运费",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Who pays return shipping?",
+        "answer": "For quality issues, the platform or seller pays shipping. For non-quality reasons, buyers usually pay."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #4",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #4",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_05",
+    "question": "Can food items be returned?",
+    "answer": "Opened food, fresh food, and short-dated items usually do not support no-reason returns unless there is a quality issue.",
+    "category": "Returns",
+    "tags": [
+      "食品售后",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can food items be returned?",
+        "answer": "Opened food, fresh food, and short-dated items usually do not support no-reason returns unless there is a quality issue."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #5",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #5",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_06",
+    "question": "Do I need to keep the original packaging?",
+    "answer": "Please keep original packaging, accessories, gifts, and invoice to avoid affecting after-sales review.",
+    "category": "Returns",
+    "tags": [
+      "包装要求",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do I need to keep the original packaging?",
+        "answer": "Please keep original packaging, accessories, gifts, and invoice to avoid affecting after-sales review."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #6",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #6",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_07",
+    "question": "When will my refund arrive?",
+    "answer": "After approval, refunds return to the original payment method, usually within 1 to 7 business days.",
+    "category": "Returns",
+    "tags": [
+      "退款到账",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "When will my refund arrive?",
+        "answer": "After approval, refunds return to the original payment method, usually within 1 to 7 business days."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #7",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #7",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_08",
+    "question": "What should I do if the item arrived damaged?",
+    "answer": "Take photos as soon as possible after receipt and submit the damage details through after-sales service.",
+    "category": "Returns",
+    "tags": [
+      "破损处理",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if the item arrived damaged?",
+        "answer": "Take photos as soon as possible after receipt and submit the damage details through after-sales service."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #8",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #8",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_09",
+    "question": "Can I return only one item from an order?",
+    "answer": "Partial returns are supported. Select the exact item and quantity when applying.",
+    "category": "Returns",
+    "tags": [
+      "部分退货",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I return only one item from an order?",
+        "answer": "Partial returns are supported. Select the exact item and quantity when applying."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #9",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #9",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_returns_10",
+    "question": "What if my return request is rejected?",
+    "answer": "Check the rejection reason, add proof, resubmit, or contact support for manual review.",
+    "category": "Returns",
+    "tags": [
+      "售后复核",
+      "退换货",
+      "Returns"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if my return request is rejected?",
+        "answer": "Check the rejection reason, add proof, resubmit, or contact support for manual review."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการคืนหรือเปลี่ยนสินค้า #10",
+        "answer": "สามารถส่งคำขอหลังการขายในหน้าคำสั่งซื้อ พร้อมเหตุผลและหลักฐานประกอบ"
+      },
+      "vi": {
+        "question": "Câu hỏi về đổi trả #10",
+        "answer": "Bạn có thể gửi yêu cầu hậu mãi trong chi tiết đơn hàng, kèm lý do và bằng chứng liên quan."
+      }
+    }
+  },
+  {
+    "id": "en_product_01",
+    "question": "How do I know whether a product fits my device?",
+    "answer": "Check compatible models, interface specs, and usage scenarios on the product page, or send your device model to support.",
+    "category": "Product",
+    "tags": [
+      "兼容性",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I know whether a product fits my device?",
+        "answer": "Check compatible models, interface specs, and usage scenarios on the product page, or send your device model to support."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #1",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #1",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_02",
+    "question": "How should I choose clothing size?",
+    "answer": "Refer to shoulder, chest, waist, and length measurements in the size chart and compare with your usual fit.",
+    "category": "Product",
+    "tags": [
+      "尺码",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How should I choose clothing size?",
+        "answer": "Refer to shoulder, chest, waist, and length measurements in the size chart and compare with your usual fit."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #2",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #2",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_03",
+    "question": "Will product colors differ from photos?",
+    "answer": "Slight color differences may occur because of screen settings and lighting. Please refer to the physical item.",
+    "category": "Product",
+    "tags": [
+      "颜色",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Will product colors differ from photos?",
+        "answer": "Slight color differences may occur because of screen settings and lighting. Please refer to the physical item."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #3",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #3",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_04",
+    "question": "How long is the warranty for electronics?",
+    "answer": "Most electronics include 6 to 12 months of warranty. Please check the product detail page for exact terms.",
+    "category": "Product",
+    "tags": [
+      "保修",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How long is the warranty for electronics?",
+        "answer": "Most electronics include 6 to 12 months of warranty. Please check the product detail page for exact terms."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #4",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #4",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_05",
+    "question": "Are beauty products suitable for sensitive skin?",
+    "answer": "Sensitive skin users should check ingredients and patch test first. Stop using if irritation occurs.",
+    "category": "Product",
+    "tags": [
+      "成分咨询",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Are beauty products suitable for sensitive skin?",
+        "answer": "Sensitive skin users should check ingredients and patch test first. Stop using if irritation occurs."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #5",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #5",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_06",
+    "question": "Does the item include batteries?",
+    "answer": "Battery inclusion is shown in specifications. Some cross-border products exclude batteries because of air shipping rules.",
+    "category": "Product",
+    "tags": [
+      "配件",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Does the item include batteries?",
+        "answer": "Battery inclusion is shown in specifications. Some cross-border products exclude batteries because of air shipping rules."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #6",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #6",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_07",
+    "question": "Where can I find material information?",
+    "answer": "Material details appear in specifications, material notes, or package information on the product page.",
+    "category": "Product",
+    "tags": [
+      "材质",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Where can I find material information?",
+        "answer": "Material details appear in specifications, material notes, or package information on the product page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #7",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #7",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_08",
+    "question": "How do I care for home products?",
+    "answer": "Follow the care instructions. In general, avoid direct sun, damp storage, and strong corrosive cleaners.",
+    "category": "Product",
+    "tags": [
+      "保养",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I care for home products?",
+        "answer": "Follow the care instructions. In general, avoid direct sun, damp storage, and strong corrosive cleaners."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #8",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #8",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_09",
+    "question": "What is the shelf life of food products?",
+    "answer": "Shelf life and production batch are shown on the product page or package label.",
+    "category": "Product",
+    "tags": [
+      "保质期",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "What is the shelf life of food products?",
+        "answer": "Shelf life and production batch are shown on the product page or package label."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #9",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #9",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_product_10",
+    "question": "Do you support bulk purchasing?",
+    "answer": "Bulk purchase inquiries are supported. Contact support for tiered pricing, stock, and shipping plans.",
+    "category": "Product",
+    "tags": [
+      "批发",
+      "产品咨询",
+      "Product"
+    ],
+    "languages": {
+      "en": {
+        "question": "Do you support bulk purchasing?",
+        "answer": "Bulk purchase inquiries are supported. Contact support for tiered pricing, stock, and shipping plans."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับสินค้า #10",
+        "answer": "โปรดตรวจสอบรายละเอียดสินค้า ขนาด วัสดุ และข้อมูลจำเพาะในหน้าสินค้า หรือติดต่อฝ่ายบริการลูกค้า"
+      },
+      "vi": {
+        "question": "Câu hỏi về sản phẩm #10",
+        "answer": "Vui lòng kiểm tra mô tả, kích thước, chất liệu và thông số trên trang sản phẩm hoặc liên hệ hỗ trợ."
+      }
+    }
+  },
+  {
+    "id": "en_payment_01",
+    "question": "What payment methods are supported?",
+    "answer": "Bank cards, credit cards, e-wallets, and some local payment methods are usually supported. Checkout shows the exact options.",
+    "category": "Payment",
+    "tags": [
+      "支付方式",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "What payment methods are supported?",
+        "answer": "Bank cards, credit cards, e-wallets, and some local payment methods are usually supported. Checkout shows the exact options."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #1",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #1",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_02",
+    "question": "What should I do if payment fails?",
+    "answer": "Check balance, payment limits, network, and bank risk-control messages, or try another payment method.",
+    "category": "Payment",
+    "tags": [
+      "支付失败",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if payment fails?",
+        "answer": "Check balance, payment limits, network, and bank risk-control messages, or try another payment method."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #2",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #2",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_03",
+    "question": "I was charged but the order is unpaid. What should I do?",
+    "answer": "Payment callbacks may be delayed. Wait 10 minutes; if it remains abnormal, contact support with the transaction record.",
+    "category": "Payment",
+    "tags": [
+      "支付同步",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "I was charged but the order is unpaid. What should I do?",
+        "answer": "Payment callbacks may be delayed. Wait 10 minutes; if it remains abnormal, contact support with the transaction record."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #3",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #3",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_04",
+    "question": "Can I request an invoice?",
+    "answer": "Eligible orders can request invoices from the order detail page by entering title and tax information.",
+    "category": "Payment",
+    "tags": [
+      "发票",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I request an invoice?",
+        "answer": "Eligible orders can request invoices from the order detail page by entering title and tax information."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #4",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #4",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_05",
+    "question": "Why cannot I use my coupon?",
+    "answer": "Coupons must meet validity, category, minimum spend, and account restrictions.",
+    "category": "Payment",
+    "tags": [
+      "优惠券",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Why cannot I use my coupon?",
+        "answer": "Coupons must meet validity, category, minimum spend, and account restrictions."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #5",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #5",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_06",
+    "question": "How is exchange rate calculated?",
+    "answer": "Cross-currency payments use the real-time rate from the payment provider or bank, with an estimated amount shown on the page.",
+    "category": "Payment",
+    "tags": [
+      "汇率",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is exchange rate calculated?",
+        "answer": "Cross-currency payments use the real-time rate from the payment provider or bank, with an estimated amount shown on the page."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #6",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #6",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_07",
+    "question": "Is cash on delivery supported?",
+    "answer": "Some regions and products support cash on delivery. Availability appears at checkout.",
+    "category": "Payment",
+    "tags": [
+      "货到付款",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Is cash on delivery supported?",
+        "answer": "Some regions and products support cash on delivery. Availability appears at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #7",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #7",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_08",
+    "question": "How is money refunded after cancellation?",
+    "answer": "After successful cancellation, money is returned through the original payment channel according to provider processing time.",
+    "category": "Payment",
+    "tags": [
+      "取消退款",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "How is money refunded after cancellation?",
+        "answer": "After successful cancellation, money is returned through the original payment channel according to provider processing time."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #8",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #8",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_09",
+    "question": "Why is payment verification required?",
+    "answer": "Payment verification protects account security and may be triggered by the bank, wallet, or platform risk controls.",
+    "category": "Payment",
+    "tags": [
+      "支付安全",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Why is payment verification required?",
+        "answer": "Payment verification protects account security and may be triggered by the bank, wallet, or platform risk controls."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #9",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #9",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_payment_10",
+    "question": "Can points be used as a discount?",
+    "answer": "If the order meets points rules, available points can be selected at checkout.",
+    "category": "Payment",
+    "tags": [
+      "积分",
+      "支付",
+      "Payment"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can points be used as a discount?",
+        "answer": "If the order meets points rules, available points can be selected at checkout."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับการชำระเงิน #10",
+        "answer": "โปรดตรวจสอบวิธีชำระเงิน ยอดเงิน จำกัดวงเงิน และสถานะคำสั่งซื้อในหน้าชำระเงิน"
+      },
+      "vi": {
+        "question": "Câu hỏi về thanh toán #10",
+        "answer": "Vui lòng kiểm tra phương thức thanh toán, số dư, hạn mức và trạng thái đơn hàng tại trang thanh toán."
+      }
+    }
+  },
+  {
+    "id": "en_account_01",
+    "question": "How do I register an account?",
+    "answer": "You can register with a phone number, email, or third-party account and complete verification.",
+    "category": "Account",
+    "tags": [
+      "注册",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I register an account?",
+        "answer": "You can register with a phone number, email, or third-party account and complete verification."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #1",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #1",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_02",
+    "question": "What if I forgot my password?",
+    "answer": "Choose Forgot Password on the login page and reset it with email or SMS verification.",
+    "category": "Account",
+    "tags": [
+      "密码找回",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if I forgot my password?",
+        "answer": "Choose Forgot Password on the login page and reset it with email or SMS verification."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #2",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #2",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_03",
+    "question": "How do I change my phone number?",
+    "answer": "Go to account security settings and verify your old phone number or identity before binding a new number.",
+    "category": "Account",
+    "tags": [
+      "手机号",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I change my phone number?",
+        "answer": "Go to account security settings and verify your old phone number or identity before binding a new number."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #3",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #3",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_04",
+    "question": "What should I do if my account is locked?",
+    "answer": "Accounts may be temporarily locked after repeated failed logins or risk alerts. Follow page instructions or contact support.",
+    "category": "Account",
+    "tags": [
+      "账号锁定",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "What should I do if my account is locked?",
+        "answer": "Accounts may be temporarily locked after repeated failed logins or risk alerts. Follow page instructions or contact support."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #4",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #4",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_05",
+    "question": "How can I delete my account?",
+    "answer": "Submit an account deletion request in settings. The system will remind you about unfinished orders, balance, and after-sales risks.",
+    "category": "Account",
+    "tags": [
+      "注销",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How can I delete my account?",
+        "answer": "Submit an account deletion request in settings. The system will remind you about unfinished orders, balance, and after-sales risks."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #5",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #5",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_06",
+    "question": "Can I bind multiple shops?",
+    "answer": "Seller accounts can bind multiple shops according to platform rules after authorization and permission setup.",
+    "category": "Account",
+    "tags": [
+      "店铺绑定",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "Can I bind multiple shops?",
+        "answer": "Seller accounts can bind multiple shops according to platform rules after authorization and permission setup."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #6",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #6",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_07",
+    "question": "How do I enable two-step verification?",
+    "answer": "Open account security, bind email, phone, or authenticator app, and enable two-step verification.",
+    "category": "Account",
+    "tags": [
+      "两步验证",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I enable two-step verification?",
+        "answer": "Open account security, bind email, phone, or authenticator app, and enable two-step verification."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #7",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #7",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_08",
+    "question": "What if I cannot receive the verification code?",
+    "answer": "Check whether the phone or email is correct, inspect spam or SMS blocking, and try again later.",
+    "category": "Account",
+    "tags": [
+      "验证码",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "What if I cannot receive the verification code?",
+        "answer": "Check whether the phone or email is correct, inspect spam or SMS blocking, and try again later."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #8",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #8",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_09",
+    "question": "How do I edit nickname and avatar?",
+    "answer": "Open your profile page to change nickname, avatar, and basic information.",
+    "category": "Account",
+    "tags": [
+      "资料修改",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How do I edit nickname and avatar?",
+        "answer": "Open your profile page to change nickname, avatar, and basic information."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #9",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #9",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  },
+  {
+    "id": "en_account_10",
+    "question": "How are account permissions assigned?",
+    "answer": "The main account can assign customer service, operations, finance, and other roles in member management.",
+    "category": "Account",
+    "tags": [
+      "权限",
+      "账号",
+      "Account"
+    ],
+    "languages": {
+      "en": {
+        "question": "How are account permissions assigned?",
+        "answer": "The main account can assign customer service, operations, finance, and other roles in member management."
+      },
+      "th": {
+        "question": "คำถามเกี่ยวกับบัญชี #10",
+        "answer": "สามารถจัดการข้อมูลบัญชี ความปลอดภัย และสิทธิ์การใช้งานได้ในหน้าตั้งค่าบัญชี"
+      },
+      "vi": {
+        "question": "Câu hỏi về tài khoản #10",
+        "answer": "Bạn có thể quản lý thông tin, bảo mật và quyền tài khoản trong phần cài đặt tài khoản."
+      }
+    }
+  }
+]

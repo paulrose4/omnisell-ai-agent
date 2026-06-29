@@ -1,0 +1,894 @@
+[
+  {
+    "product_id": "RAG-P1001",
+    "category": "Electronics",
+    "title_zh": "蓝牙降噪耳机",
+    "title_en": "Bluetooth ANC Earbuds",
+    "description_zh": "主动降噪和通透模式，适合通勤、会议和直播。",
+    "description_en": "Active noise cancellation and transparency mode for commuting, meetings, and streaming.",
+    "material_zh": "ABS 塑料与硅胶耳塞",
+    "material_en": "ABS plastic with silicone ear tips",
+    "sizes": [
+      "Standard"
+    ],
+    "care_zh": "保持充电盒干燥，避免高温和水洗。",
+    "care_en": "Keep the charging case dry and avoid heat or washing.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "12 months",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Electronics"
+    },
+    "tags": [
+      "audio",
+      "wireless",
+      "electronics"
+    ]
+  },
+  {
+    "product_id": "RAG-P1002",
+    "category": "Electronics",
+    "title_zh": "65W 氮化镓快充头",
+    "title_en": "65W GaN Fast Charger",
+    "description_zh": "三口快充，支持手机、平板和轻薄本。",
+    "description_en": "Three-port fast charger for phones, tablets, and ultrabooks.",
+    "material_zh": "阻燃 PC 外壳",
+    "material_en": "Flame-retardant PC shell",
+    "sizes": [
+      "US",
+      "EU"
+    ],
+    "care_zh": "避免覆盖散热孔，使用原装或认证线材。",
+    "care_en": "Do not cover vents; use original or certified cables.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "12 months",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Electronics"
+    },
+    "tags": [
+      "charger",
+      "gan",
+      "electronics"
+    ]
+  },
+  {
+    "product_id": "RAG-P1003",
+    "category": "Electronics",
+    "title_zh": "智能摄像头",
+    "title_en": "Smart Security Camera",
+    "description_zh": "1080P 画质，夜视和移动侦测，适合家庭看护。",
+    "description_en": "1080P video with night vision and motion detection for home monitoring.",
+    "material_zh": "ABS 外壳与玻璃镜头",
+    "material_en": "ABS shell and glass lens",
+    "sizes": [
+      "Standard"
+    ],
+    "care_zh": "定期擦拭镜头，避免长期户外暴晒。",
+    "care_en": "Clean lens regularly and avoid long-term outdoor exposure.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "12 months",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Electronics"
+    },
+    "tags": [
+      "camera",
+      "home-security",
+      "electronics"
+    ]
+  },
+  {
+    "product_id": "RAG-P1004",
+    "category": "Electronics",
+    "title_zh": "移动电源",
+    "title_en": "Power Bank",
+    "description_zh": "20000mAh 大容量，支持双向快充。",
+    "description_en": "20000mAh high capacity with two-way fast charging.",
+    "material_zh": "铝合金与锂聚合物电芯",
+    "material_en": "Aluminum alloy and lithium-polymer cells",
+    "sizes": [
+      "20000mAh"
+    ],
+    "care_zh": "远离潮湿环境，请勿挤压或拆解。",
+    "care_en": "Keep away from moisture; do not squeeze or disassemble.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "12 months",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Electronics"
+    },
+    "tags": [
+      "battery",
+      "travel",
+      "electronics"
+    ]
+  },
+  {
+    "product_id": "RAG-P1005",
+    "category": "Electronics",
+    "title_zh": "无线机械键盘",
+    "title_en": "Wireless Mechanical Keyboard",
+    "description_zh": "热插拔轴体和多设备蓝牙连接。",
+    "description_en": "Hot-swappable switches with multi-device Bluetooth connection.",
+    "material_zh": "PBT 键帽与铝合金定位板",
+    "material_en": "PBT keycaps and aluminum plate",
+    "sizes": [
+      "87-key",
+      "98-key"
+    ],
+    "care_zh": "使用软刷清洁键帽，避免饮料泼洒。",
+    "care_en": "Clean keycaps with a soft brush and avoid liquid spills.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "12 months",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Electronics"
+    },
+    "tags": [
+      "keyboard",
+      "office",
+      "electronics"
+    ]
+  },
+  {
+    "product_id": "RAG-P1006",
+    "category": "Electronics",
+    "title_zh": "人体工学鼠标",
+    "title_en": "Ergonomic Mouse",
+    "description_zh": "垂直握持设计，降低长时间办公疲劳。",
+    "description_en": "Vertical grip design reduces fatigue during long office sessions.",
+    "material_zh": "ABS 外壳与橡胶滚轮",
+    "material_en": "ABS shell and rubber wheel",
+    "sizes": [
+      "Standard"
+    ],
+    "care_zh": "保持传感器清洁，避免在玻璃表面使用。",
+    "care_en": "Keep sensor clean and avoid glass surfaces.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "12 months",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Electronics"
+    },
+    "tags": [
+      "mouse",
+      "ergonomic",
+      "electronics"
+    ]
+  },
+  {
+    "product_id": "RAG-P1007",
+    "category": "Home",
+    "title_zh": "可折叠收纳箱",
+    "title_en": "Foldable Storage Box",
+    "description_zh": "大容量布艺收纳，适合衣柜、宿舍和儿童房。",
+    "description_en": "Large fabric organizer for closets, dorms, and kids rooms.",
+    "material_zh": "牛津布与加厚纸板",
+    "material_en": "Oxford fabric with reinforced cardboard",
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "care_zh": "可用湿布擦拭，避免机洗和重压。",
+    "care_en": "Wipe with damp cloth; avoid machine washing and heavy pressure.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Home"
+    },
+    "tags": [
+      "storage",
+      "organizer",
+      "home"
+    ]
+  },
+  {
+    "product_id": "RAG-P1008",
+    "category": "Home",
+    "title_zh": "记忆棉护颈枕",
+    "title_en": "Memory Foam Neck Pillow",
+    "description_zh": "慢回弹支撑颈椎，适合午休和旅行。",
+    "description_en": "Slow-rebound support for naps and travel.",
+    "material_zh": "记忆棉内芯与亲肤针织布",
+    "material_en": "Memory foam core and soft knit cover",
+    "sizes": [
+      "Standard"
+    ],
+    "care_zh": "枕套可拆洗，内芯不可水洗。",
+    "care_en": "Cover is washable; foam core is not washable.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Home"
+    },
+    "tags": [
+      "pillow",
+      "travel",
+      "home"
+    ]
+  },
+  {
+    "product_id": "RAG-P1009",
+    "category": "Home",
+    "title_zh": "免手洗平板拖把",
+    "title_en": "Hands-Free Flat Mop",
+    "description_zh": "干湿两用，适合木地板和瓷砖。",
+    "description_en": "Wet and dry cleaning for wood floors and tiles.",
+    "material_zh": "不锈钢杆与超细纤维布",
+    "material_en": "Stainless steel pole and microfiber pad",
+    "sizes": [
+      "Standard"
+    ],
+    "care_zh": "拖布可手洗晾干，避免漂白剂。",
+    "care_en": "Wash pad by hand and air dry; avoid bleach.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Home"
+    },
+    "tags": [
+      "cleaning",
+      "mop",
+      "home"
+    ]
+  },
+  {
+    "product_id": "RAG-P1010",
+    "category": "Home",
+    "title_zh": "不锈钢保温杯",
+    "title_en": "Stainless Steel Tumbler",
+    "description_zh": "双层真空保温，适合咖啡、茶和冷饮。",
+    "description_en": "Double-wall vacuum insulation for coffee, tea, and cold drinks.",
+    "material_zh": "304 不锈钢与食品级 PP",
+    "material_en": "304 stainless steel and food-grade PP",
+    "sizes": [
+      "350ml",
+      "500ml"
+    ],
+    "care_zh": "首次使用前清洗，避免微波炉加热。",
+    "care_en": "Wash before first use; do not microwave.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Home"
+    },
+    "tags": [
+      "tumbler",
+      "drinkware",
+      "home"
+    ]
+  },
+  {
+    "product_id": "RAG-P1011",
+    "category": "Home",
+    "title_zh": "厨房调料架",
+    "title_en": "Kitchen Spice Rack",
+    "description_zh": "多层免打孔收纳，释放厨房台面空间。",
+    "description_en": "No-drill multi-tier storage that frees kitchen counter space.",
+    "material_zh": "碳钢喷涂",
+    "material_en": "Powder-coated carbon steel",
+    "sizes": [
+      "2-tier",
+      "3-tier"
+    ],
+    "care_zh": "用干布清洁，避免长期浸水。",
+    "care_en": "Clean with dry cloth and avoid soaking.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Home"
+    },
+    "tags": [
+      "kitchen",
+      "rack",
+      "home"
+    ]
+  },
+  {
+    "product_id": "RAG-P1012",
+    "category": "Home",
+    "title_zh": "速干浴巾套装",
+    "title_en": "Quick-Dry Towel Set",
+    "description_zh": "柔软吸水，三件套家庭装。",
+    "description_en": "Soft absorbent three-piece family towel set.",
+    "material_zh": "超细纤维",
+    "material_en": "Microfiber",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "care_zh": "低温机洗，避免柔顺剂影响吸水性。",
+    "care_en": "Machine wash cold; avoid fabric softener.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Home"
+    },
+    "tags": [
+      "towel",
+      "bath",
+      "home"
+    ]
+  },
+  {
+    "product_id": "RAG-P1013",
+    "category": "Apparel",
+    "title_zh": "纯棉基础T恤",
+    "title_en": "Cotton Basic T-Shirt",
+    "description_zh": "亲肤透气，男女同款，适合日常穿搭。",
+    "description_en": "Breathable unisex cotton tee for daily outfits.",
+    "material_zh": "100% 棉",
+    "material_en": "100% cotton",
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "care_zh": "反面冷水机洗，低温熨烫。",
+    "care_en": "Machine wash cold inside out; iron low.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Apparel"
+    },
+    "tags": [
+      "tshirt",
+      "cotton",
+      "apparel"
+    ]
+  },
+  {
+    "product_id": "RAG-P1014",
+    "category": "Apparel",
+    "title_zh": "防晒外套",
+    "title_en": "Sun Protection Jacket",
+    "description_zh": "轻薄防晒，适合夏季通勤和户外。",
+    "description_en": "Lightweight sun protection for commuting and outdoor use.",
+    "material_zh": "锦纶与氨纶",
+    "material_en": "Nylon and spandex",
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "care_zh": "冷水手洗，避免烘干。",
+    "care_en": "Hand wash cold and avoid tumble drying.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Apparel"
+    },
+    "tags": [
+      "jacket",
+      "upf",
+      "apparel"
+    ]
+  },
+  {
+    "product_id": "RAG-P1015",
+    "category": "Apparel",
+    "title_zh": "高腰直筒牛仔裤",
+    "title_en": "High-Waist Straight Jeans",
+    "description_zh": "经典直筒版型，修饰腿型。",
+    "description_en": "Classic straight fit that flatters the legs.",
+    "material_zh": "棉混纺牛仔布",
+    "material_en": "Cotton-blend denim",
+    "sizes": [
+      "26",
+      "27",
+      "28",
+      "29",
+      "30"
+    ],
+    "care_zh": "深浅色分开洗，避免长时间暴晒。",
+    "care_en": "Wash dark and light colors separately; avoid prolonged sun.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Apparel"
+    },
+    "tags": [
+      "jeans",
+      "denim",
+      "apparel"
+    ]
+  },
+  {
+    "product_id": "RAG-P1016",
+    "category": "Apparel",
+    "title_zh": "碎花连衣裙",
+    "title_en": "Floral Midi Dress",
+    "description_zh": "轻盈雪纺面料，适合度假和约会。",
+    "description_en": "Light chiffon dress for vacation and dates.",
+    "material_zh": "聚酯纤维雪纺",
+    "material_en": "Polyester chiffon",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "care_zh": "建议手洗或装洗衣袋轻柔机洗。",
+    "care_en": "Hand wash or gentle machine wash in laundry bag.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Apparel"
+    },
+    "tags": [
+      "dress",
+      "floral",
+      "apparel"
+    ]
+  },
+  {
+    "product_id": "RAG-P1017",
+    "category": "Apparel",
+    "title_zh": "轻量运动鞋",
+    "title_en": "Lightweight Sneakers",
+    "description_zh": "缓震鞋底，适合步行和轻运动。",
+    "description_en": "Cushioned sole for walking and light exercise.",
+    "material_zh": "飞织鞋面与 EVA 中底",
+    "material_en": "Knit upper and EVA midsole",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43"
+    ],
+    "care_zh": "用软刷清洁，阴凉处晾干。",
+    "care_en": "Clean with soft brush and dry in shade.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Apparel"
+    },
+    "tags": [
+      "shoes",
+      "running",
+      "apparel"
+    ]
+  },
+  {
+    "product_id": "RAG-P1018",
+    "category": "Apparel",
+    "title_zh": "防泼水双肩包",
+    "title_en": "Water-Resistant Backpack",
+    "description_zh": "多隔层设计，可放15寸笔记本。",
+    "description_en": "Multi-compartment design fits a 15-inch laptop.",
+    "material_zh": "防泼水聚酯纤维",
+    "material_en": "Water-resistant polyester",
+    "sizes": [
+      "20L",
+      "28L"
+    ],
+    "care_zh": "局部擦洗，避免机洗。",
+    "care_en": "Spot clean only; avoid machine washing.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Apparel"
+    },
+    "tags": [
+      "backpack",
+      "travel",
+      "apparel"
+    ]
+  },
+  {
+    "product_id": "RAG-P1019",
+    "category": "Beauty",
+    "title_zh": "玻尿酸保湿精华",
+    "title_en": "Hyaluronic Acid Serum",
+    "description_zh": "清爽补水，适合日常护肤打底。",
+    "description_en": "Light hydration for daily skincare layering.",
+    "material_zh": "玻尿酸、甘油、水",
+    "material_en": "Hyaluronic acid, glycerin, water",
+    "sizes": [
+      "30ml"
+    ],
+    "care_zh": "避光保存，开封后建议6个月内用完。",
+    "care_en": "Store away from light; use within 6 months after opening.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Beauty"
+    },
+    "tags": [
+      "serum",
+      "hydration",
+      "beauty"
+    ]
+  },
+  {
+    "product_id": "RAG-P1020",
+    "category": "Beauty",
+    "title_zh": "补水面膜",
+    "title_en": "Hydrating Sheet Masks",
+    "description_zh": "十片装面膜，适合熬夜后补水。",
+    "description_en": "Ten-pack sheet masks for hydration after late nights.",
+    "material_zh": "无纺布膜布与保湿精华",
+    "material_en": "Nonwoven sheet and hydrating essence",
+    "sizes": [
+      "10pcs"
+    ],
+    "care_zh": "置于阴凉处，使用后无需重复使用膜布。",
+    "care_en": "Store cool; do not reuse sheets.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Beauty"
+    },
+    "tags": [
+      "mask",
+      "skincare",
+      "beauty"
+    ]
+  },
+  {
+    "product_id": "RAG-P1021",
+    "category": "Beauty",
+    "title_zh": "丝绒哑光口红",
+    "title_en": "Velvet Matte Lipstick",
+    "description_zh": "显色持久，哑光不易拔干。",
+    "description_en": "Long-lasting rich color with comfortable matte finish.",
+    "material_zh": "蜡基、植物油和色粉",
+    "material_en": "Wax base, plant oil, pigments",
+    "sizes": [
+      "3.5g"
+    ],
+    "care_zh": "避免高温，使用后盖紧。",
+    "care_en": "Avoid heat and close cap tightly.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Beauty"
+    },
+    "tags": [
+      "lipstick",
+      "makeup",
+      "beauty"
+    ]
+  },
+  {
+    "product_id": "RAG-P1022",
+    "category": "Beauty",
+    "title_zh": "清透防晒乳",
+    "title_en": "Lightweight Sunscreen SPF50",
+    "description_zh": "不泛白，适合通勤和户外。",
+    "description_en": "No white cast, suitable for commuting and outdoor use.",
+    "material_zh": "防晒剂、保湿剂",
+    "material_en": "UV filters and moisturizers",
+    "sizes": [
+      "50ml"
+    ],
+    "care_zh": "出门前15分钟涂抹，户外需补涂。",
+    "care_en": "Apply 15 minutes before going out and reapply outdoors.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Beauty"
+    },
+    "tags": [
+      "sunscreen",
+      "spf",
+      "beauty"
+    ]
+  },
+  {
+    "product_id": "RAG-P1023",
+    "category": "Beauty",
+    "title_zh": "氨基酸洁面乳",
+    "title_en": "Amino Acid Cleanser",
+    "description_zh": "温和清洁，洗后不紧绷。",
+    "description_en": "Gentle cleansing without tightness.",
+    "material_zh": "氨基酸表活与保湿成分",
+    "material_en": "Amino acid surfactants and moisturizers",
+    "sizes": [
+      "120g"
+    ],
+    "care_zh": "早晚取适量使用，避开眼周。",
+    "care_en": "Use morning and night; avoid eye area.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Beauty"
+    },
+    "tags": [
+      "cleanser",
+      "face",
+      "beauty"
+    ]
+  },
+  {
+    "product_id": "RAG-P1024",
+    "category": "Beauty",
+    "title_zh": "化妆刷套装",
+    "title_en": "Makeup Brush Set",
+    "description_zh": "12支刷具，覆盖底妆、眼妆和修容。",
+    "description_en": "Twelve brushes for base, eye, and contour makeup.",
+    "material_zh": "人造纤维刷毛与木柄",
+    "material_en": "Synthetic bristles and wooden handle",
+    "sizes": [
+      "12pcs"
+    ],
+    "care_zh": "定期清洗刷毛并自然晾干。",
+    "care_en": "Wash bristles regularly and air dry.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Beauty"
+    },
+    "tags": [
+      "brush",
+      "makeup",
+      "beauty"
+    ]
+  },
+  {
+    "product_id": "RAG-P1025",
+    "category": "Food",
+    "title_zh": "茉莉花茶礼盒",
+    "title_en": "Jasmine Tea Gift Box",
+    "description_zh": "清香耐泡，适合办公室和送礼。",
+    "description_en": "Fragrant long-lasting tea for office use and gifting.",
+    "material_zh": "茉莉绿茶",
+    "material_en": "Jasmine green tea",
+    "sizes": [
+      "120g"
+    ],
+    "care_zh": "密封避光防潮保存。",
+    "care_en": "Seal and store away from light and moisture.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "tea",
+      "gift",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1026",
+    "category": "Food",
+    "title_zh": "每日坚果混合装",
+    "title_en": "Daily Mixed Nuts Pack",
+    "description_zh": "独立小包装，包含腰果、杏仁和蔓越莓。",
+    "description_en": "Individual packs with cashews, almonds, and cranberries.",
+    "material_zh": "坚果与果干",
+    "material_en": "Nuts and dried fruit",
+    "sizes": [
+      "25g x 30"
+    ],
+    "care_zh": "置于阴凉干燥处，开袋即食。",
+    "care_en": "Store cool and dry; eat after opening.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "snack",
+      "nuts",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1027",
+    "category": "Food",
+    "title_zh": "冷萃咖啡液",
+    "title_en": "Cold Brew Coffee Concentrate",
+    "description_zh": "低酸顺滑，加水或牛奶即可饮用。",
+    "description_en": "Smooth low-acid concentrate for water or milk.",
+    "material_zh": "咖啡萃取液",
+    "material_en": "Coffee concentrate",
+    "sizes": [
+      "30ml x 10"
+    ],
+    "care_zh": "冷藏口感更佳，开封后尽快饮用。",
+    "care_en": "Best chilled; consume soon after opening.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "coffee",
+      "drink",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1028",
+    "category": "Food",
+    "title_zh": "海苔脆片",
+    "title_en": "Crispy Seaweed Snack",
+    "description_zh": "低卡香脆，适合儿童和成人。",
+    "description_en": "Low-calorie crispy snack for kids and adults.",
+    "material_zh": "海苔、植物油、调味料",
+    "material_en": "Seaweed, vegetable oil, seasoning",
+    "sizes": [
+      "40g"
+    ],
+    "care_zh": "避免受潮，开封后密封保存。",
+    "care_en": "Keep dry and reseal after opening.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "snack",
+      "seaweed",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1029",
+    "category": "Food",
+    "title_zh": "天然蜂蜜",
+    "title_en": "Natural Wildflower Honey",
+    "description_zh": "花香浓郁，适合冲饮和烘焙。",
+    "description_en": "Floral honey for drinks and baking.",
+    "material_zh": "天然蜂蜜",
+    "material_en": "Natural honey",
+    "sizes": [
+      "500g"
+    ],
+    "care_zh": "常温密封保存，结晶属正常现象。",
+    "care_en": "Store sealed at room temperature; crystallization is normal.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "honey",
+      "baking",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1030",
+    "category": "Food",
+    "title_zh": "黄油曲奇礼盒",
+    "title_en": "Butter Cookie Gift Tin",
+    "description_zh": "酥松奶香，节日送礼热门款。",
+    "description_en": "Buttery crisp cookies in a popular gift tin.",
+    "material_zh": "小麦粉、黄油、糖",
+    "material_en": "Wheat flour, butter, sugar",
+    "sizes": [
+      "400g"
+    ],
+    "care_zh": "置于阴凉干燥处，开封后尽快食用。",
+    "care_en": "Store cool and dry; consume soon after opening.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "cookie",
+      "gift",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1031",
+    "category": "Food",
+    "title_zh": "即食燕麦片",
+    "title_en": "Instant Rolled Oats",
+    "description_zh": "早餐代餐，高纤维低糖。",
+    "description_en": "High-fiber low-sugar breakfast option.",
+    "material_zh": "燕麦片",
+    "material_en": "Rolled oats",
+    "sizes": [
+      "800g"
+    ],
+    "care_zh": "密封防潮，可用热水或牛奶冲泡。",
+    "care_en": "Seal against moisture; prepare with hot water or milk.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "oats",
+      "breakfast",
+      "food"
+    ]
+  },
+  {
+    "product_id": "RAG-P1032",
+    "category": "Food",
+    "title_zh": "低脂沙拉酱",
+    "title_en": "Low-Fat Salad Dressing",
+    "description_zh": "清爽酸甜，适合轻食和三明治。",
+    "description_en": "Refreshing sweet-sour dressing for salads and sandwiches.",
+    "material_zh": "植物油、醋、香辛料",
+    "material_en": "Vegetable oil, vinegar, spices",
+    "sizes": [
+      "250ml"
+    ],
+    "care_zh": "开封后冷藏，并在建议期限内食用。",
+    "care_en": "Refrigerate after opening and consume within the recommended period.",
+    "specs": {
+      "brand": "OmniSell Select",
+      "warranty": "After-sales policy applies",
+      "origin": "China",
+      "package_includes": "Product, user guide, standard packaging",
+      "recommended_for": "Food"
+    },
+    "tags": [
+      "dressing",
+      "salad",
+      "food"
+    ]
+  }
+]

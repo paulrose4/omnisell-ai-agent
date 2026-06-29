@@ -1,0 +1,624 @@
+[
+  {
+    "order_id": "O20260601001",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_001",
+      "name": "Alice Tan",
+      "country": "SG"
+    },
+    "status": "UNPAID",
+    "payment_status": "PENDING",
+    "items": [
+      {
+        "product_id": "P1001",
+        "sku": "ELEC-ANC-001",
+        "title": "蓝牙降噪耳机 / Bluetooth ANC Earbuds",
+        "quantity": 1,
+        "unit_price": 49.99
+      }
+    ],
+    "total_amount": 49.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": null,
+      "tracking_no": null,
+      "address": "10 Orchard Road, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-01T10:00:00Z",
+    "updated_at": "2026-06-01T10:00:00Z"
+  },
+  {
+    "order_id": "O20260601002",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_002",
+      "name": "Ben Lim",
+      "country": "SG"
+    },
+    "status": "READY_TO_SHIP",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P1002",
+        "sku": "ELEC-CHG-002",
+        "title": "65W 氮化镓快充头 / 65W GaN Fast Charger",
+        "quantity": 2,
+        "unit_price": 32.5
+      }
+    ],
+    "total_amount": 65.0,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": null,
+      "address": "22 Marina Boulevard, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-01T10:30:00Z",
+    "updated_at": "2026-06-01T11:00:00Z"
+  },
+  {
+    "order_id": "O20260601003",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_003",
+      "name": "Chloe Wong",
+      "country": "MY"
+    },
+    "status": "SHIPPED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P2001",
+        "sku": "HOME-ORG-001",
+        "title": "可折叠收纳箱 / Foldable Storage Box",
+        "quantity": 3,
+        "unit_price": 12.99
+      }
+    ],
+    "total_amount": 38.97,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "J&T",
+      "tracking_no": "JT2606010003",
+      "address": "Kuala Lumpur City Centre"
+    },
+    "return_request": null,
+    "created_at": "2026-06-01T12:15:00Z",
+    "updated_at": "2026-06-02T08:00:00Z"
+  },
+  {
+    "order_id": "O20260601004",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_004",
+      "name": "Daniel Lee",
+      "country": "PH"
+    },
+    "status": "COMPLETED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P3001",
+        "sku": "APP-TEE-001",
+        "title": "纯棉基础 T 恤 / Cotton Basic T-Shirt",
+        "quantity": 4,
+        "unit_price": 9.99
+      }
+    ],
+    "total_amount": 39.96,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "Ninja Van",
+      "tracking_no": "NV2606010004",
+      "address": "Makati, Metro Manila"
+    },
+    "return_request": null,
+    "created_at": "2026-06-01T13:05:00Z",
+    "updated_at": "2026-06-05T09:45:00Z"
+  },
+  {
+    "order_id": "O20260601005",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_005",
+      "name": "Emily Chen",
+      "country": "SG"
+    },
+    "status": "CANCELLED",
+    "payment_status": "CANCELLED",
+    "items": [
+      {
+        "product_id": "P4003",
+        "sku": "BEAU-LIP-003",
+        "title": "丝绒哑光口红 / Velvet Matte Lipstick",
+        "quantity": 1,
+        "unit_price": 10.5
+      }
+    ],
+    "total_amount": 10.5,
+    "currency": "USD",
+    "shipping": {
+      "carrier": null,
+      "tracking_no": null,
+      "address": "Tampines, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-01T14:20:00Z",
+    "updated_at": "2026-06-01T15:10:00Z"
+  },
+  {
+    "order_id": "O20260602001",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_006",
+      "name": "Farah Noor",
+      "country": "MY"
+    },
+    "status": "RETURN_REQUESTED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P3005",
+        "sku": "APP-SNK-005",
+        "title": "轻量运动鞋 / Lightweight Running Sneakers",
+        "quantity": 1,
+        "unit_price": 39.99
+      }
+    ],
+    "total_amount": 39.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "J&T",
+      "tracking_no": "JT2606020001",
+      "address": "Petaling Jaya, Selangor"
+    },
+    "return_request": {
+      "return_id": "R20260602001",
+      "reason": "Size mismatch",
+      "status": "PENDING",
+      "requested_at": "2026-06-06T09:20:00Z"
+    },
+    "created_at": "2026-06-02T09:05:00Z",
+    "updated_at": "2026-06-06T09:20:00Z"
+  },
+  {
+    "order_id": "O20260602002",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_007",
+      "name": "Grace Ho",
+      "country": "SG"
+    },
+    "status": "RETURN_APPROVED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P2004",
+        "sku": "HOME-RUG-004",
+        "title": "北欧风地毯 / Nordic Style Area Rug",
+        "quantity": 1,
+        "unit_price": 36.8
+      }
+    ],
+    "total_amount": 36.8,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606020002",
+      "address": "Clementi, Singapore"
+    },
+    "return_request": {
+      "return_id": "R20260602002",
+      "reason": "Changed mind",
+      "status": "APPROVED",
+      "requested_at": "2026-06-06T11:20:00Z",
+      "approved_at": "2026-06-06T12:00:00Z"
+    },
+    "created_at": "2026-06-02T10:40:00Z",
+    "updated_at": "2026-06-06T12:00:00Z"
+  },
+  {
+    "order_id": "O20260602003",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_008",
+      "name": "Hana Sato",
+      "country": "SG"
+    },
+    "status": "REFUNDED",
+    "payment_status": "REFUNDED",
+    "items": [
+      {
+        "product_id": "P4002",
+        "sku": "BEAU-MSK-002",
+        "title": "补水面膜 10 片装 / Hydrating Sheet Masks 10-Pack",
+        "quantity": 2,
+        "unit_price": 12.99
+      }
+    ],
+    "total_amount": 25.98,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606020003",
+      "address": "Bukit Timah, Singapore"
+    },
+    "return_request": {
+      "return_id": "R20260602003",
+      "reason": "Damaged package",
+      "status": "REFUNDED",
+      "requested_at": "2026-06-05T08:30:00Z",
+      "approved_at": "2026-06-05T09:00:00Z"
+    },
+    "created_at": "2026-06-02T11:25:00Z",
+    "updated_at": "2026-06-07T10:00:00Z"
+  },
+  {
+    "order_id": "O20260602004",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_009",
+      "name": "Ivan Ng",
+      "country": "SG"
+    },
+    "status": "READY_TO_SHIP",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P5002",
+        "sku": "FOOD-NUT-002",
+        "title": "每日坚果混合装 / Daily Mixed Nuts Pack",
+        "quantity": 1,
+        "unit_price": 23.5
+      }
+    ],
+    "total_amount": 23.5,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": null,
+      "address": "Jurong East, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-02T13:10:00Z",
+    "updated_at": "2026-06-02T13:15:00Z"
+  },
+  {
+    "order_id": "O20260603001",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_010",
+      "name": "Jasmine Ong",
+      "country": "SG"
+    },
+    "status": "SHIPPED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P1008",
+        "sku": "ELEC-HUB-008",
+        "title": "Type-C 多功能扩展坞 / USB-C Multiport Hub",
+        "quantity": 1,
+        "unit_price": 35.99
+      }
+    ],
+    "total_amount": 35.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606030001",
+      "address": "Punggol, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-03T09:10:00Z",
+    "updated_at": "2026-06-03T18:00:00Z"
+  },
+  {
+    "order_id": "O20260603002",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_011",
+      "name": "Kai Pereira",
+      "country": "PH"
+    },
+    "status": "COMPLETED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P5001",
+        "sku": "FOOD-TEA-001",
+        "title": "茉莉花茶礼盒 / Jasmine Tea Gift Box",
+        "quantity": 1,
+        "unit_price": 19.99
+      }
+    ],
+    "total_amount": 19.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "Ninja Van",
+      "tracking_no": "NV2606030002",
+      "address": "Quezon City, Metro Manila"
+    },
+    "return_request": null,
+    "created_at": "2026-06-03T10:30:00Z",
+    "updated_at": "2026-06-08T09:00:00Z"
+  },
+  {
+    "order_id": "O20260603003",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_012",
+      "name": "Lina Rahman",
+      "country": "MY"
+    },
+    "status": "UNPAID",
+    "payment_status": "PENDING",
+    "items": [
+      {
+        "product_id": "P4010",
+        "sku": "BEAU-BRS-010",
+        "title": "柔软化妆刷套装 / Soft Makeup Brush Set",
+        "quantity": 1,
+        "unit_price": 18.99
+      }
+    ],
+    "total_amount": 18.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": null,
+      "tracking_no": null,
+      "address": "Johor Bahru, Johor"
+    },
+    "return_request": null,
+    "created_at": "2026-06-03T11:45:00Z",
+    "updated_at": "2026-06-03T11:45:00Z"
+  },
+  {
+    "order_id": "O20260603004",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_013",
+      "name": "Maya Teo",
+      "country": "SG"
+    },
+    "status": "READY_TO_SHIP",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P2005",
+        "sku": "HOME-BTL-005",
+        "title": "不锈钢保温杯 / Stainless Steel Tumbler",
+        "quantity": 2,
+        "unit_price": 15.99
+      }
+    ],
+    "total_amount": 31.98,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": null,
+      "address": "Serangoon, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-03T14:00:00Z",
+    "updated_at": "2026-06-03T14:10:00Z"
+  },
+  {
+    "order_id": "O20260604001",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_014",
+      "name": "Noah Koh",
+      "country": "SG"
+    },
+    "status": "SHIPPED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P3008",
+        "sku": "APP-BAG-008",
+        "title": "防泼水双肩包 / Water-Resistant Backpack",
+        "quantity": 1,
+        "unit_price": 34.99
+      }
+    ],
+    "total_amount": 34.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606040001",
+      "address": "Woodlands, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-04T08:40:00Z",
+    "updated_at": "2026-06-04T16:00:00Z"
+  },
+  {
+    "order_id": "O20260604002",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_015",
+      "name": "Olivia Goh",
+      "country": "SG"
+    },
+    "status": "COMPLETED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P5006",
+        "sku": "FOOD-CKI-006",
+        "title": "黄油曲奇礼盒 / Butter Cookie Gift Tin",
+        "quantity": 2,
+        "unit_price": 17.99
+      }
+    ],
+    "total_amount": 35.98,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606040002",
+      "address": "Yishun, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-04T09:30:00Z",
+    "updated_at": "2026-06-09T09:30:00Z"
+  },
+  {
+    "order_id": "O20260604003",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_016",
+      "name": "Priya Nair",
+      "country": "SG"
+    },
+    "status": "RETURN_REQUESTED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P4006",
+        "sku": "BEAU-CRM-006",
+        "title": "修护面霜 / Barrier Repair Cream",
+        "quantity": 1,
+        "unit_price": 19.9
+      }
+    ],
+    "total_amount": 19.9,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606040003",
+      "address": "Ang Mo Kio, Singapore"
+    },
+    "return_request": {
+      "return_id": "R20260604003",
+      "reason": "Allergic reaction",
+      "status": "PENDING",
+      "requested_at": "2026-06-10T12:00:00Z"
+    },
+    "created_at": "2026-06-04T10:45:00Z",
+    "updated_at": "2026-06-10T12:00:00Z"
+  },
+  {
+    "order_id": "O20260605001",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_017",
+      "name": "Qian Yu",
+      "country": "SG"
+    },
+    "status": "CANCELLED",
+    "payment_status": "CANCELLED",
+    "items": [
+      {
+        "product_id": "P1004",
+        "sku": "ELEC-PB-004",
+        "title": "20000mAh 移动电源 / 20000mAh Power Bank",
+        "quantity": 1,
+        "unit_price": 28.99
+      }
+    ],
+    "total_amount": 28.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": null,
+      "tracking_no": null,
+      "address": "Sengkang, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-05T08:00:00Z",
+    "updated_at": "2026-06-05T08:15:00Z"
+  },
+  {
+    "order_id": "O20260605002",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_018",
+      "name": "Ryan Yap",
+      "country": "MY"
+    },
+    "status": "READY_TO_SHIP",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P5007",
+        "sku": "FOOD-NDL-007",
+        "title": "日式拉面套装 / Japanese Ramen Kit",
+        "quantity": 3,
+        "unit_price": 13.99
+      }
+    ],
+    "total_amount": 41.97,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "J&T",
+      "tracking_no": null,
+      "address": "Penang, Malaysia"
+    },
+    "return_request": null,
+    "created_at": "2026-06-05T09:25:00Z",
+    "updated_at": "2026-06-05T09:40:00Z"
+  },
+  {
+    "order_id": "O20260605003",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_019",
+      "name": "Sofia Reyes",
+      "country": "PH"
+    },
+    "status": "UNPAID",
+    "payment_status": "PENDING",
+    "items": [
+      {
+        "product_id": "P2009",
+        "sku": "HOME-BIN-009",
+        "title": "智能感应垃圾桶 / Motion Sensor Trash Bin",
+        "quantity": 1,
+        "unit_price": 29.99
+      }
+    ],
+    "total_amount": 29.99,
+    "currency": "USD",
+    "shipping": {
+      "carrier": null,
+      "tracking_no": null,
+      "address": "Cebu City, Philippines"
+    },
+    "return_request": null,
+    "created_at": "2026-06-05T10:50:00Z",
+    "updated_at": "2026-06-05T10:50:00Z"
+  },
+  {
+    "order_id": "O20260605004",
+    "seller_id": "seller_001",
+    "buyer": {
+      "buyer_id": "buyer_020",
+      "name": "Terry Low",
+      "country": "SG"
+    },
+    "status": "COMPLETED",
+    "payment_status": "PAID",
+    "items": [
+      {
+        "product_id": "P1009",
+        "sku": "ELEC-SPK-009",
+        "title": "便携蓝牙音箱 / Portable Bluetooth Speaker",
+        "quantity": 1,
+        "unit_price": 27.49
+      }
+    ],
+    "total_amount": 27.49,
+    "currency": "USD",
+    "shipping": {
+      "carrier": "SPX",
+      "tracking_no": "SPX2606050004",
+      "address": "Hougang, Singapore"
+    },
+    "return_request": null,
+    "created_at": "2026-06-05T13:30:00Z",
+    "updated_at": "2026-06-11T10:00:00Z"
+  }
+]
