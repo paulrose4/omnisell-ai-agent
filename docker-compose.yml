@@ -33,9 +33,15 @@
     environment:
       VLLM_BASE_URL: http://host.docker.internal:11434/v1
       VLLM_MODEL_NAME: qwen2.5:3b
+      VISION_BASE_URL: http://host.docker.internal:11434
+      VISION_MODEL_NAME: llava:7b
+      VISION_TIMEOUT_SECONDS: "180"
+      VISION_MAX_IMAGE_BYTES: "8388608"
       CHROMA_HOST: chromadb
       CHROMA_PORT: "8000"
       MOCK_PLATFORM_URL: http://mock-platform:8000
+      TEXT_QUEUE_WORKERS: "2"
+      VISION_QUEUE_WORKERS: "1"
     ports:
       - "8080:8000"
     depends_on:

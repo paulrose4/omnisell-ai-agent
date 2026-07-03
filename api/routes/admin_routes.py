@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from agents import base as agent_base
@@ -27,8 +28,11 @@ async def health(request: Request) -> dict[str, Any]:
         "service": "omnisell-api",
         "team_ready": hasattr(request.app.state, "team"),
         "oauth_client_ready": hasattr(request.app.state, "oauth_client"),
+        "task_queue_ready": hasattr(request.app.state, "task_queue"),
+        "rag_service_ready": hasattr(request.app.state, "rag_service"),
         "pending_approvals": len(request.app.state.hitl_manager.get_pending()) if hasattr(request.app.state, "hitl_manager") else 0,
         "price_recommendations": len(getattr(request.app.state, "price_recommendations", [])),
+        "queue_lengths": request.app.state.task_queue.queue_lengths() if hasattr(request.app.state, "task_queue") else {},
     }
 
 
@@ -111,3 +115,28 @@ async def reset_circuit_breaker(name: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": f"Circuit breaker not found: {name}"})
     breaker.reset()
     return {"name": name, "state": breaker.state.value, "failure_count": breaker.failure_count}
+
+
+@protected_router.get("/metrics")
+async def get_metrics(request: Request) -> dict[str, Any]:
+    """Return JSON operational metrics for queues, requests, and tasks."""
+    return await request.app.state.metrics.snapshot(queue_lengths=request.app.state.task_queue.queue_lengths())
+
+
+@protected_router.get("/metrics/prometheus", response_class=PlainTextResponse)
+async def get_prometheus_metrics(request: Request) -> str:
+    """Return a Prometheus-friendly text snapshot."""
+    metrics = await request.app.state.metrics.snapshot(queue_lengths=request.app.state.task_queue.queue_lengths())
+    lines = [
+        f"omnisell_requests_total {metrics['requests_total']}",
+        f"omnisell_requests_failed_total {metrics['requests_failed']}",
+        f"omnisell_request_avg_latency_ms {metrics['request_avg_latency_ms']}",
+        f"omnisell_tasks_total {metrics['tasks_total']}",
+        f"omnisell_tasks_succeeded_total {metrics['tasks_succeeded']}",
+        f"omnisell_tasks_failed_total {metrics['tasks_failed']}",
+    ]
+    for queue_name, size in metrics["queue_lengths"].items():
+        lines.append(f'omnisell_queue_length{{queue="{queue_name}"}} {size}')
+    for action, latency in metrics["task_avg_latency_ms_by_action"].items():
+        lines.append(f'omnisell_task_avg_latency_ms{{action="{action}"}} {latency}')
+    return "\n".join(lines) + "\n"

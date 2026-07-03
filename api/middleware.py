@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 from collections import defaultdict, deque
 from collections.abc import Callable
 from typing import Awaitable
@@ -38,3 +39,40 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
         hits.append(now)
         return await call_next(request)
+
+
+class RequestTelemetryMiddleware(BaseHTTPMiddleware):
+    """Attach request IDs, collect latency metrics, and emit structured audit logs."""
+
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request.state.request_id = request_id
+        started = time.perf_counter()
+        response: Response | None = None
+        try:
+            response = await call_next(request)
+            return response
+        finally:
+            latency_ms = round((time.perf_counter() - started) * 1000, 2)
+            status_code = response.status_code if response is not None else 500
+            if response is not None:
+                response.headers["X-Request-ID"] = request_id
+                response.headers["X-Response-Time-MS"] = str(latency_ms)
+            metrics = getattr(request.app.state, "metrics", None)
+            if metrics is not None:
+                await metrics.record_request(path=request.url.path, status_code=status_code, latency_ms=latency_ms)
+            audit_logger = getattr(request.app.state, "audit_logger", None)
+            if audit_logger is not None:
+                audit_logger.log_operation(
+                    action="api_request",
+                    status="success" if status_code < 500 else "failure",
+                    details={
+                        "request_id": request_id,
+                        "method": request.method,
+                        "path": request.url.path,
+                        "status_code": status_code,
+                        "latency_ms": latency_ms,
+                    },
+                    actor="api",
+                    risk_level="low",
+                )

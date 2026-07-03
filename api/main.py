@@ -10,9 +10,11 @@ from fastapi.responses import JSONResponse
 from agents import base as agent_base
 from agents.group_chat import create_omnisell_team
 from api.config import Settings, get_settings
-from api.middleware import RateLimiterMiddleware
+from api.middleware import RateLimiterMiddleware, RequestTelemetryMiddleware
 from api.oauth_client import OAuthClient
-from api.routes import admin_routes, customer_routes, price_routes, product_routes
+from api.rag_service import RAGService
+from api.routes import admin_routes, customer_routes, price_routes, product_routes, rag_routes, task_routes
+from api.task_queue import InMemoryTaskQueue, MetricsRegistry
 from safety.audit import AuditLogger
 from safety.hitl import HITLManager
 
@@ -28,6 +30,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.state.settings = resolved_settings
     app.state.price_recommendations = []
+    app.state.metrics = MetricsRegistry()
+    app.state.task_queue = InMemoryTaskQueue(
+        metrics=app.state.metrics,
+        workers={"text": resolved_settings.text_queue_workers, "vision": resolved_settings.vision_queue_workers},
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -37,6 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(RateLimiterMiddleware, requests_per_minute=resolved_settings.rate_limit_per_minute)
+    app.add_middleware(RequestTelemetryMiddleware)
 
     @app.on_event("startup")
     async def startup() -> None:
@@ -48,6 +56,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.audit_logger = audit_logger
         app.state.hitl_manager = hitl_manager
         app.state.oauth_client = OAuthClient(resolved_settings)
+        app.state.rag_service = RAGService()
+        await app.state.task_queue.start()
         llm_config = agent_base.create_llm_config(
             base_url=resolved_settings.vllm_base_url,
             model_name=resolved_settings.vllm_model_name,
@@ -61,10 +71,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "environment": resolved_settings.environment,
                 "mock_platform_url": resolved_settings.mock_platform_url,
                 "chroma": f"{resolved_settings.chroma_host}:{resolved_settings.chroma_port}",
+                "queue_workers": {"text": resolved_settings.text_queue_workers, "vision": resolved_settings.vision_queue_workers},
             },
             actor="api",
             risk_level="low",
         )
+
+    @app.on_event("shutdown")
+    async def shutdown() -> None:
+        await app.state.task_queue.shutdown()
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
@@ -101,6 +116,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(product_routes.router)
     app.include_router(customer_routes.router)
     app.include_router(price_routes.router)
+    app.include_router(task_routes.router)
+    app.include_router(rag_routes.router)
     return app
 
 

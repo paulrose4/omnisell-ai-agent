@@ -12,10 +12,12 @@ try:
     from .base import create_assistant_agent, create_llm_config, register_tools
     from .tools.rag_tool import answer_customer_question, search_knowledge_base
     from .tools.translator import detect_and_translate, translate_text
+    from .tools.vision_tool import analyze_customer_image, answer_visual_customer_question
 except ImportError:
     from base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
     from tools.rag_tool import answer_customer_question, search_knowledge_base  # type: ignore[no-redef]
     from tools.translator import detect_and_translate, translate_text  # type: ignore[no-redef]
+    from tools.vision_tool import analyze_customer_image, answer_visual_customer_question  # type: ignore[no-redef]
 
 
 CS_AGENT_SYSTEM_PROMPT = """你是 OmniSell 的 24 小时智能客服 Agent，负责多语言售前售后问答。
@@ -52,6 +54,8 @@ def create_cs_agent(llm_config: dict[str, Any] | None = None, executor: Any | No
                 answer_customer_question,
                 translate_text,
                 detect_and_translate,
+                analyze_customer_image,
+                answer_visual_customer_question,
             ],
         )
 
