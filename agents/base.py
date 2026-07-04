@@ -25,6 +25,8 @@ try:
     from safety.audit import AuditLogger
     from safety.circuit_breaker import CircuitBreaker
     from safety.hitl import ApprovalRequiredError, ApprovalStatus, HITLManager, RiskLevel
+    from safety.refund_gate import RefundGate
+    from safety.tool_auth import ToolPermissionValidator
 except Exception:
     AuditLogger = None  # type: ignore[assignment]
     CircuitBreaker = None  # type: ignore[assignment]
@@ -32,6 +34,8 @@ except Exception:
     ApprovalRequiredError = RuntimeError  # type: ignore[assignment]
     ApprovalStatus = None  # type: ignore[assignment]
     RiskLevel = None  # type: ignore[assignment]
+    RefundGate = None  # type: ignore[assignment]
+    ToolPermissionValidator = None  # type: ignore[assignment]
 
 
 _AUDIT_LOGGER: Any | None = None
@@ -123,16 +127,30 @@ def safe_tool_execution(
     hitl_manager: Any | None = None,
     audit_logger: Any | None = None,
     circuit_breaker: Any | None = None,
+    permission_validator: Any | None = None,
+    refund_gate: Any | None = None,
     wait_for_approval: bool = False,
     approval_poll_interval: float = 1.0,
     approval_wait_timeout: float = 30.0,
 ) -> Callable[..., Any]:
-    """Wrap a tool with risk assessment, HITL, circuit breaker protection, and audit logging."""
+    """Wrap a tool with auth checks, HITL, circuit breaker protection, and audit logging."""
 
     def decorator(tool: Callable[..., Any]) -> Callable[..., Any]:
         manager = hitl_manager or get_hitl_manager()
         logger = audit_logger or get_audit_logger()
         breaker = circuit_breaker or get_circuit_breaker(tool.__name__)
+        gate = refund_gate
+        if gate is None:
+            if RefundGate is None:
+                raise RuntimeError("safety.refund_gate.RefundGate is unavailable.")
+            gate = RefundGate(audit_logger=logger)
+        validator = permission_validator
+        if validator is None:
+            if ToolPermissionValidator is None:
+                raise RuntimeError("safety.tool_auth.ToolPermissionValidator is unavailable.")
+            validator = ToolPermissionValidator(audit_logger=logger)
+        if hasattr(validator, "register_tool"):
+            validator.register_tool(tool)
         signature = inspect.signature(tool)
 
         async def _prepare_or_block(payload: dict[str, Any]) -> Any:
@@ -170,6 +188,8 @@ def safe_tool_execution(
             @wraps(tool)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 payload = _build_tool_payload(tool, args, kwargs)
+                validator.validate(tool.__name__, payload)
+                gate.enforce(tool.__name__, payload)
                 request = await _prepare_or_block(payload)
                 try:
                     result = await breaker.acall(tool, *args, **kwargs)
@@ -197,6 +217,8 @@ def safe_tool_execution(
         @wraps(tool)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             payload = _build_tool_payload(tool, args, kwargs)
+            validator.validate(tool.__name__, payload)
+            gate.enforce(tool.__name__, payload)
             request = _prepare_or_block_sync(payload)
             try:
                 result = breaker.call(tool, *args, **kwargs)

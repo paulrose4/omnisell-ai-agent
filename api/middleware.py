@@ -10,6 +10,8 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
+from .security import bind_tool_caller_context, unbind_tool_caller_context
+
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """Simple in-memory IP rate limiter."""
@@ -47,12 +49,14 @@ class RequestTelemetryMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request.state.request_id = request_id
+        tool_context_token = bind_tool_caller_context(request)
         started = time.perf_counter()
         response: Response | None = None
         try:
             response = await call_next(request)
             return response
         finally:
+            unbind_tool_caller_context(tool_context_token)
             latency_ms = round((time.perf_counter() - started) * 1000, 2)
             status_code = response.status_code if response is not None else 500
             if response is not None:

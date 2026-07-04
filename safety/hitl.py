@@ -9,8 +9,10 @@ from typing import Any
 
 try:
     from .audit import AuditLogger
+    from .refund_gate import RefundGate
 except ImportError:
     from audit import AuditLogger  # type: ignore[no-redef]
+    from refund_gate import RefundGate  # type: ignore[no-redef]
 
 
 class RiskLevel(str, Enum):
@@ -79,6 +81,9 @@ class HITLManager:
         """Assess risk level for an action and payload."""
         payload = payload or {}
         action_lower = action.lower()
+        refund_risk, refund_reason = RefundGate(self.audit_logger).check_refund_risk(action, payload)
+        if refund_risk:
+            return RiskLevel.CRITICAL, f"{refund_reason}; refund operations require locked human approval."
 
         if payload.get("risk_level") in {item.value for item in RiskLevel}:
             level = RiskLevel(str(payload["risk_level"]))
@@ -129,9 +134,14 @@ class HITLManager:
             assessed_reason = reason or f"Explicit risk_level={assessed_level.value}."
 
         created_at = datetime.now(UTC)
-        timeout_hours = 48 if assessed_level == RiskLevel.CRITICAL else 24
+        refund_risk, refund_reason = RefundGate(self.audit_logger).check_refund_risk(action, payload)
+        if refund_risk:
+            assessed_level = RiskLevel.CRITICAL
+            assessed_reason = f"{refund_reason}; refund operations require locked human approval."
+
+        timeout_hours = 72 if refund_risk else 48 if assessed_level == RiskLevel.CRITICAL else 24
         status = ApprovalStatus.PENDING
-        requires_second_verification = assessed_level == RiskLevel.CRITICAL
+        requires_second_verification = refund_risk or assessed_level == RiskLevel.CRITICAL
         if assessed_level in {RiskLevel.LOW, RiskLevel.MEDIUM}:
             status = ApprovalStatus.AUTO_APPROVED
 

@@ -17,6 +17,7 @@ from api.routes import admin_routes, customer_routes, price_routes, product_rout
 from api.task_queue import InMemoryTaskQueue, MetricsRegistry
 from safety.audit import AuditLogger
 from safety.hitl import HITLManager
+from safety.tool_auth import PermissionDeniedError
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -99,6 +100,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "path": request.url.path,
             },
         )
+
+    @app.exception_handler(PermissionDeniedError)
+    async def permission_denied_exception_handler(request: Request, exc: PermissionDeniedError) -> JSONResponse:
+        content = exc.to_response()
+        content.setdefault("path", request.url.path)
+        return JSONResponse(status_code=exc.status_code, content=content)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
