@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
@@ -201,7 +201,8 @@ def test_safe_tool_execution_supports_async_tools(tmp_path: Path) -> None:
         """Read orders."""
         return {"page_size": page_size}
 
-    result = asyncio.run(get_order_list(page_size=7))
+    # The decorated wrapper is sync; call it directly
+    result = get_order_list(page_size=7)
 
     assert result == {"page_size": 7}
     assert logger.query(action="get_order_list", status="success")

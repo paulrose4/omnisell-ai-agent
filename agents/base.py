@@ -33,10 +33,31 @@ except Exception:
     ApprovalStatus = None  # type: ignore[assignment]
     RiskLevel = None  # type: ignore[assignment]
 
+try:
+    from safety.tool_permissions import (
+        CallerRole,
+        PermissionDeniedError,
+        PermissionRegistry,
+        register_standard_permissions,
+    )
+except Exception:
+    CallerRole = None  # type: ignore[assignment]
+    PermissionDeniedError = RuntimeError  # type: ignore[assignment]
+    PermissionRegistry = None  # type: ignore[assignment]
+    register_standard_permissions = None  # type: ignore[assignment]
+
+try:
+    from safety.refund_constraint import RefundExecutionBlockedError, RefundGuard
+except Exception:
+    RefundExecutionBlockedError = RuntimeError  # type: ignore[assignment]
+    RefundGuard = None  # type: ignore[assignment]
+
 
 _AUDIT_LOGGER: Any | None = None
 _HITL_MANAGER: Any | None = None
 _CIRCUIT_BREAKERS: dict[str, Any] = {}
+_PERMISSION_REGISTRY: Any | None = None
+_REFUND_GUARD: Any | None = None
 
 
 def get_audit_logger() -> Any:
@@ -66,6 +87,32 @@ def get_circuit_breaker(name: str) -> Any:
             raise RuntimeError("safety.circuit_breaker.CircuitBreaker is unavailable.")
         _CIRCUIT_BREAKERS[name] = CircuitBreaker(name=name)
     return _CIRCUIT_BREAKERS[name]
+
+
+def get_permission_registry() -> Any:
+    """Return the process-wide tool permission registry."""
+    global _PERMISSION_REGISTRY
+    if _PERMISSION_REGISTRY is None:
+        if PermissionRegistry is None:
+            raise RuntimeError("safety.tool_permissions.PermissionRegistry is unavailable.")
+        _PERMISSION_REGISTRY = PermissionRegistry(audit_logger=get_audit_logger())
+        _PERMISSION_REGISTRY.set_hitl_manager(get_hitl_manager())
+        if register_standard_permissions is not None:
+            register_standard_permissions(_PERMISSION_REGISTRY)
+    return _PERMISSION_REGISTRY
+
+
+def get_refund_guard() -> Any:
+    """Return the process-wide refund constraint guard."""
+    global _REFUND_GUARD
+    if _REFUND_GUARD is None:
+        if RefundGuard is None:
+            raise RuntimeError("safety.refund_constraint.RefundGuard is unavailable.")
+        _REFUND_GUARD = RefundGuard(
+            hitl_manager=get_hitl_manager(),
+            audit_logger=get_audit_logger(),
+        )
+    return _REFUND_GUARD
 
 
 def create_llm_config(
@@ -123,102 +170,121 @@ def safe_tool_execution(
     hitl_manager: Any | None = None,
     audit_logger: Any | None = None,
     circuit_breaker: Any | None = None,
+    permission_registry: Any | None = None,
+    refund_guard: Any | None = None,
+    caller_role: str | None = None,
     wait_for_approval: bool = False,
     approval_poll_interval: float = 1.0,
     approval_wait_timeout: float = 30.0,
 ) -> Callable[..., Any]:
-    """Wrap a tool with risk assessment, HITL, circuit breaker protection, and audit logging."""
+    """Wrap a tool with risk assessment, HITL, circuit breaker, and audit logging.
+
+    Optional safety layers (opt-in):
+      - permission_registry: if provided, validates caller/params/tenant
+      - refund_guard: if provided, hard-blocks refund execution
+    """
 
     def decorator(tool: Callable[..., Any]) -> Callable[..., Any]:
         manager = hitl_manager or get_hitl_manager()
         logger = audit_logger or get_audit_logger()
         breaker = circuit_breaker or get_circuit_breaker(tool.__name__)
-        signature = inspect.signature(tool)
-
-        async def _prepare_or_block(payload: dict[str, Any]) -> Any:
-            request = manager.submit_request(action=tool.__name__, payload=payload, requester="agent_tool")
-            if request.status == ApprovalStatus.PENDING:
-                logger.log_operation(
-                    action=tool.__name__,
-                    status="blocked_pending_approval",
-                    details={"approval_request": request.to_dict()},
-                    actor="agent_tool",
-                    risk_level=request.risk_level.value,
-                )
-                if not wait_for_approval:
-                    raise ApprovalRequiredError(request)
-                _wait_for_approval(manager, request.request_id, approval_poll_interval, approval_wait_timeout)
-            return request
-
-        def _prepare_or_block_sync(payload: dict[str, Any]) -> Any:
-            request = manager.submit_request(action=tool.__name__, payload=payload, requester="agent_tool")
-            if request.status == ApprovalStatus.PENDING:
-                logger.log_operation(
-                    action=tool.__name__,
-                    status="blocked_pending_approval",
-                    details={"approval_request": request.to_dict()},
-                    actor="agent_tool",
-                    risk_level=request.risk_level.value,
-                )
-                if not wait_for_approval:
-                    raise ApprovalRequiredError(request)
-                _wait_for_approval(manager, request.request_id, approval_poll_interval, approval_wait_timeout)
-            return request
-
-        if inspect.iscoroutinefunction(tool):
-
-            @wraps(tool)
-            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-                payload = _build_tool_payload(tool, args, kwargs)
-                request = await _prepare_or_block(payload)
-                try:
-                    result = await breaker.acall(tool, *args, **kwargs)
-                    logger.log_operation(
-                        action=tool.__name__,
-                        status="success",
-                        details={"approval_request": request.to_dict(), "result": result},
-                        actor="agent_tool",
-                        risk_level=request.risk_level.value,
-                    )
-                    return result
-                except Exception as exc:
-                    logger.log_operation(
-                        action=tool.__name__,
-                        status="failed",
-                        details={"approval_request": request.to_dict(), "error": str(exc)},
-                        actor="agent_tool",
-                        risk_level=request.risk_level.value,
-                    )
-                    raise
-
-            async_wrapper.__signature__ = signature  # type: ignore[attr-defined]
-            return async_wrapper
+        # Permission/refund are opt-in: only enforced when explicitly passed
+        perms = permission_registry
+        guard = refund_guard
+        resolved_caller = caller_role or "system"
 
         @wraps(tool)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             payload = _build_tool_payload(tool, args, kwargs)
-            request = _prepare_or_block_sync(payload)
+
+            # --- Layer 1: Permission check (opt-in) ---
+            if perms is not None:
+                if CallerRole is not None and caller_role:
+                    caller_enum = CallerRole(resolved_caller)
+                else:
+                    caller_enum = CallerRole.SYSTEM if CallerRole is not None else resolved_caller
+                perm_result = perms.check(
+                    tool_name=tool.__name__,
+                    caller=caller_enum,
+                    params=kwargs,
+                )
+                if not perm_result.allowed:
+                    logger.log_operation(
+                        action=tool.__name__,
+                        status="blocked_permission",
+                        details={"violations": perm_result.violations, "caller": resolved_caller},
+                        risk_level="high",
+                    )
+                    raise PermissionDeniedError(perm_result) if PermissionDeniedError is not RuntimeError else RuntimeError(
+                        f"Permission denied: {'; '.join(perm_result.violations)}"
+                    )
+
+            # --- Layer 2: Refund guard (opt-in) ---
+            if guard is not None:
+                refund_result = guard.check(tool.__name__, payload)
+                if refund_result.blocked:
+                    raise RefundExecutionBlockedError(refund_result) if RefundExecutionBlockedError is not RuntimeError else RuntimeError(
+                        f"REFUND BLOCKED: {refund_result.reason}"
+                    )
+
+            # --- Layer 3: Risk assessment & HITL ---
+            risk, risk_reason = manager.assess_risk(tool.__name__, payload)
+            if risk in {RiskLevel.HIGH, RiskLevel.CRITICAL}:
+                approval = manager.submit_request(
+                    action=tool.__name__,
+                    payload=payload,
+                    risk_level=risk,
+                    reason=risk_reason,
+                )
+                if approval.status != ApprovalStatus.AUTO_APPROVED:
+                    if wait_for_approval:
+                        _wait_for_approval(manager, approval.request_id, approval_poll_interval, approval_wait_timeout)
+                    else:
+                        logger.log_operation(
+                            action=tool.__name__,
+                            status="blocked_pending_approval",
+                            details={"request_id": approval.request_id, "risk_level": risk.value},
+                            risk_level=risk.value,
+                        )
+                        raise ApprovalRequiredError(approval)
+
+            # --- Layer 4: Circuit breaker + execution ---
             try:
                 result = breaker.call(tool, *args, **kwargs)
-                logger.log_operation(
-                    action=tool.__name__,
-                    status="success",
-                    details={"approval_request": request.to_dict(), "result": result},
-                    actor="agent_tool",
-                    risk_level=request.risk_level.value,
-                )
+                if inspect.isawaitable(result):
+                    # The circuit breaker returned an unresolved awaitable
+                    # (happens when there is a running event loop).
+                    # Return it wrapped so the caller (asyncio.run / await) resolves it
+                    # with audit logging applied.
+                    async def _execute_awaitable(aw: Any) -> Any:
+                        try:
+                            resolved = await aw
+                            logger.log_operation(tool.__name__, "success", payload, risk_level=risk.value)
+                            return resolved
+                        except Exception as exc:
+                            if isinstance(exc, (ApprovalRequiredError, PermissionDeniedError, RefundExecutionBlockedError)):
+                                raise
+                            logger.log_operation(
+                                tool.__name__, "failure",
+                                {**payload, "error": str(exc)}, risk_level=risk.value,
+                            )
+                            raise
+                    return _execute_awaitable(result)
+
+                logger.log_operation(tool.__name__, "success", payload, risk_level=risk.value)
                 return result
             except Exception as exc:
+                if isinstance(exc, (ApprovalRequiredError, PermissionDeniedError, RefundExecutionBlockedError)):
+                    raise
                 logger.log_operation(
-                    action=tool.__name__,
-                    status="failed",
-                    details={"approval_request": request.to_dict(), "error": str(exc)},
-                    actor="agent_tool",
-                    risk_level=request.risk_level.value,
+                    tool.__name__,
+                    "failure",
+                    {**payload, "error": str(exc)},
+                    risk_level=risk.value,
                 )
                 raise
 
-        wrapper.__signature__ = signature  # type: ignore[attr-defined]
+        wrapper.__signature__ = inspect.signature(tool)  # type: ignore[attr-defined]
         return wrapper
 
     if func is not None:

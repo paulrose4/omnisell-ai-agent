@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -17,9 +17,13 @@ except ImportError:
     from tools.platform_api import get_product_detail, get_product_price, update_product  # type: ignore[no-redef]
     from tools.price_scraper import fetch_competitor_prices, generate_price_recommendation  # type: ignore[no-redef]
 
+try:
+    from safety.refund_constraint import AGENT_REFUND_CONSTRAINT_PROMPT
+except ImportError:
+    AGENT_REFUND_CONSTRAINT_PROMPT = ""
+
 
 PRICE_AGENT_SYSTEM_PROMPT = """你是 OmniSell 的风控 Agent，负责竞品价格监控、价格建议和操作审批。
-
 HITL 人工介入规则：
 1. 建议价格变动幅度 < 5%：可自动执行，但仍需记录原因、竞品价格和计算依据。
 2. 建议价格变动幅度在 5% 到 10%：必须通知运营人员，说明影响范围后再执行。
@@ -31,7 +35,7 @@ HITL 人工介入规则：
 - 总结最低竞品价、平均竞品价、当前价、建议价和变化比例。
 - 给出 action：auto_update、notify_operator 或 require_human_approval。
 - 只有在规则允许且用户确认时，才调用平台更新工具。
-"""
+""" + "\n\n" + AGENT_REFUND_CONSTRAINT_PROMPT
 
 
 def create_price_agent(llm_config: dict[str, Any] | None = None, executor: Any | None = None) -> Any:

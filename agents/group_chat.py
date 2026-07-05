@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +21,19 @@ except ImportError:
     from cs_agent import create_cs_agent  # type: ignore[no-redef]
     from price_agent import create_price_agent  # type: ignore[no-redef]
     from sync_agent import create_sync_agent  # type: ignore[no-redef]
+
+
+try:
+    from .base import get_audit_logger
+except Exception:  # pragma: no cover - logger optional in tests
+    get_audit_logger = None  # type: ignore[assignment]
+
+try:
+    from safety.domain_guardrail import DomainGuardrail, DomainBlockedError, GuardrailStrategy
+except Exception:  # pragma: no cover - degrade gracefully if unavailable
+    DomainGuardrail = None  # type: ignore[assignment]
+    DomainBlockedError = RuntimeError  # type: ignore[assignment,misc]
+    GuardrailStrategy = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -59,9 +73,36 @@ def create_omnisell_team(llm_config: dict[str, Any] | None = None, max_round: in
 
 
 def start_chat(task_description: str, max_round: int = 12) -> Any:
-    """Start a GroupChat workflow for a given OmniSell task description."""
+    """Start a GroupChat workflow for a given OmniSell task description.
+
+    The request first passes through the domain guardrail so that prompts
+    outside the e-commerce operation scope (jailbreak attempts, ad injection,
+    off-topic chitchat) are blocked before reaching the multi-agent runtime.
+    Any block is recorded in the audit log as a ``domain_blocked`` event.
+    """
+    guardrail = _build_guardrail()
+    if guardrail is not None:
+        guardrail.check_or_raise(task_description)
     team = create_omnisell_team(max_round=max_round)
     return team.user_proxy.initiate_chat(team.manager, message=task_description)
+
+
+def _build_guardrail() -> Any:
+    """Construct a DomainGuardrail wired to the shared audit logger.
+
+    Returns None if the guardrail module is unavailable so the chat entry
+    point degrades gracefully instead of hard-failing.
+    """
+    if DomainGuardrail is None:
+        return None
+    audit_logger = None
+    if get_audit_logger is not None:
+        try:
+            audit_logger = get_audit_logger()
+        except Exception:  # pragma: no cover - logger optional
+            audit_logger = None
+    strategy = os.getenv("OMNISELL_GUARDRAIL_STRATEGY", GuardrailStrategy.MODERATE.value)
+    return DomainGuardrail(strategy=strategy, audit_logger=audit_logger)
 
 
 def parse_args() -> argparse.Namespace:
