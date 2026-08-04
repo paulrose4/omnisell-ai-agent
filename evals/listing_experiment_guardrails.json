@@ -1,0 +1,51 @@
+[
+  {
+    "id": "quality_improves_business_stable",
+    "before_conversion": "0.10",
+    "after_conversion": "0.10",
+    "before_return_rate": "0.05",
+    "after_return_rate": "0.05",
+    "evaluated_after_window": true,
+    "expected_status": "inconclusive",
+    "expected_reasons": ["control_variables_incomplete"]
+  },
+  {
+    "id": "conversion_drop_requires_rollback",
+    "before_conversion": "0.10",
+    "after_conversion": "0.08",
+    "before_return_rate": "0.05",
+    "after_return_rate": "0.05",
+    "evaluated_after_window": true,
+    "expected_status": "rollback_recommended",
+    "expected_reasons": ["conversion_drop_exceeds_guardrail"]
+  },
+  {
+    "id": "return_rate_increase_requires_rollback",
+    "before_conversion": "0.10",
+    "after_conversion": "0.10",
+    "before_return_rate": "0.05",
+    "after_return_rate": "0.07",
+    "evaluated_after_window": true,
+    "expected_status": "rollback_recommended",
+    "expected_reasons": ["return_rate_increase_exceeds_guardrail"]
+  },
+  {
+    "id": "missing_business_metrics_is_inconclusive",
+    "before_conversion": null,
+    "after_conversion": null,
+    "before_return_rate": null,
+    "after_return_rate": null,
+    "evaluated_after_window": true,
+    "expected_status": "inconclusive",
+    "expected_reasons": ["business_outcome_metrics_incomplete"]
+  },
+  {
+    "id": "evaluation_before_window_is_blocked",
+    "before_conversion": "0.10",
+    "after_conversion": "0.10",
+    "before_return_rate": "0.05",
+    "after_return_rate": "0.05",
+    "evaluated_after_window": false,
+    "expected_error": "experiment observation window has not ended"
+  }
+]

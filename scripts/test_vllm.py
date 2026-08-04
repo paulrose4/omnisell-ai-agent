@@ -10,19 +10,21 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
+    load_dotenv(PROJECT_ROOT / ".env.local")
     load_dotenv(PROJECT_ROOT / ".env")
 
-    base_url = os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
-    model_name = os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
+    base_url = os.getenv("LOCAL_VLLM_BASE_URL") or os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
+    model_name = os.getenv("LOCAL_VLLM_MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
+    api_key = os.getenv("LOCAL_VLLM_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
 
     client = OpenAI(
         base_url=base_url,
-        api_key=os.getenv("VLLM_API_KEY", "not-needed"),
+        api_key=api_key,
         timeout=60.0,
     )
 
     prompt = "用中文回答：什么是电商智能体？"
-    print(f"正在连接 vLLM: {base_url}")
+    print(f"正在连接 OpenAI-compatible provider: {base_url}")
     print(f"模型名称: {model_name}")
 
     started_at = time.perf_counter()
@@ -44,11 +46,11 @@ def main() -> None:
         print(content.strip())
         print(f"\n耗时: {elapsed:.2f} 秒")
     except APIConnectionError as exc:
-        print("\n连接失败: 无法连接到 Ollama 服务。")
-        print("请确认 Ollama 已启动，且 http://localhost:11434/ 可访问。")
+        print("\n连接失败: 无法连接到 OpenAI-compatible provider。")
+        print("请确认模型地址可访问，并且包含正确的 /v1 路径。")
         print(f"错误详情: {exc}")
     except APIStatusError as exc:
-        print("\nOllama 返回了错误状态码。")
+        print("\n模型供应商返回了错误状态码。")
         print(f"状态码: {exc.status_code}")
         print(f"响应内容: {exc.response.text}")
     except OpenAIError as exc:

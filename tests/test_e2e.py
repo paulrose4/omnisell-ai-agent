@@ -28,6 +28,7 @@ async def _run_e2e_flow(monkeypatch: Any, tmp_path: Path) -> None:
         audit_log_path=str(tmp_path / "audit.jsonl"),
         rate_limit_per_minute=1000,
         mock_platform_url="http://mock-platform.test",
+        database_url=f"sqlite:///{tmp_path / 'gateway.sqlite'}", auto_create_schema=True,
     )
     app = create_app(settings)
 

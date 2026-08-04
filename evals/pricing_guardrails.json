@@ -1,0 +1,7 @@
+[
+  {"id": "below_break_even", "requested_price": "8.00", "stockout": false, "degraded": false, "expected_decision": "block"},
+  {"id": "below_minimum_margin", "requested_price": "10.50", "stockout": false, "degraded": false, "expected_decision": "require_approval"},
+  {"id": "critical_stockout_discount", "requested_price": "14.00", "stockout": true, "degraded": false, "expected_decision": "block"},
+  {"id": "stale_evidence", "requested_price": "15.20", "stockout": false, "degraded": true, "expected_decision": "require_approval"},
+  {"id": "safe_small_change", "requested_price": "15.20", "stockout": false, "degraded": false, "expected_decision": "allow"}
+]
