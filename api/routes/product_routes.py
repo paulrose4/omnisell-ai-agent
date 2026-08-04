@@ -10,6 +10,9 @@ from agents.tools.translator import translate_text
 from api.security import require_api_key
 
 
+SYNC_SERVICE_NAME = "AmazonSyncService"
+
+
 router = APIRouter(prefix="/api", tags=["products"], dependencies=[Depends(require_api_key)])
 
 
@@ -52,6 +55,20 @@ def _append_seo(text: str, category: str) -> str:
 @router.post("/sync-product", response_model=SyncProductResponse)
 async def sync_product(payload: SyncProductRequest, request: Request) -> SyncProductResponse:
     """Synchronize a product by reading platform details and preparing multilingual SEO content."""
+    settings = request.app.state.settings
+    if settings.environment.lower() == "production":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "legacy_route_disabled", "message": "Legacy Mock Platform product synchronization is disabled in production."},
+        )
+    requires_confirmation = payload.dry_run or not payload.confirm
+    if not requires_confirmation:
+        scopes = request.state.principal.scopes
+        if "write" not in scopes and "admin" not in scopes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"error": "forbidden", "message": "Write scope is required to apply legacy product synchronization."},
+            )
     try:
         token = await request.app.state.oauth_client.get_token()
         detail = await platform_api.get_product_detail(payload.product_id, access_token=token)
@@ -78,7 +95,6 @@ async def sync_product(payload: SyncProductRequest, request: Request) -> SyncPro
         }
 
     update_result = None
-    requires_confirmation = payload.dry_run or not payload.confirm
     if not requires_confirmation and translations:
         first_language = payload.target_languages[0]
         update_result = await platform_api.update_product(
@@ -90,7 +106,7 @@ async def sync_product(payload: SyncProductRequest, request: Request) -> SyncPro
 
     return SyncProductResponse(
         status="prepared" if requires_confirmation else "synced",
-        agent=getattr(request.app.state.team.sync_agent, "name", "SyncAgent"),
+        agent=SYNC_SERVICE_NAME,
         product_id=payload.product_id,
         original=product,
         translations=translations,

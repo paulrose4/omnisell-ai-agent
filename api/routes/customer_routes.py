@@ -12,6 +12,9 @@ from agents.tools.vision_tool import answer_visual_customer_question
 from api.security import require_api_key
 
 
+CUSTOMER_ADVISOR_NAME = "CustomerCaseAdvisor"
+
+
 router = APIRouter(prefix="/api/customer", tags=["customer"], dependencies=[Depends(require_api_key)])
 
 
@@ -40,6 +43,29 @@ class CustomerImageAskResponse(CustomerAskResponse):
     vision: dict[str, Any]
 
 
+
+def _enqueue_action(request: Request, *, queue_name: str, action: str, payload: dict[str, Any]):
+    queue = request.app.state.task_queue
+    if hasattr(queue, "enqueue_action"):
+        principal = getattr(request.state, "principal", None)
+        caller = getattr(request.state, "caller_context", None)
+        tenant_id = getattr(principal, "tenant_id", None) or getattr(caller, "tenant_id", "default")
+        actor_id = getattr(principal, "user_id", None) or getattr(caller, "user_id", "api")
+        return queue.enqueue_action(
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            queue_name=queue_name,
+            action=action,
+            payload=payload,
+            request_id=getattr(request.state, "request_id", None),
+            idempotency_key=request.headers.get("Idempotency-Key"),
+        )
+    if action == "customer.ask":
+        handler = lambda: answer_customer_question(**payload)
+    else:
+        handler = lambda: answer_visual_customer_question(**payload)
+    return queue.enqueue(queue_name=queue_name, action=action, request_id=getattr(request.state, "request_id", None), handler=handler)
+
 class AsyncTaskSubmitResponse(BaseModel):
     task_id: str
     queue_name: str
@@ -58,7 +84,7 @@ async def ask_customer_question(payload: CustomerAskRequest, request: Request) -
         top_k=payload.top_k,
     )
     return CustomerAskResponse(
-        agent=getattr(request.app.state.team.cs_agent, "name", "CustomerServiceAgent"),
+        agent=CUSTOMER_ADVISOR_NAME,
         answer=str(result["answer"]),
         detected_language=str(result["detected_language"]),
         target_language=str(result["target_language"]),
@@ -70,29 +96,19 @@ async def ask_customer_question(payload: CustomerAskRequest, request: Request) -
 @router.post("/ask-async", response_model=AsyncTaskSubmitResponse)
 async def ask_customer_question_async(payload: CustomerAskRequest, request: Request) -> AsyncTaskSubmitResponse:
     """Queue a text customer question and return a task id immediately."""
-    record = request.app.state.task_queue.enqueue(
-        queue_name="text",
-        action="customer.ask",
-        request_id=getattr(request.state, "request_id", None),
-        handler=lambda: answer_customer_question(
-            question=payload.question,
-            target_language=payload.target_language,
-            category_filter=payload.category_filter,
-            top_k=payload.top_k,
-        ),
-    )
+    record = _enqueue_action(request, queue_name="text", action="customer.ask", payload=payload.model_dump())
     return AsyncTaskSubmitResponse(
         task_id=record.task_id,
         queue_name=record.queue_name,
         action=record.action,
-        status=record.status.value,
+        status=getattr(record.status, "value", record.status),
         request_id=record.request_id,
     )
 
 
 def _image_result_to_response(result: dict[str, Any], request: Request) -> CustomerImageAskResponse:
     return CustomerImageAskResponse(
-        agent=getattr(request.app.state.team.cs_agent, "name", "CustomerServiceAgent"),
+        agent=CUSTOMER_ADVISOR_NAME,
         answer=str(result["answer"]),
         detected_language=str(result["detected_language"]),
         target_language=str(result["target_language"]),
@@ -143,24 +159,12 @@ async def ask_customer_image_upload(
 @router.post("/ask-image-async", response_model=AsyncTaskSubmitResponse)
 async def ask_customer_image_async(payload: CustomerImageAskRequest, request: Request) -> AsyncTaskSubmitResponse:
     """Queue a base64 image customer question and return a task id immediately."""
-    record = request.app.state.task_queue.enqueue(
-        queue_name="vision",
-        action="customer.ask_image",
-        request_id=getattr(request.state, "request_id", None),
-        handler=lambda: answer_visual_customer_question(
-            question=payload.question,
-            image_base64=payload.image_base64,
-            target_language=payload.target_language,
-            category_filter=payload.category_filter,
-            top_k=payload.top_k,
-            task_hint=payload.task_hint,
-        ),
-    )
+    record = _enqueue_action(request, queue_name="vision", action="customer.ask_image", payload=payload.model_dump())
     return AsyncTaskSubmitResponse(
         task_id=record.task_id,
         queue_name=record.queue_name,
         action=record.action,
-        status=record.status.value,
+        status=getattr(record.status, "value", record.status),
         request_id=record.request_id,
     )
 
@@ -178,23 +182,11 @@ async def ask_customer_image_upload_async(
     """Queue an uploaded image customer question and return a task id immediately."""
     image_bytes = await image.read()
     image_base64 = base64.b64encode(image_bytes).decode("ascii")
-    record = request.app.state.task_queue.enqueue(
-        queue_name="vision",
-        action="customer.ask_image_upload",
-        request_id=getattr(request.state, "request_id", None),
-        handler=lambda: answer_visual_customer_question(
-            question=question,
-            image_base64=image_base64,
-            target_language=target_language,
-            category_filter=category_filter,
-            top_k=top_k,
-            task_hint=task_hint,
-        ),
-    )
+    record = _enqueue_action(request, queue_name="vision", action="customer.ask_image_upload", payload={"question": question, "image_base64": image_base64, "target_language": target_language, "category_filter": category_filter, "top_k": top_k, "task_hint": task_hint})
     return AsyncTaskSubmitResponse(
         task_id=record.task_id,
         queue_name=record.queue_name,
         action=record.action,
-        status=record.status.value,
+        status=getattr(record.status, "value", record.status),
         request_id=record.request_id,
     )

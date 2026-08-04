@@ -55,7 +55,7 @@ class Retriever:
         category_filter: str | None = None,
         source_type: str | None = None,
     ) -> list[dict[str, Any]]:
-        where = self._build_where(language=language, category_filter=category_filter, source_type=source_type)
+        where = self._build_where(language=language, category_filter=category_filter, source_type=source_type, tenant_id=tenant_id)
         query_embedding = self.embedder.encode_one(query)
         result = self.chroma.query(
             query_embeddings=[query_embedding],
@@ -105,6 +105,8 @@ class Retriever:
         source_type: str | None = None,
     ) -> dict[str, Any] | None:
         filters: list[dict[str, Any]] = []
+        if tenant_id:
+            filters.append({"tenant_id": tenant_id})
         if language:
             filters.append({"language": language})
         if category_filter:

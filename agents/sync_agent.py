@@ -11,27 +11,17 @@ if __package__ in {None, ""}:
 try:
     from .base import create_assistant_agent, create_llm_config, register_tools
     from .tools.platform_api import (
-        approve_return,
-        create_product,
-        delete_product,
         get_order_list,
         get_product_detail,
         get_product_list,
-        update_order_status,
-        update_product,
     )
     from .tools.translator import detect_and_translate, translate_text
 except ImportError:
     from base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
     from tools.platform_api import (  # type: ignore[no-redef]
-        approve_return,
-        create_product,
-        delete_product,
         get_order_list,
         get_product_detail,
         get_product_list,
-        update_order_status,
-        update_product,
     )
     from tools.translator import detect_and_translate, translate_text  # type: ignore[no-redef]
 
@@ -48,13 +38,13 @@ If you are unsure whether an action involves a refund, treat it as a refund and 
 你绝不能指示任何工具处理支付撤销或退款。
 如果你不确定某个操作是否涉及退款，必须按退款处理并阻断。
 
-你是 OmniSell 的运营 Agent，负责跨平台商品同步、多语言内容生成和 SEO 优化。
+你是 OmniSell 的内部只读分析 Demo，负责解释已提供的商品、订单和翻译证据。生产同步由确定性 AmazonSyncService 执行。
 
 工作原则：
-1. 在创建、删除或更新任何平台商品之前，必须先总结拟执行操作，并明确询问用户确认。
-2. 你可以读取商品列表和详情，但写操作必须等待明确授权，除非用户已经在同一任务中给出清晰批准。
-3. 商品标题和描述需要遵守多语言 SEO 策略，避免堆砌关键词、夸大承诺和虚假库存。
-4. 同步商品时必须保留核心事实：价格、库存、材质、尺码、保养说明、兼容性和售后限制。
+1. 只能读取提供的商品和订单信息，不得创建、删除、更新商品或订单状态。
+2. 不得执行退货、退款、支付撤销或 Amazon 写入。
+3. 输出属于 unverified internal analysis，不创建业务状态。
+4. 缺少证据时必须明确说明，不得补造商品事实、库存或订单状态。
 
 SEO 关键词策略：
 - 电子产品：优先强化“快充”“低延迟”“无线”“兼容”“便携”等真实卖点。
@@ -64,19 +54,19 @@ SEO 关键词策略：
 - 食品：优先强化“独立包装”“低糖”“早餐”“礼盒”“密封保存”等事实信息。
 
 输出格式：
-- 先给出操作摘要。
-- 再列出需要用户确认的写操作。
-- 获得确认后再调用平台写入工具。
+- 先给出只读分析摘要。
+- 再列出证据缺口和需要确定性工作流处理的候选任务。
+- 明确标记为 unverified internal analysis。
 """
 
 
 def create_sync_agent(llm_config: dict[str, Any] | None = None, executor: Any | None = None) -> Any:
-    """Create the OmniSell operations agent and register translation/platform tools."""
+    """Create the explicitly optional read-only legacy analysis demo."""
     agent = create_assistant_agent(
         name="SyncAgent",
         system_message=SYNC_AGENT_SYSTEM_PROMPT,
         llm_config=llm_config or create_llm_config(),
-        description="Operations agent for product sync and multilingual SEO optimization.",
+        description="Internal read-only legacy demo; never used for production synchronization.",
     )
 
     if executor is not None:
@@ -88,12 +78,7 @@ def create_sync_agent(llm_config: dict[str, Any] | None = None, executor: Any | 
                 detect_and_translate,
                 get_product_list,
                 get_product_detail,
-                update_product,
-                create_product,
-                delete_product,
                 get_order_list,
-                update_order_status,
-                approve_return,
             ],
         )
 

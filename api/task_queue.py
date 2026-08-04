@@ -7,6 +7,7 @@ import uuid
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from decimal import Decimal
 from enum import Enum
 from typing import Any
 
@@ -68,6 +69,15 @@ class MetricsRegistry:
         self.task_latency_by_action: dict[str, deque[float]] = {}
         self.request_count_by_path: dict[str, int] = {}
         self.error_count_by_path: dict[str, int] = {}
+        self.agent_runs_by_status: dict[str, int] = {}
+        self.agent_runs_by_workflow: dict[str, int] = {}
+        self.agent_latency_ms: deque[float] = deque(maxlen=1000)
+        self.agent_total_tokens = 0
+        self.agent_estimated_cost = Decimal("0")
+        self.agent_schema_repairs = 0
+        self.agent_evidence_validation_failures = 0
+        self.agent_retries = 0
+        self.agent_failovers = 0
 
     async def record_request(self, path: str, status_code: int, latency_ms: float) -> None:
         async with self._lock:
@@ -91,6 +101,42 @@ class MetricsRegistry:
             bucket = self.task_latency_by_action.setdefault(action, deque(maxlen=200))
             bucket.append(latency_ms)
 
+    async def record_agent_run(
+        self,
+        *,
+        workflow_type: str,
+        status: str,
+        latency_ms: float,
+        total_tokens: int = 0,
+        estimated_cost: Decimal = Decimal("0"),
+        repair_attempted: bool = False,
+        evidence_validation_failed: bool = False,
+        retry: bool = False,
+        fallback_used: bool = False,
+    ) -> None:
+        async with self._lock:
+            self.agent_runs_by_status[status] = self.agent_runs_by_status.get(status, 0) + 1
+            self.agent_runs_by_workflow[workflow_type] = self.agent_runs_by_workflow.get(workflow_type, 0) + 1
+            self.agent_latency_ms.append(float(latency_ms))
+            self.agent_total_tokens += int(total_tokens)
+            self.agent_estimated_cost += Decimal(str(estimated_cost))
+            if repair_attempted:
+                self.agent_schema_repairs += 1
+            if evidence_validation_failed:
+                self.agent_evidence_validation_failures += 1
+            if retry:
+                self.agent_retries += 1
+            if fallback_used:
+                self.agent_failovers += 1
+
+    @staticmethod
+    def _percentile(values: deque[float], percentile: float) -> float:
+        if not values:
+            return 0.0
+        ordered = sorted(values)
+        index = max(0, min(len(ordered) - 1, int((len(ordered) * percentile) + 0.999999) - 1))
+        return round(float(ordered[index]), 2)
+
     @staticmethod
     def _avg(values: deque[float]) -> float:
         if not values:
@@ -111,6 +157,16 @@ class MetricsRegistry:
                 },
                 "request_count_by_path": dict(self.request_count_by_path),
                 "error_count_by_path": dict(self.error_count_by_path),
+                "agent_runs_by_status": dict(self.agent_runs_by_status),
+                "agent_runs_by_workflow": dict(self.agent_runs_by_workflow),
+                "agent_latency_p50_ms": self._percentile(self.agent_latency_ms, 0.50),
+                "agent_latency_p95_ms": self._percentile(self.agent_latency_ms, 0.95),
+                "agent_total_tokens": self.agent_total_tokens,
+                "agent_estimated_cost": str(self.agent_estimated_cost),
+                "agent_schema_repairs": self.agent_schema_repairs,
+                "agent_evidence_validation_failures": self.agent_evidence_validation_failures,
+                "agent_retries": self.agent_retries,
+                "agent_failovers": self.agent_failovers,
                 "queue_lengths": queue_lengths or {},
             }
 

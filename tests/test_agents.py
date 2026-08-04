@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
+from agents.base import LegacyAgentRuntimeUnavailable
 from agents.group_chat import create_omnisell_team
+from agents.sync_agent import SYNC_AGENT_SYSTEM_PROMPT
 from agents.tools.price_scraper import fetch_competitor_prices, generate_price_recommendation
 from agents.tools import rag_tool
 
@@ -27,20 +31,13 @@ class FakeTranslator:
         return answer
 
 
-def test_product_translation_sync_agent_registers_tools_and_seo_rules() -> None:
-    """商品翻译同步场景：运营 Agent 必须注册翻译和平台写入工具，并带 SEO 确认规则。"""
-    team = create_omnisell_team(llm_config=False)
-    sync_agent = team.sync_agent
+def test_legacy_sync_group_chat_is_not_a_production_runtime() -> None:
+    """Product sync is deterministic; the optional legacy GroupChat cannot silently simulate production."""
+    with pytest.raises(LegacyAgentRuntimeUnavailable):
+        create_omnisell_team(llm_config=False)
 
-    assert "快充" in sync_agent.system_message
-    assert "百搭" in sync_agent.system_message
-    assert "必须先总结拟执行操作" in sync_agent.system_message
-    assert "translate_text" in sync_agent.registered_tools
-    assert "create_product" in sync_agent.registered_tools
-    assert "update_product" in sync_agent.registered_tools
-    assert "get_order_list" in sync_agent.registered_tools
-    assert "approve_return" in sync_agent.registered_tools
-    assert team.user_proxy.human_input_mode == "TERMINATE"
+    assert "生产同步由确定性 AmazonSyncService 执行" in SYNC_AGENT_SYSTEM_PROMPT
+    assert "不得创建、删除、更新商品或订单状态" in SYNC_AGENT_SYSTEM_PROMPT
 
 
 def test_chinese_customer_return_question_uses_rag(monkeypatch: Any) -> None:
@@ -125,3 +122,19 @@ def test_price_drop_above_10_percent_blocks_without_hitl() -> None:
     assert recommendation["approval_required"] is True
     assert recommendation["action"] == "require_human_approval"
     assert "HITL" in recommendation["approval_reason"]
+
+
+def test_rag_backend_failure_emits_structured_warning_before_fallback(monkeypatch: Any, caplog: Any) -> None:
+    class BrokenRetriever:
+        def retrieve_with_score(self, **kwargs: Any) -> list[dict[str, Any]]:
+            raise RuntimeError("vector backend unavailable")
+
+    monkeypatch.setattr(rag_tool, "get_retriever", lambda: BrokenRetriever())
+    caplog.set_level("WARNING", logger="omnisell.observability")
+
+    results = rag_tool.search_knowledge_base(query="如何申请退货", language="zh", source_type="faq")
+
+    assert results
+    assert any('"event": "rag_retrieval_failed"' in record.message for record in caplog.records)
+    assert any('"error_type": "RuntimeError"' in record.message for record in caplog.records)
+    assert all("如何申请退货" not in record.message for record in caplog.records)

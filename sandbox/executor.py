@@ -33,7 +33,7 @@ class SandboxExecutor:
 
     def __init__(
         self,
-        image: str = "omnisell-sandbox:latest",
+        image: str = "omnisell-sandbox:1.0.0",
         timeout_seconds: int = 30,
         memory_limit: str = "256m",
         cpu_quota: int = 50_000,

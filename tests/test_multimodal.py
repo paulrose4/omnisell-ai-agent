@@ -8,7 +8,6 @@ from typing import Any
 
 import httpx
 
-from agents.cs_agent import create_cs_agent
 from agents.tools import vision_tool
 from api.config import Settings
 from api.main import create_app
@@ -97,11 +96,8 @@ def test_visual_customer_question_combines_vision_and_rag(monkeypatch: Any) -> N
     assert result["vision"]["vision_model"] == "llava:7b"
 
 
-def test_customer_agent_registers_multimodal_tools() -> None:
-    agent = create_cs_agent(llm_config=False, executor=create_cs_agent(llm_config=False))
-
-    assert "analyze_customer_image" in agent.registered_tools
-    assert "answer_visual_customer_question" in agent.registered_tools
+def test_customer_image_route_uses_stable_advisor_name() -> None:
+    assert customer_routes.CUSTOMER_ADVISOR_NAME == "CustomerCaseAdvisor"
 
 
 def test_customer_image_api_route(monkeypatch: Any, tmp_path: Path) -> None:

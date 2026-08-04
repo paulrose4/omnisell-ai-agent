@@ -79,7 +79,10 @@ async def _run_async_tasks_metrics_and_rag_boundary(monkeypatch: Any, tmp_path: 
         "items": [{"text": "FAQ", "metadata": {"source_type": "faq"}, "score": 0.9}],
     }
 
-    headers = {"X-API-Key": "test-key", "X-Request-ID": "req-test-1"}
+    headers = {
+        "X-API-Key": "test-key", "X-Request-ID": "req-test-1",
+        "X-User-Role": "admin", "X-Permission-Scopes": "read write admin",
+    }
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         text_submit = await client.post(

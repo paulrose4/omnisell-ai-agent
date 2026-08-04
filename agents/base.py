@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import inspect
 import os
@@ -6,6 +6,8 @@ import time
 from functools import wraps
 from dataclasses import dataclass, field
 from typing import Any, Callable
+
+from observability.telemetry import instrument_openai_calls
 
 try:
     from autogen import AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent, register_function
@@ -19,6 +21,20 @@ except Exception:
 
 DEFAULT_VLLM_BASE_URL = "http://localhost:11434/v1"
 DEFAULT_VLLM_MODEL_NAME = "qwen2.5:3b"
+
+
+class LegacyAgentRuntimeUnavailable(RuntimeError):
+    """Raised when the explicitly optional Legacy AutoGen demo runtime is unavailable."""
+
+
+def _require_legacy_runtime(component: str, runtime: Any) -> Any:
+    if runtime is None:
+        raise LegacyAgentRuntimeUnavailable(
+            f"Legacy AutoGen runtime is unavailable for {component}. "
+            "Production workflows use PersistentAgentWorkflow and bounded advisors; "
+            "install a compatible optional legacy runtime only for the internal demo."
+        )
+    return runtime
 
 
 try:
@@ -80,6 +96,7 @@ def create_llm_config(
     timeout: int = 120,
 ) -> dict[str, Any]:
     """Create an AutoGen OpenAI-compatible LLM config for the local vLLM server."""
+    instrument_openai_calls()
     resolved_base_url = base_url or os.getenv("VLLM_BASE_URL", DEFAULT_VLLM_BASE_URL)
     resolved_model_name = model_name or os.getenv("VLLM_MODEL_NAME", DEFAULT_VLLM_MODEL_NAME)
     resolved_api_key = api_key or os.getenv("VLLM_API_KEY", "not-needed")
@@ -305,10 +322,9 @@ def create_assistant_agent(
     llm_config: dict[str, Any] | None = None,
     description: str | None = None,
 ) -> Any:
-    """Create a real AutoGen AssistantAgent, or a local fallback agent for tests."""
+    """Create an explicitly optional Legacy AutoGen AssistantAgent."""
     config = llm_config if llm_config is not None else create_llm_config()
-    if AssistantAgent is None:
-        return LocalAgent(name=name, system_message=system_message, llm_config=config, description=description)
+    assistant_agent = _require_legacy_runtime("AssistantAgent", AssistantAgent)
 
     kwargs: dict[str, Any] = {
         "name": name,
@@ -317,21 +333,13 @@ def create_assistant_agent(
     }
     if description:
         kwargs["description"] = description
-    return AssistantAgent(**kwargs)
+    return assistant_agent(**kwargs)
 
 
 def create_user_proxy_agent(name: str = "UserProxy", human_input_mode: str = "TERMINATE") -> Any:
-    """Create a real AutoGen UserProxyAgent, or a local fallback agent for tests."""
-    if UserProxyAgent is None:
-        return LocalAgent(
-            name=name,
-            human_input_mode=human_input_mode,
-            llm_config=False,
-            code_execution_config=False,
-            description="Human operator proxy.",
-        )
-
-    return UserProxyAgent(
+    """Create an explicitly optional Legacy AutoGen UserProxyAgent."""
+    user_proxy_agent = _require_legacy_runtime("UserProxyAgent", UserProxyAgent)
+    return user_proxy_agent(
         name=name,
         human_input_mode=human_input_mode,
         code_execution_config=False,
@@ -340,18 +348,16 @@ def create_user_proxy_agent(name: str = "UserProxy", human_input_mode: str = "TE
 
 
 def create_group_chat(agents: list[Any], max_round: int = 12) -> Any:
-    """Create an AutoGen GroupChat, or a local fallback group chat."""
-    if GroupChat is None:
-        return LocalGroupChat(agents=agents, max_round=max_round)
-    return GroupChat(agents=agents, messages=[], max_round=max_round, speaker_selection_method="auto")
+    """Create an explicitly optional Legacy AutoGen GroupChat."""
+    group_chat = _require_legacy_runtime("GroupChat", GroupChat)
+    return group_chat(agents=agents, messages=[], max_round=max_round, speaker_selection_method="auto")
 
 
 def create_group_chat_manager(groupchat: Any, llm_config: dict[str, Any] | None = None) -> Any:
-    """Create an AutoGen GroupChatManager, or a local fallback manager."""
+    """Create an explicitly optional Legacy AutoGen GroupChatManager."""
     config = llm_config if llm_config is not None else create_llm_config()
-    if GroupChatManager is None:
-        return LocalGroupChatManager(groupchat=groupchat, llm_config=config)
-    return GroupChatManager(groupchat=groupchat, llm_config=config)
+    group_chat_manager = _require_legacy_runtime("GroupChatManager", GroupChatManager)
+    return group_chat_manager(groupchat=groupchat, llm_config=config)
 
 
 def register_tools(agent: Any, executor: Any, tools: list[Callable[..., Any]]) -> None:

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+from observability.telemetry import log_structured
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -117,8 +120,16 @@ def search_knowledge_base(
         )
         if results:
             return results
-    except Exception:
-        pass
+    except Exception as exc:
+        log_structured(
+            logging.WARNING,
+            "rag_retrieval_failed",
+            error_type=type(exc).__name__,
+            source_type=source_type,
+            language_filter_applied=bool(language),
+            category_filter_applied=bool(category_filter),
+            fallback="deterministic_faq" if not source_type or source_type == "faq" else "none",
+        )
 
     if source_type and source_type != "faq":
         return []
