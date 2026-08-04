@@ -7,9 +7,13 @@ from typing import Any
 
 from domain.models import new_id, utc_now
 
-
 WORK_ITEM_ACTIVE_STATUSES = {
-    "open", "assigned", "in_progress", "blocked", "awaiting_approval", "verifying",
+    "open",
+    "assigned",
+    "in_progress",
+    "blocked",
+    "awaiting_approval",
+    "verifying",
 }
 
 

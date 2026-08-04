@@ -310,6 +310,7 @@ class OutboxEvent:
     created_at: datetime = field(default_factory=utc_now)
     published_at: datetime | None = None
 
+
 class DataSource(str, Enum):
     AMAZON_API = "amazon_api"
     ADVERTISING_API = "advertising_api"
@@ -353,8 +354,14 @@ class SKUCostProfile:
         if self.effective_from.tzinfo is None or (self.effective_to and self.effective_to.tzinfo is None):
             raise ValueError("cost profile timestamps must be timezone-aware")
         for name in (
-            "product_cost", "domestic_shipping_cost", "international_freight_cost", "duty_cost", "prep_cost", "packaging_cost",
-            "estimated_fulfillment_fee", "estimated_storage_cost",
+            "product_cost",
+            "domestic_shipping_cost",
+            "international_freight_cost",
+            "duty_cost",
+            "prep_cost",
+            "packaging_cost",
+            "estimated_fulfillment_fee",
+            "estimated_storage_cost",
         ):
             value = getattr(self, name)
             if value is not None:
@@ -362,7 +369,13 @@ class SKUCostProfile:
                 if value < 0:
                     raise ValueError(f"{name} cannot be negative")
                 setattr(self, name, value)
-        for name in ("estimated_referral_fee_rate", "estimated_return_loss_rate", "exchange_rate_buffer_rate", "target_margin_rate", "minimum_margin_rate"):
+        for name in (
+            "estimated_referral_fee_rate",
+            "estimated_return_loss_rate",
+            "exchange_rate_buffer_rate",
+            "target_margin_rate",
+            "minimum_margin_rate",
+        ):
             value = getattr(self, name)
             if value is not None:
                 value = Decimal(str(value))
@@ -437,9 +450,14 @@ class InventoryPolicy:
         if self.effective_from.tzinfo is None or (self.effective_to and self.effective_to.tzinfo is None):
             raise ValueError("inventory policy timestamps must be timezone-aware")
         for name in (
-            "supplier_lead_time_days", "production_lead_time_days", "shipping_lead_time_days",
-            "amazon_receiving_days", "safety_stock_days", "target_coverage_days",
-            "minimum_order_quantity", "case_pack_quantity",
+            "supplier_lead_time_days",
+            "production_lead_time_days",
+            "shipping_lead_time_days",
+            "amazon_receiving_days",
+            "safety_stock_days",
+            "target_coverage_days",
+            "minimum_order_quantity",
+            "case_pack_quantity",
         ):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} cannot be negative")
@@ -497,6 +515,7 @@ class InventoryHealthSnapshot:
     estimated_profit_at_risk: Decimal | None = None
     estimated_extra_logistics_cost: Decimal | None = None
 
+
 @dataclass
 class OperationalIssue:
     tenant_id: str
@@ -537,10 +556,25 @@ class OperationalIssue:
     def __post_init__(self) -> None:
         if self.severity not in {"critical", "high", "medium", "low"}:
             raise ValueError("unsupported issue severity")
-        if self.status not in {"open", "acknowledged", "in_progress", "awaiting_approval", "approved_for_manual_execution", "verifying", "verification_failed", "resolved", "dismissed", "reopened"}:
+        if self.status not in {
+            "open",
+            "acknowledged",
+            "in_progress",
+            "awaiting_approval",
+            "approved_for_manual_execution",
+            "verifying",
+            "verification_failed",
+            "resolved",
+            "dismissed",
+            "reopened",
+        }:
             raise ValueError("unsupported issue status")
         self.priority_score = Decimal(str(self.priority_score))
-        if self.detected_at.tzinfo is None or self.last_detected_at.tzinfo is None or self.data_freshness_at.tzinfo is None:
+        if (
+            self.detected_at.tzinfo is None
+            or self.last_detected_at.tzinfo is None
+            or self.data_freshness_at.tzinfo is None
+        ):
             raise ValueError("issue timestamps must be timezone-aware")
         self.confidence = Decimal(str(self.confidence))
         if self.confidence < 0 or self.confidence > 1:
@@ -581,7 +615,13 @@ class RecommendedAction:
     rejection_reason: str | None = None
 
     def __post_init__(self) -> None:
-        if self.execution_mode not in {"recommendation_only", "automatic", "single_approval", "dual_approval", "prohibited"}:
+        if self.execution_mode not in {
+            "recommendation_only",
+            "automatic",
+            "single_approval",
+            "dual_approval",
+            "prohibited",
+        }:
             raise ValueError("unsupported execution mode")
         if self.risk_level not in {"critical", "high", "medium", "low"}:
             raise ValueError("unsupported action risk level")
@@ -598,6 +638,7 @@ class RecommendedAction:
             value = getattr(self, name)
             if value is not None:
                 setattr(self, name, Decimal(str(value)))
+
 
 @dataclass
 class SKUHealthSummary:
@@ -637,6 +678,7 @@ class DailyOperationsBrief:
             raise ValueError("brief generated_at must be timezone-aware")
         if not self.timezone:
             raise ValueError("brief timezone is required")
+
 
 @dataclass
 class PriceRecommendation:
@@ -678,8 +720,15 @@ class PriceRecommendation:
         if len(self.currency) != 3 or not self.currency.isalpha():
             raise ValueError("currency must be a three-letter ISO 4217 code")
         for name in (
-            "current_price", "recommended_price", "break_even_floor", "minimum_margin_floor",
-            "minimum_margin_rate", "projected_unit_profit", "projected_margin", "change_rate", "confidence",
+            "current_price",
+            "recommended_price",
+            "break_even_floor",
+            "minimum_margin_floor",
+            "minimum_margin_rate",
+            "projected_unit_profit",
+            "projected_margin",
+            "change_rate",
+            "confidence",
         ):
             setattr(self, name, Decimal(str(getattr(self, name))))
         if self.policy_decision not in {"allow", "require_approval", "block"}:

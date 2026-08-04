@@ -27,7 +27,9 @@ class OperationRateLimiter:
         lock = self._locks.setdefault(key, asyncio.Lock())
         async with lock:
             effective_rate = rate * self.rate_multiplier
-            bucket = self._buckets.setdefault(key, Bucket(rate=effective_rate, burst=burst, tokens=float(burst), updated_at=time.monotonic()))
+            bucket = self._buckets.setdefault(
+                key, Bucket(rate=effective_rate, burst=burst, tokens=float(burst), updated_at=time.monotonic())
+            )
             while True:
                 now = time.monotonic()
                 elapsed = now - bucket.updated_at

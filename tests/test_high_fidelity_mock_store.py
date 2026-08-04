@@ -6,7 +6,6 @@ from application.high_fidelity_mock import HighFidelityStoreConfig, generate_hig
 from commerce.adapters.high_fidelity_mock_intelligence import HighFidelityMockOperationsSource
 from domain.operations_learning import assess_action_outcome
 
-
 REFERENCE_TIME = datetime(2026, 7, 22, 4, 0, tzinfo=UTC)
 
 

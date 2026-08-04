@@ -10,7 +10,6 @@ from infrastructure.database.bootstrap import initialize_database
 from infrastructure.database.models import (
     CustomerCaseClusterMemberRow,
     CustomerCaseClusterRow,
-    CustomerCaseEventRow,
     OperationalIssueRow,
     OperationalWorkItemRow,
     OutboxEventRow,
@@ -20,21 +19,43 @@ from infrastructure.repositories.customer_case_operations import CustomerCaseOpe
 from infrastructure.repositories.customer_service import CustomerCaseRepository
 from infrastructure.repositories.tasks import EventRepository
 
-
 NOW = datetime(2026, 7, 23, 3, 0, tzinfo=UTC)
 
 
-def _case(*, suffix: str, tenant_id: str = "tenant-a", seller_sku: str = "SKU-1", root_cause: str = "packaging_problem", created_at: datetime = NOW, verified: bool = False) -> CustomerServiceCase:
+def _case(
+    *,
+    suffix: str,
+    tenant_id: str = "tenant-a",
+    seller_sku: str = "SKU-1",
+    root_cause: str = "packaging_problem",
+    created_at: datetime = NOW,
+    verified: bool = False,
+) -> CustomerServiceCase:
     return CustomerServiceCase(
-        id=f"case-{tenant_id}-{suffix}", tenant_id=tenant_id, external_case_id=f"external-{suffix}",
-        marketplace_id="ATVPDKIKX0DER", external_order_id=f"order-{suffix}", seller_sku=seller_sku,
-        language="en-US", intent="damaged_item", customer_message="Synthetic package damage report.",
-        severity="high", risk_level="high", priority_score=Decimal("90"), status="resolved",
-        source="amazon_customer_service" if verified else "mock_buyer", verified_amazon_data=verified,
-        resolution_code="replacement_sent", root_cause_code=root_cause, evidence={
+        id=f"case-{tenant_id}-{suffix}",
+        tenant_id=tenant_id,
+        external_case_id=f"external-{suffix}",
+        marketplace_id="ATVPDKIKX0DER",
+        external_order_id=f"order-{suffix}",
+        seller_sku=seller_sku,
+        language="en-US",
+        intent="damaged_item",
+        customer_message="Synthetic package damage report.",
+        severity="high",
+        risk_level="high",
+        priority_score=Decimal("90"),
+        status="resolved",
+        source="amazon_customer_service" if verified else "mock_buyer",
+        verified_amazon_data=verified,
+        resolution_code="replacement_sent",
+        root_cause_code=root_cause,
+        evidence={
             "data_source": "amazon_customer_service" if verified else "mock_buyer",
             "verified_amazon_data": verified,
-        }, created_at=created_at, updated_at=created_at, resolved_at=created_at,
+        },
+        created_at=created_at,
+        updated_at=created_at,
+        resolved_at=created_at,
     )
 
 
@@ -42,8 +63,14 @@ def _setup(tmp_path):
     database_url = f"sqlite:///{tmp_path / 'case-bridge.sqlite'}"
     initialize_database(database_url, default_tenant_id="tenant-a")
     session_factory = create_session_factory(database_url)
-    return session_factory, CustomerCaseRepository(session_factory), CustomerCaseOperationsBridge(
-        session_factory, minimum_samples=3, window_days=7,
+    return (
+        session_factory,
+        CustomerCaseRepository(session_factory),
+        CustomerCaseOperationsBridge(
+            session_factory,
+            minimum_samples=3,
+            window_days=7,
+        ),
     )
 
 
@@ -99,11 +126,15 @@ def test_case_and_outbox_are_atomic_idempotent_and_preserve_provenance(tmp_path)
     cases.create(case, actor_id="support-1")
 
     with session_factory() as session:
-        rows = list(session.scalars(select(OutboxEventRow).where(
-            OutboxEventRow.tenant_id == "tenant-a",
-            OutboxEventRow.aggregate_id == case.id,
-            OutboxEventRow.event_type == "case.created",
-        )))
+        rows = list(
+            session.scalars(
+                select(OutboxEventRow).where(
+                    OutboxEventRow.tenant_id == "tenant-a",
+                    OutboxEventRow.aggregate_id == case.id,
+                    OutboxEventRow.event_type == "case.created",
+                )
+            )
+        )
         assert len(rows) == 1
         assert rows[0].payload["verified_amazon_data"] is False
         assert rows[0].status == "pending"

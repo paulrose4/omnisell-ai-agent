@@ -7,7 +7,6 @@ from infrastructure.database.session import create_session_factory
 from infrastructure.repositories.audit import SQLAuditLogger
 from safety.audit import AuditLogger
 
-
 SENSITIVE_VALUE = "buyer-secret-content-should-never-be-audited"
 
 

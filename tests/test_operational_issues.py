@@ -14,11 +14,12 @@ from domain.models import InventoryHealthSnapshot, SKUProfitSnapshot
 from infrastructure.database.bootstrap import initialize_database
 from infrastructure.database.models import TenantRow
 
-
 NOW = datetime(2026, 7, 14, 0, 0, tzinfo=UTC)
 
 
-def _inventory_snapshot(*, tenant_id: str = "tenant-a", snapshot_id: str = "inventory-1", degraded: bool = False) -> InventoryHealthSnapshot:
+def _inventory_snapshot(
+    *, tenant_id: str = "tenant-a", snapshot_id: str = "inventory-1", degraded: bool = False
+) -> InventoryHealthSnapshot:
     return InventoryHealthSnapshot(
         id=snapshot_id,
         tenant_id=tenant_id,
@@ -124,13 +125,21 @@ def test_detector_does_not_flag_normal_inventory_buffer_as_excess() -> None:
     from domain.operations import OperationalIssueDetector
 
     snapshot = replace(
-        _inventory_snapshot(), inventory_health="healthy", stockout_risk="low",
-        excess_units=10, excess_risk="none", days_of_supply=Decimal("70"),
-        estimated_revenue_at_risk=Decimal("0"), estimated_profit_at_risk=Decimal("0"),
+        _inventory_snapshot(),
+        inventory_health="healthy",
+        stockout_risk="low",
+        excess_units=10,
+        excess_risk="none",
+        days_of_supply=Decimal("70"),
+        estimated_revenue_at_risk=Decimal("0"),
+        estimated_profit_at_risk=Decimal("0"),
         estimated_extra_logistics_cost=Decimal("0"),
     )
     result = OperationalIssueDetector().detect(
-        tenant_id="tenant-a", inventory_snapshots=[snapshot], profit_snapshots=[], detected_at=NOW,
+        tenant_id="tenant-a",
+        inventory_snapshots=[snapshot],
+        profit_snapshots=[],
+        detected_at=NOW,
     )
 
     assert result.issues == ()
@@ -142,11 +151,16 @@ def test_detector_does_not_create_per_sku_data_quality_noise_for_complete_mock_e
 
     snapshot = replace(
         _inventory_snapshot(),
-        inventory_source="mock", forecast_confidence=Decimal("0.20"),
-        degraded_reason="unverified_inventory_source", automation_eligible=False,
+        inventory_source="mock",
+        forecast_confidence=Decimal("0.20"),
+        degraded_reason="unverified_inventory_source",
+        automation_eligible=False,
     )
     result = OperationalIssueDetector().detect(
-        tenant_id="tenant-a", inventory_snapshots=[snapshot], profit_snapshots=[], detected_at=NOW,
+        tenant_id="tenant-a",
+        inventory_snapshots=[snapshot],
+        profit_snapshots=[],
+        detected_at=NOW,
     )
 
     assert [issue.issue_type for issue in result.issues] == ["inventory_stockout_risk"]
@@ -156,12 +170,17 @@ def test_detector_blocks_replenishment_first_action_for_loss_making_stockout() -
     from domain.operations import OperationalIssueDetector
 
     snapshot = replace(
-        _inventory_snapshot(), estimated_profit_at_risk=Decimal("0.00"),
-        degraded_reason="negative_unit_contribution_profit", automation_eligible=False,
+        _inventory_snapshot(),
+        estimated_profit_at_risk=Decimal("0.00"),
+        degraded_reason="negative_unit_contribution_profit",
+        automation_eligible=False,
         input_manifest={"unit_contribution_profit": "-4.00"},
     )
     result = OperationalIssueDetector().detect(
-        tenant_id="tenant-a", inventory_snapshots=[snapshot], profit_snapshots=[], detected_at=NOW,
+        tenant_id="tenant-a",
+        inventory_snapshots=[snapshot],
+        profit_snapshots=[],
+        detected_at=NOW,
     )
 
     stockout = next(issue for issue in result.issues if issue.issue_type == "inventory_stockout_risk")
@@ -203,7 +222,10 @@ def test_detector_blocks_recommendations_when_inventory_signals_conflict() -> No
     )
 
     result = OperationalIssueDetector().detect(
-        tenant_id="tenant-a", inventory_snapshots=[contradictory], profit_snapshots=[], detected_at=NOW,
+        tenant_id="tenant-a",
+        inventory_snapshots=[contradictory],
+        profit_snapshots=[],
+        detected_at=NOW,
     )
 
     assert [issue.issue_type for issue in result.issues] == ["inventory_signal_conflict"]
@@ -225,7 +247,10 @@ def test_issue_repository_deduplicates_and_enforces_tenant_scope(tmp_path) -> No
         session.add(TenantRow(id="tenant-b", name="B", slug="tenant-b"))
 
     detected = OperationalIssueDetector().detect(
-        tenant_id="tenant-a", inventory_snapshots=[_inventory_snapshot()], profit_snapshots=[], detected_at=NOW,
+        tenant_id="tenant-a",
+        inventory_snapshots=[_inventory_snapshot()],
+        profit_snapshots=[],
+        detected_at=NOW,
     )
     issue_repository = OperationalIssueRepository(session_factory)
     action_repository = RecommendedActionRepository(session_factory)
@@ -245,21 +270,34 @@ def test_issue_repository_deduplicates_and_enforces_tenant_scope(tmp_path) -> No
     assert len(action_repository.list_actions(tenant_id="tenant-a", issue_id=first.id)) == 1
     assert action_repository.list_actions(tenant_id="tenant-b") == []
     accepted_action = action_repository.transition(
-        tenant_id="tenant-a", action_id=saved_action.id, target_status="accepted",
+        tenant_id="tenant-a",
+        action_id=saved_action.id,
+        target_status="accepted",
     )
     assert accepted_action.status == "accepted"
     with pytest.raises(ValueError):
         action_repository.transition(
-            tenant_id="tenant-a", action_id=saved_action.id, target_status="rejected", reason="invalid rollback",
+            tenant_id="tenant-a",
+            action_id=saved_action.id,
+            target_status="rejected",
+            reason="invalid rollback",
         )
 
     acknowledged = issue_repository.transition(
-        tenant_id="tenant-a", issue_id=first.id, target_status="acknowledged", actor_id="operator-1", note="reviewing",
+        tenant_id="tenant-a",
+        issue_id=first.id,
+        target_status="acknowledged",
+        actor_id="operator-1",
+        note="reviewing",
     )
     assert acknowledged.status == "acknowledged"
     with pytest.raises(ValueError):
         issue_repository.transition(
-            tenant_id="tenant-a", issue_id=first.id, target_status="open", actor_id="operator-1", note="invalid rollback",
+            tenant_id="tenant-a",
+            issue_id=first.id,
+            target_status="open",
+            actor_id="operator-1",
+            note="invalid rollback",
         )
 
 
@@ -357,11 +395,17 @@ def test_partial_detection_never_auto_resolves_absent_issue(tmp_path) -> None:
     )
     inventory_repository.save(unhealthy)
     first = service.detect(
-        tenant_id="tenant-a", inventory_snapshot_ids=[unhealthy.id], profit_snapshot_ids=[], complete_scan=True,
+        tenant_id="tenant-a",
+        inventory_snapshot_ids=[unhealthy.id],
+        profit_snapshot_ids=[],
+        complete_scan=True,
     )
     inventory_repository.save(healthy)
     service.detect(
-        tenant_id="tenant-a", inventory_snapshot_ids=[healthy.id], profit_snapshot_ids=[], complete_scan=False,
+        tenant_id="tenant-a",
+        inventory_snapshot_ids=[healthy.id],
+        profit_snapshot_ids=[],
+        complete_scan=False,
     )
 
     still_active = issue_repository.get(tenant_id="tenant-a", issue_id=first.issues[0].id)
@@ -418,7 +462,9 @@ def test_detection_uses_latest_snapshot_per_marketplace_sku(tmp_path) -> None:
 def test_operations_api_detects_lists_and_updates_tenant_scoped_issues(tmp_path) -> None:
     database_url = f"sqlite:///{tmp_path / 'operations-api.sqlite'}"
     initialize_database(database_url, default_tenant_id="tenant-a")
-    app = create_app(Settings(database_url=database_url, auto_create_schema=False, api_key="test-key", auth_mode="api_key"))
+    app = create_app(
+        Settings(database_url=database_url, auto_create_schema=False, api_key="test-key", auth_mode="api_key")
+    )
     with app.state.session_factory.begin() as session:
         session.add(TenantRow(id="tenant-b", name="B", slug="tenant-b"))
     app.state.inventory_health_repository.save(_inventory_snapshot())
@@ -432,11 +478,15 @@ def test_operations_api_detects_lists_and_updates_tenant_scoped_issues(tmp_path)
         try:
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
                 headers_a = {
-                    "X-API-Key": "test-key", "X-Tenant-ID": "tenant-a", "X-User-ID": "operator-1",
-                    "X-User-Role": "operator", "X-Permission-Scopes": "read write",
+                    "X-API-Key": "test-key",
+                    "X-Tenant-ID": "tenant-a",
+                    "X-User-ID": "operator-1",
+                    "X-User-Role": "operator",
+                    "X-Permission-Scopes": "read write",
                 }
                 detected = await client.post(
-                    "/api/operations/issues/detect", headers=headers_a,
+                    "/api/operations/issues/detect",
+                    headers=headers_a,
                     json={"inventory_snapshot_ids": ["inventory-1"], "profit_snapshot_ids": ["profit-1"]},
                 )
                 assert detected.status_code == 200, detected.text
@@ -454,13 +504,15 @@ def test_operations_api_detects_lists_and_updates_tenant_scoped_issues(tmp_path)
                 high_risk_action = actions.json()["items"][0]
                 assert high_risk_action["risk_level"] in {"high", "critical"}
                 bypass = await client.patch(
-                    f"/api/operations/actions/{high_risk_action['id']}", headers=headers_a,
+                    f"/api/operations/actions/{high_risk_action['id']}",
+                    headers=headers_a,
                     json={"status": "accepted", "reason": "bypass approval"},
                 )
                 assert bypass.status_code == 403
 
                 updated = await client.patch(
-                    f"/api/operations/issues/{issue_id}", headers=headers_a,
+                    f"/api/operations/issues/{issue_id}",
+                    headers=headers_a,
                     json={"status": "acknowledged", "note": "owner assigned"},
                 )
                 assert updated.status_code == 200
@@ -470,7 +522,8 @@ def test_operations_api_detects_lists_and_updates_tenant_scoped_issues(tmp_path)
                 hidden = await client.get(f"/api/operations/issues/{issue_id}", headers=headers_b)
                 assert hidden.status_code == 404
                 foreign_snapshot = await client.post(
-                    "/api/operations/issues/detect", headers=headers_b,
+                    "/api/operations/issues/detect",
+                    headers=headers_b,
                     json={"inventory_snapshot_ids": ["inventory-1"], "profit_snapshot_ids": []},
                 )
                 assert foreign_snapshot.status_code == 404

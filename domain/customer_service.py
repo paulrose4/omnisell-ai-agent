@@ -6,10 +6,17 @@ from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
-
 CASE_STATUSES = {
-    "open", "acknowledged", "in_progress", "awaiting_approval", "ready_to_send",
-    "policy_blocked", "sent", "resolved", "dismissed", "reopened",
+    "open",
+    "acknowledged",
+    "in_progress",
+    "awaiting_approval",
+    "ready_to_send",
+    "policy_blocked",
+    "sent",
+    "resolved",
+    "dismissed",
+    "reopened",
 }
 
 

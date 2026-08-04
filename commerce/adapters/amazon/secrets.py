@@ -51,7 +51,9 @@ class EncryptedDatabaseSecretStore:
     def put(self, *, tenant_id: str, value: str) -> str:
         secret_id = str(uuid4())
         with self.session_factory.begin() as session:
-            session.add(SecretRow(id=secret_id, tenant_id=tenant_id, ciphertext=self.fernet.encrypt(value.encode("utf-8"))))
+            session.add(
+                SecretRow(id=secret_id, tenant_id=tenant_id, ciphertext=self.fernet.encrypt(value.encode("utf-8")))
+            )
         return f"db-secret://{secret_id}"
 
     def get(self, *, tenant_id: str, secret_ref: str) -> str:

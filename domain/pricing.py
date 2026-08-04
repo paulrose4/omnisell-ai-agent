@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from domain.models import InventoryHealthSnapshot, PriceRecommendation, SKUCostProfile, SKUProfitSnapshot
 from safety.policy_engine import PolicyDecision, PolicyEngine, canonical_action_hash
-
 
 MONEY = Decimal("0.01")
 RATE = Decimal("0.0001")
@@ -50,13 +49,16 @@ class PriceRecommendationCalculator:
         if profit_snapshot.units <= 0 or profit_snapshot.revenue <= 0:
             raise ValueError("profit snapshot requires positive units and revenue for price projection")
         current_price = self._money(input_data.current_price)
-        fixed_total = sum((
-            profit_snapshot.landed_cost or Decimal("0"),
-            profit_snapshot.fulfillment_fees or Decimal("0"),
-            profit_snapshot.storage_cost or Decimal("0"),
-            profit_snapshot.advertising_cost or Decimal("0"),
-            profit_snapshot.other_variable_cost or Decimal("0"),
-        ), Decimal("0"))
+        fixed_total = sum(
+            (
+                profit_snapshot.landed_cost or Decimal("0"),
+                profit_snapshot.fulfillment_fees or Decimal("0"),
+                profit_snapshot.storage_cost or Decimal("0"),
+                profit_snapshot.advertising_cost or Decimal("0"),
+                profit_snapshot.other_variable_cost or Decimal("0"),
+            ),
+            Decimal("0"),
+        )
         fixed_unit_cost = fixed_total / Decimal(profit_snapshot.units)
         referral_rate = (profit_snapshot.referral_fees or Decimal("0")) / profit_snapshot.revenue
         return_rate = (profit_snapshot.return_loss or Decimal("0")) / profit_snapshot.revenue
@@ -109,14 +111,18 @@ class PriceRecommendationCalculator:
             reasons.append("price_decrease_during_critical_stockout")
 
         policy_arguments = {
-            "current_price": str(current_price), "new_price": str(recommended_price),
+            "current_price": str(current_price),
+            "new_price": str(recommended_price),
             "currency": input_data.currency.upper(),
-            "break_even_price": str(break_even_floor), "projected_margin": str(projected_margin),
+            "break_even_price": str(break_even_floor),
+            "projected_margin": str(projected_margin),
             "minimum_margin_rate": str(minimum_margin_rate),
             "inventory_stockout_risk": inventory_snapshot.stockout_risk,
             "data_complete": not missing_data and not reasons,
         }
-        policy = self.policy_engine.evaluate(action="update_price", arguments=policy_arguments, confidence=float(confidence))
+        policy = self.policy_engine.evaluate(
+            action="update_price", arguments=policy_arguments, confidence=float(confidence)
+        )
         if "below_break_even_floor" in reasons or "price_decrease_during_critical_stockout" in reasons:
             decision = PolicyDecision.BLOCK
             risk_level = "critical"
@@ -133,36 +139,70 @@ class PriceRecommendationCalculator:
         else:
             status = "ready"
         automation_eligible = (
-            decision == PolicyDecision.ALLOW and confidence >= Decimal("0.95")
-            and not missing_data and not reasons and inventory_snapshot.automation_eligible
+            decision == PolicyDecision.ALLOW
+            and confidence >= Decimal("0.95")
+            and not missing_data
+            and not reasons
+            and inventory_snapshot.automation_eligible
         )
         if policy.reason and policy.reason not in reasons:
             reasons.append(policy.reason)
         action_hash = canonical_action_hash(
-            action="update_price", tenant_id=input_data.tenant_id,
-            resource_id=f"{input_data.marketplace_id}:{input_data.seller_sku}", arguments=policy_arguments,
+            action="update_price",
+            tenant_id=input_data.tenant_id,
+            resource_id=f"{input_data.marketplace_id}:{input_data.seller_sku}",
+            arguments=policy_arguments,
         )
         degraded_reason = None
-        if missing_data or profit_snapshot.degraded_reason or inventory_snapshot.degraded_reason or profit_stale or inventory_stale:
+        if (
+            missing_data
+            or profit_snapshot.degraded_reason
+            or inventory_snapshot.degraded_reason
+            or profit_stale
+            or inventory_stale
+        ):
             degraded_reason = "pricing_evidence_degraded"
-        evidence = ({
-            "profit_snapshot_id": profit_snapshot.id, "profit_calculation_version": profit_snapshot.calculation_version,
-            "inventory_snapshot_id": inventory_snapshot.id, "inventory_calculation_version": inventory_snapshot.calculation_version,
-            "cost_profile_id": profile.id, "cost_profile_version": profile.version,
-            "fixed_unit_cost": str(self._money(fixed_unit_cost)), "variable_rate": str(self._rate(variable_rate)),
-            "profit_calculated_at": profit_snapshot.calculated_at.isoformat(),
-            "inventory_collected_at": inventory_snapshot.inventory_collected_at.isoformat(),
-        },)
+        evidence = (
+            {
+                "profit_snapshot_id": profit_snapshot.id,
+                "profit_calculation_version": profit_snapshot.calculation_version,
+                "inventory_snapshot_id": inventory_snapshot.id,
+                "inventory_calculation_version": inventory_snapshot.calculation_version,
+                "cost_profile_id": profile.id,
+                "cost_profile_version": profile.version,
+                "fixed_unit_cost": str(self._money(fixed_unit_cost)),
+                "variable_rate": str(self._rate(variable_rate)),
+                "profit_calculated_at": profit_snapshot.calculated_at.isoformat(),
+                "inventory_collected_at": inventory_snapshot.inventory_collected_at.isoformat(),
+            },
+        )
         return PriceRecommendation(
-            tenant_id=input_data.tenant_id, seller_sku=input_data.seller_sku, marketplace_id=input_data.marketplace_id,
-            currency=input_data.currency, profit_snapshot_id=profit_snapshot.id, inventory_snapshot_id=inventory_snapshot.id,
-            cost_profile_id=profile.id, current_price=current_price, recommended_price=recommended_price,
-            candidate_source=candidate_source, break_even_floor=break_even_floor, minimum_margin_floor=minimum_margin_floor,
-            minimum_margin_rate=minimum_margin_rate, projected_unit_profit=projected_unit_profit,
-            projected_margin=projected_margin, change_rate=change_rate, policy_decision=decision.value,
-            policy_reasons=tuple(dict.fromkeys(reasons)), risk_level=risk_level, status=status,
-            confidence=confidence, automation_eligible=automation_eligible, action_hash=action_hash,
-            evidence=evidence, missing_data=tuple(missing_data), degraded_reason=degraded_reason,
+            tenant_id=input_data.tenant_id,
+            seller_sku=input_data.seller_sku,
+            marketplace_id=input_data.marketplace_id,
+            currency=input_data.currency,
+            profit_snapshot_id=profit_snapshot.id,
+            inventory_snapshot_id=inventory_snapshot.id,
+            cost_profile_id=profile.id,
+            current_price=current_price,
+            recommended_price=recommended_price,
+            candidate_source=candidate_source,
+            break_even_floor=break_even_floor,
+            minimum_margin_floor=minimum_margin_floor,
+            minimum_margin_rate=minimum_margin_rate,
+            projected_unit_profit=projected_unit_profit,
+            projected_margin=projected_margin,
+            change_rate=change_rate,
+            policy_decision=decision.value,
+            policy_reasons=tuple(dict.fromkeys(reasons)),
+            risk_level=risk_level,
+            status=status,
+            confidence=confidence,
+            automation_eligible=automation_eligible,
+            action_hash=action_hash,
+            evidence=evidence,
+            missing_data=tuple(missing_data),
+            degraded_reason=degraded_reason,
             calculated_at=input_data.calculated_at,
         )
 

@@ -18,7 +18,6 @@ from evals.production_acceptance import (
     render_markdown_report,
 )
 
-
 DEFAULT_OUTPUT_DIR = Path("artifacts/production-acceptance")
 
 
@@ -49,11 +48,17 @@ def main() -> int:
     paths["report_markdown"].write_text(render_markdown_report(report), encoding="utf-8")
     _write_json(paths["blind_review"], review_template)
 
-    print(json.dumps({
-        "decision": report["decisions"],
-        "synthetic_metrics": report["synthetic_metrics"],
-        "outputs": {name: str(path.resolve()) for name, path in paths.items()},
-    }, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "decision": report["decisions"],
+                "synthetic_metrics": report["synthetic_metrics"],
+                "outputs": {name: str(path.resolve()) for name, path in paths.items()},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0 if report["gates"]["synthetic_rule_replay"]["status"] == "passed" else 1
 
 
@@ -62,21 +67,23 @@ def _blind_review_candidates(report: dict[str, Any]) -> list[dict[str, str]]:
     candidates: list[dict[str, str]] = []
     for index, finding in enumerate(sample[:4], start=1):
         case_id = f"replay-case-{index}"
-        candidates.extend([
-            {
-                "case_id": case_id,
-                "candidate_id": "A",
-                "content": (
-                    f"发现 {finding['seller_sku']} 的 {finding['code']}。请复核证据、负责人和 SLA，"
-                    "不要执行 Amazon 写入。"
-                ),
-            },
-            {
-                "case_id": case_id,
-                "candidate_id": "B",
-                "content": "待填入独立人工建议或真实 Advisor 建议。",
-            },
-        ])
+        candidates.extend(
+            [
+                {
+                    "case_id": case_id,
+                    "candidate_id": "A",
+                    "content": (
+                        f"发现 {finding['seller_sku']} 的 {finding['code']}。请复核证据、负责人和 SLA，"
+                        "不要执行 Amazon 写入。"
+                    ),
+                },
+                {
+                    "case_id": case_id,
+                    "candidate_id": "B",
+                    "content": "待填入独立人工建议或真实 Advisor 建议。",
+                },
+            ]
+        )
     return candidates
 
 

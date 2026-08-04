@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
-
 
 AMAZON_SIGNAL_TYPES = {
     "account_health_violation",
@@ -54,8 +53,13 @@ class AmazonOperationalSignal:
 
 
 def calculate_advertising_metrics(
-    *, spend: Decimal, attributed_sales: Decimal | None, total_sales: Decimal | None,
-    impressions: int | None, clicks: int | None, orders: int | None,
+    *,
+    spend: Decimal,
+    attributed_sales: Decimal | None,
+    total_sales: Decimal | None,
+    impressions: int | None,
+    clicks: int | None,
+    orders: int | None,
 ) -> dict[str, Any]:
     missing_data: list[str] = []
     acos = _rate(spend, attributed_sales, "attributed_sales", missing_data)
@@ -64,54 +68,100 @@ def calculate_advertising_metrics(
     cvr = _rate(Decimal(orders or 0), Decimal(clicks or 0), "clicks", missing_data)
     cpc = _rate(spend, Decimal(clicks or 0), "clicks", missing_data)
     return {
-        "spend": spend, "attributed_sales": attributed_sales, "total_sales": total_sales,
-        "impressions": impressions, "clicks": clicks, "orders": orders,
-        "acos": acos, "tacos": tacos, "ctr": ctr, "cvr": cvr, "cpc": cpc,
+        "spend": spend,
+        "attributed_sales": attributed_sales,
+        "total_sales": total_sales,
+        "impressions": impressions,
+        "clicks": clicks,
+        "orders": orders,
+        "acos": acos,
+        "tacos": tacos,
+        "ctr": ctr,
+        "cvr": cvr,
+        "cpc": cpc,
         "missing_data": sorted(set(missing_data)),
     }
 
 
 def diagnose_advertising(
-    *, seller_sku: str, marketplace_id: str, campaign_id: str, spend: Decimal,
-    attributed_sales: Decimal | None, total_sales: Decimal | None, impressions: int | None,
-    clicks: int | None, orders: int | None, budget: Decimal | None, elapsed_days: Decimal,
-    period_days: Decimal, break_even_acos: Decimal | None, min_clicks_without_order: int = 20,
+    *,
+    seller_sku: str,
+    marketplace_id: str,
+    campaign_id: str,
+    spend: Decimal,
+    attributed_sales: Decimal | None,
+    total_sales: Decimal | None,
+    impressions: int | None,
+    clicks: int | None,
+    orders: int | None,
+    budget: Decimal | None,
+    elapsed_days: Decimal,
+    period_days: Decimal,
+    break_even_acos: Decimal | None,
+    min_clicks_without_order: int = 20,
 ) -> list[dict[str, Any]]:
     metrics = calculate_advertising_metrics(
-        spend=spend, attributed_sales=attributed_sales, total_sales=total_sales,
-        impressions=impressions, clicks=clicks, orders=orders,
+        spend=spend,
+        attributed_sales=attributed_sales,
+        total_sales=total_sales,
+        impressions=impressions,
+        clicks=clicks,
+        orders=orders,
     )
     result: list[dict[str, Any]] = []
     acos = metrics["acos"]
     if acos is not None and break_even_acos is not None and acos > break_even_acos:
-        result.append({
-            "code": "acos_above_break_even", "severity": "high",
-            "title": "ACoS 高于盈亏平衡线", "seller_sku": seller_sku,
-            "marketplace_id": marketplace_id, "campaign_id": campaign_id,
-            "observed": str(acos), "threshold": str(break_even_acos),
-        })
+        result.append(
+            {
+                "code": "acos_above_break_even",
+                "severity": "high",
+                "title": "ACoS 高于盈亏平衡线",
+                "seller_sku": seller_sku,
+                "marketplace_id": marketplace_id,
+                "campaign_id": campaign_id,
+                "observed": str(acos),
+                "threshold": str(break_even_acos),
+            }
+        )
     if int(clicks or 0) >= min_clicks_without_order and int(orders or 0) == 0:
-        result.append({
-            "code": "click_waste_without_orders", "severity": "high",
-            "title": "点击达到阈值但没有订单", "seller_sku": seller_sku,
-            "marketplace_id": marketplace_id, "campaign_id": campaign_id,
-            "clicks": int(clicks or 0), "threshold": min_clicks_without_order,
-        })
+        result.append(
+            {
+                "code": "click_waste_without_orders",
+                "severity": "high",
+                "title": "点击达到阈值但没有订单",
+                "seller_sku": seller_sku,
+                "marketplace_id": marketplace_id,
+                "campaign_id": campaign_id,
+                "clicks": int(clicks or 0),
+                "threshold": min_clicks_without_order,
+            }
+        )
     if budget is not None and elapsed_days > 0 and period_days > elapsed_days:
         projected_spend = spend / elapsed_days * period_days
         if projected_spend > budget:
-            result.append({
-                "code": "budget_projected_to_exhaust_early", "severity": "medium",
-                "title": "预算预计提前耗尽", "seller_sku": seller_sku,
-                "marketplace_id": marketplace_id, "campaign_id": campaign_id,
-                "projected_spend": str(projected_spend), "budget": str(budget),
-            })
+            result.append(
+                {
+                    "code": "budget_projected_to_exhaust_early",
+                    "severity": "medium",
+                    "title": "预算预计提前耗尽",
+                    "seller_sku": seller_sku,
+                    "marketplace_id": marketplace_id,
+                    "campaign_id": campaign_id,
+                    "projected_spend": str(projected_spend),
+                    "budget": str(budget),
+                }
+            )
     return result
 
 
 def summarize_voc(
-    *, tenant_id: str, seller_sku: str, marketplace_id: str,
-    returns: list[dict[str, Any]], reviews: list[dict[str, Any]], messages: list[dict[str, Any]],
+    *,
+    tenant_id: str,
+    seller_sku: str,
+    marketplace_id: str,
+    returns: list[dict[str, Any]],
+    reviews: list[dict[str, Any]],
+    messages: list[dict[str, Any]],
     min_sample_size: int = 5,
 ) -> dict[str, Any]:
     reason_counts: dict[str, int] = {}
@@ -136,10 +186,15 @@ def summarize_voc(
             "expected_outcome": "完成产品、包装、Listing 或质检改进，并在后续周期验证退货率趋势。",
         }
     return {
-        "tenant_id": tenant_id, "seller_sku": seller_sku, "marketplace_id": marketplace_id,
-        "sample_size": sample_size, "reason_counts": reason_counts,
-        "top_reason_code": top_reason_code, "top_reason_count": top_reason_count,
-        "status": status, "recommended_action": recommended_action,
+        "tenant_id": tenant_id,
+        "seller_sku": seller_sku,
+        "marketplace_id": marketplace_id,
+        "sample_size": sample_size,
+        "reason_counts": reason_counts,
+        "top_reason_code": top_reason_code,
+        "top_reason_count": top_reason_count,
+        "status": status,
+        "recommended_action": recommended_action,
     }
 
 

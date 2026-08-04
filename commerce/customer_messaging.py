@@ -42,8 +42,7 @@ class MockBuyerMessagingAdapter:
 
     def list_scenarios(self) -> list[dict[str, str]]:
         return [
-            {"scenario_id": key, "message": value[0], "language": value[1]}
-            for key, value in self.SCENARIOS.items()
+            {"scenario_id": key, "message": value[0], "language": value[1]} for key, value in self.SCENARIOS.items()
         ]
 
     def create_message(self, *, scenario_id: str, external_order_id: str) -> BuyerMessage:

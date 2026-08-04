@@ -7,7 +7,6 @@ from agents.tools.rag_tool import answer_customer_question
 from agents.tools.vision_tool import answer_visual_customer_question
 from application.agent_worker import execute_agent_run_action
 
-
 ActionHandler = Callable[..., dict[str, Any]]
 
 

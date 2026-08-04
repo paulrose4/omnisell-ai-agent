@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-from datetime import UTC, datetime
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from application.high_fidelity_mock import HighFidelityStoreConfig, generate_high_fidelity_store
-
 
 UAT_CONFIG = HighFidelityStoreConfig(
     seed=20260722,
@@ -62,10 +61,12 @@ def main() -> None:
         "action_trials": dataset.action_trials,
     }.items():
         (output_dir / f"{name}.json").write_text(
-            json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8",
+            json.dumps(rows, ensure_ascii=False, indent=2),
+            encoding="utf-8",
         )
     (output_dir / "manifest.json").write_text(
-        json.dumps(dataset.manifest(), ensure_ascii=False, indent=2), encoding="utf-8",
+        json.dumps(dataset.manifest(), ensure_ascii=False, indent=2),
+        encoding="utf-8",
     )
     print(json.dumps(dataset.manifest(), ensure_ascii=False, indent=2))
 

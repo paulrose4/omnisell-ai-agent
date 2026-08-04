@@ -10,7 +10,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from domain.models import OperationalIssue, RecommendedAction
-from domain.operational_intelligence import AmazonOperationalSignal, calculate_advertising_metrics, diagnose_advertising, summarize_voc
+from domain.operational_intelligence import (
+    AmazonOperationalSignal,
+    calculate_advertising_metrics,
+    summarize_voc,
+)
 from domain.operations_learning import evaluate_sponsored_products, normalize_voc_reason, route_voc_reason
 from infrastructure.database.models import (
     AdvertisingBudgetDiagnosticRow,
@@ -35,14 +39,21 @@ class AmazonOperationalSignalRepository:
 
     def upsert(self, signal: AmazonOperationalSignal) -> dict[str, Any]:
         with self.session_factory.begin() as session:
-            row = session.scalar(select(AmazonOperationalSignalRow).where(
-                AmazonOperationalSignalRow.tenant_id == signal.tenant_id,
-                AmazonOperationalSignalRow.signal_type == signal.signal_type,
-                AmazonOperationalSignalRow.resource_id == signal.resource_id,
-                AmazonOperationalSignalRow.observed_at == signal.observed_at,
-            ))
+            row = session.scalar(
+                select(AmazonOperationalSignalRow).where(
+                    AmazonOperationalSignalRow.tenant_id == signal.tenant_id,
+                    AmazonOperationalSignalRow.signal_type == signal.signal_type,
+                    AmazonOperationalSignalRow.resource_id == signal.resource_id,
+                    AmazonOperationalSignalRow.observed_at == signal.observed_at,
+                )
+            )
             if row is None:
-                row = AmazonOperationalSignalRow(id=signal.id or str(uuid4()), tenant_id=signal.tenant_id, signal_type=signal.signal_type, resource_id=signal.resource_id)
+                row = AmazonOperationalSignalRow(
+                    id=signal.id or str(uuid4()),
+                    tenant_id=signal.tenant_id,
+                    signal_type=signal.signal_type,
+                    resource_id=signal.resource_id,
+                )
                 session.add(row)
             row.marketplace_id = signal.marketplace_id
             row.severity = signal.severity
@@ -60,35 +71,72 @@ class AmazonOperationalSignalRepository:
             session.flush()
             saved = _signal_dict(row)
         now = datetime.now(UTC)
-        dedupe = sha256(f"{signal.tenant_id}:{signal.signal_type}:{signal.marketplace_id}:{signal.resource_id}".encode()).hexdigest()[:64]
-        evidence = ({
-            "signal_id": saved["id"], "resource_id": signal.resource_id,
-            "observed_at": signal.observed_at.isoformat(), "collected_at": signal.collected_at.isoformat(),
-            "freshness_seconds": signal.freshness_seconds, "verified_amazon_data": signal.verified_amazon_data,
-            "source": signal.source, "raw_status_code": signal.raw_status_code,
-        },)
-        issue = self.issue_repository.upsert(OperationalIssue(
-            tenant_id=signal.tenant_id, seller_sku=signal.resource_id, marketplace_id=signal.marketplace_id,
-            issue_type=signal.signal_type, severity=signal.severity, title=signal.title, summary=signal.summary,
-            status="open", dedupe_key=dedupe, confidence=Decimal("0.98") if signal.verified_amazon_data else Decimal("0.60"),
-            data_freshness_at=signal.observed_at, evidence=evidence,
-            missing_data=() if signal.verified_amazon_data else ("verified_amazon_data",),
-            detected_at=now, last_detected_at=now, created_at=now, updated_at=now,
-        ))
-        action = self.action_repository.upsert(RecommendedAction(
-            tenant_id=signal.tenant_id, issue_id=issue.id, action_type=f"review_{signal.signal_type}",
-            title=f"复核并处理：{signal.title}", description="执行最小必要的只读检查，确认事实后再进入独立审批或人工 Seller Central 处理。",
-            execution_mode="single_approval", risk_level=signal.severity, status="proposed",
-            parameters={"resource_id": signal.resource_id, "signal_type": signal.signal_type}, evidence=evidence,
-            expected_outcome="确认 Amazon 状态、归属负责人并记录可验证的处理结果。",
-            confidence=Decimal("0.98") if signal.verified_amazon_data else Decimal("0.60"),
-            automation_eligible=False, dedupe_key=dedupe, created_at=now, updated_at=now,
-        ), canonical_issue_id=issue.id)
-        item = self.work_item_repository.get_by_source(tenant_id=signal.tenant_id, source_type="recommended_action", source_id=action.id)
+        dedupe = sha256(
+            f"{signal.tenant_id}:{signal.signal_type}:{signal.marketplace_id}:{signal.resource_id}".encode()
+        ).hexdigest()[:64]
+        evidence = (
+            {
+                "signal_id": saved["id"],
+                "resource_id": signal.resource_id,
+                "observed_at": signal.observed_at.isoformat(),
+                "collected_at": signal.collected_at.isoformat(),
+                "freshness_seconds": signal.freshness_seconds,
+                "verified_amazon_data": signal.verified_amazon_data,
+                "source": signal.source,
+                "raw_status_code": signal.raw_status_code,
+            },
+        )
+        issue = self.issue_repository.upsert(
+            OperationalIssue(
+                tenant_id=signal.tenant_id,
+                seller_sku=signal.resource_id,
+                marketplace_id=signal.marketplace_id,
+                issue_type=signal.signal_type,
+                severity=signal.severity,
+                title=signal.title,
+                summary=signal.summary,
+                status="open",
+                dedupe_key=dedupe,
+                confidence=Decimal("0.98") if signal.verified_amazon_data else Decimal("0.60"),
+                data_freshness_at=signal.observed_at,
+                evidence=evidence,
+                missing_data=() if signal.verified_amazon_data else ("verified_amazon_data",),
+                detected_at=now,
+                last_detected_at=now,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        action = self.action_repository.upsert(
+            RecommendedAction(
+                tenant_id=signal.tenant_id,
+                issue_id=issue.id,
+                action_type=f"review_{signal.signal_type}",
+                title=f"复核并处理：{signal.title}",
+                description="执行最小必要的只读检查，确认事实后再进入独立审批或人工 Seller Central 处理。",
+                execution_mode="single_approval",
+                risk_level=signal.severity,
+                status="proposed",
+                parameters={"resource_id": signal.resource_id, "signal_type": signal.signal_type},
+                evidence=evidence,
+                expected_outcome="确认 Amazon 状态、归属负责人并记录可验证的处理结果。",
+                confidence=Decimal("0.98") if signal.verified_amazon_data else Decimal("0.60"),
+                automation_eligible=False,
+                dedupe_key=dedupe,
+                created_at=now,
+                updated_at=now,
+            ),
+            canonical_issue_id=issue.id,
+        )
+        item = self.work_item_repository.get_by_source(
+            tenant_id=signal.tenant_id, source_type="recommended_action", source_id=action.id
+        )
         saved["work_item_id"] = item.id if item else None
         return saved
 
-    def list(self, *, tenant_id: str, signal_type: str | None = None, severity: str | None = None) -> list[dict[str, Any]]:
+    def list(
+        self, *, tenant_id: str, signal_type: str | None = None, severity: str | None = None
+    ) -> list[dict[str, Any]]:
         statement = select(AmazonOperationalSignalRow).where(AmazonOperationalSignalRow.tenant_id == tenant_id)
         if signal_type:
             statement = statement.where(AmazonOperationalSignalRow.signal_type == signal_type)
@@ -117,28 +165,44 @@ class AdvertisingRepository:
         spend = _decimal(payload.get("spend", "0"))
         attributed_sales = _optional_decimal(payload.get("attributed_sales"))
         total_sales = _optional_decimal(payload.get("total_sales"))
-        metrics = _json_safe({
-            **payload.get("metrics", {}),
-            "elapsed_days": payload.get("elapsed_days", "1"),
-            "period_days": payload.get("period_days", "7"),
-            "break_even_acos": payload.get("break_even_acos"),
-            "contribution_profit": payload.get("contribution_profit"),
-            "inventory_status": payload.get("inventory_status"),
-        })
-        calculated = _json_safe(calculate_advertising_metrics(
-            spend=spend, attributed_sales=attributed_sales, total_sales=total_sales,
-            impressions=payload.get("impressions"), clicks=payload.get("clicks"), orders=payload.get("orders"),
-        ))
+        metrics = _json_safe(
+            {
+                **payload.get("metrics", {}),
+                "elapsed_days": payload.get("elapsed_days", "1"),
+                "period_days": payload.get("period_days", "7"),
+                "break_even_acos": payload.get("break_even_acos"),
+                "contribution_profit": payload.get("contribution_profit"),
+                "inventory_status": payload.get("inventory_status"),
+            }
+        )
+        calculated = _json_safe(
+            calculate_advertising_metrics(
+                spend=spend,
+                attributed_sales=attributed_sales,
+                total_sales=total_sales,
+                impressions=payload.get("impressions"),
+                clicks=payload.get("clicks"),
+                orders=payload.get("orders"),
+            )
+        )
         metrics.update(calculated)
         with self.session_factory.begin() as session:
-            row = session.scalar(select(AdvertisingDailySnapshotRow).where(
-                AdvertisingDailySnapshotRow.tenant_id == tenant_id,
-                AdvertisingDailySnapshotRow.entity_type == payload["entity_type"],
-                AdvertisingDailySnapshotRow.entity_id == payload["entity_id"],
-                AdvertisingDailySnapshotRow.period_start == start,
-            ))
+            row = session.scalar(
+                select(AdvertisingDailySnapshotRow).where(
+                    AdvertisingDailySnapshotRow.tenant_id == tenant_id,
+                    AdvertisingDailySnapshotRow.entity_type == payload["entity_type"],
+                    AdvertisingDailySnapshotRow.entity_id == payload["entity_id"],
+                    AdvertisingDailySnapshotRow.period_start == start,
+                )
+            )
             if row is None:
-                row = AdvertisingDailySnapshotRow(id=str(uuid4()), tenant_id=tenant_id, entity_type=payload["entity_type"], entity_id=payload["entity_id"], period_start=start)
+                row = AdvertisingDailySnapshotRow(
+                    id=str(uuid4()),
+                    tenant_id=tenant_id,
+                    entity_type=payload["entity_type"],
+                    entity_id=payload["entity_id"],
+                    period_start=start,
+                )
                 session.add(row)
             row.marketplace_id = payload["marketplace_id"]
             row.seller_sku = payload["seller_sku"]
@@ -171,24 +235,34 @@ class AdvertisingRepository:
         _validate_source(source, verified)
         spend = _decimal(payload.get("spend", "0"))
         attributed_sales = _optional_decimal(payload.get("attributed_sales"))
-        metrics = _json_safe(calculate_advertising_metrics(
-            spend=spend,
-            attributed_sales=attributed_sales,
-            total_sales=None,
-            impressions=payload.get("impressions"),
-            clicks=payload.get("clicks"),
-            orders=payload.get("orders"),
-        ))
+        metrics = _json_safe(
+            calculate_advertising_metrics(
+                spend=spend,
+                attributed_sales=attributed_sales,
+                total_sales=None,
+                impressions=payload.get("impressions"),
+                clicks=payload.get("clicks"),
+                orders=payload.get("orders"),
+            )
+        )
         metrics.update(_json_safe(payload.get("metrics", {})))
         with self.session_factory.begin() as session:
-            row = session.scalar(select(SearchTermPerformanceSnapshotRow).where(
-                SearchTermPerformanceSnapshotRow.tenant_id == tenant_id,
-                SearchTermPerformanceSnapshotRow.campaign_id == payload["campaign_id"],
-                SearchTermPerformanceSnapshotRow.search_term == payload["search_term"],
-                SearchTermPerformanceSnapshotRow.period_start == start,
-            ))
+            row = session.scalar(
+                select(SearchTermPerformanceSnapshotRow).where(
+                    SearchTermPerformanceSnapshotRow.tenant_id == tenant_id,
+                    SearchTermPerformanceSnapshotRow.campaign_id == payload["campaign_id"],
+                    SearchTermPerformanceSnapshotRow.search_term == payload["search_term"],
+                    SearchTermPerformanceSnapshotRow.period_start == start,
+                )
+            )
             if row is None:
-                row = SearchTermPerformanceSnapshotRow(id=str(uuid4()), tenant_id=tenant_id, campaign_id=payload["campaign_id"], search_term=payload["search_term"], period_start=start)
+                row = SearchTermPerformanceSnapshotRow(
+                    id=str(uuid4()),
+                    tenant_id=tenant_id,
+                    campaign_id=payload["campaign_id"],
+                    search_term=payload["search_term"],
+                    period_start=start,
+                )
                 session.add(row)
             row.marketplace_id = payload["marketplace_id"]
             row.seller_sku = payload["seller_sku"]
@@ -212,20 +286,29 @@ class AdvertisingRepository:
 
     def diagnose_daily_snapshot(self, *, tenant_id: str, snapshot_id: str) -> list[dict[str, Any]]:
         with self.session_factory() as session:
-            snapshot = session.scalar(select(AdvertisingDailySnapshotRow).where(
-                AdvertisingDailySnapshotRow.tenant_id == tenant_id, AdvertisingDailySnapshotRow.id == snapshot_id,
-            ))
+            snapshot = session.scalar(
+                select(AdvertisingDailySnapshotRow).where(
+                    AdvertisingDailySnapshotRow.tenant_id == tenant_id,
+                    AdvertisingDailySnapshotRow.id == snapshot_id,
+                )
+            )
         if snapshot is None:
             raise LookupError("advertising snapshot not found")
         observed_at = _as_utc(snapshot.observed_at)
         collected_at = _as_utc(snapshot.collected_at)
         metrics = snapshot.metrics or {}
         evaluation = evaluate_sponsored_products(
-            seller_sku=snapshot.seller_sku, marketplace_id=snapshot.marketplace_id,
-            campaign_id=snapshot.campaign_id or snapshot.entity_id, spend=snapshot.spend,
-            attributed_sales=snapshot.attributed_sales, total_sales=snapshot.total_sales,
-            impressions=snapshot.impressions, clicks=snapshot.clicks, orders=snapshot.orders,
-            budget=snapshot.budget, elapsed_days=_decimal(metrics.get("elapsed_days", "1")),
+            seller_sku=snapshot.seller_sku,
+            marketplace_id=snapshot.marketplace_id,
+            campaign_id=snapshot.campaign_id or snapshot.entity_id,
+            spend=snapshot.spend,
+            attributed_sales=snapshot.attributed_sales,
+            total_sales=snapshot.total_sales,
+            impressions=snapshot.impressions,
+            clicks=snapshot.clicks,
+            orders=snapshot.orders,
+            budget=snapshot.budget,
+            elapsed_days=_decimal(metrics.get("elapsed_days", "1")),
             period_days=_decimal(metrics.get("period_days", "7")),
             break_even_acos=_optional_decimal(metrics.get("break_even_acos")),
             contribution_profit=_optional_decimal(metrics.get("contribution_profit")),
@@ -242,26 +325,44 @@ class AdvertisingRepository:
         results = []
         for finding in findings:
             action = self._ensure_work_item(
-                tenant_id=tenant_id, seller_sku=snapshot.seller_sku, marketplace_id=snapshot.marketplace_id,
-                issue_type=f"advertising_{finding['code']}", severity=finding["severity"], title=finding["title"],
+                tenant_id=tenant_id,
+                seller_sku=snapshot.seller_sku,
+                marketplace_id=snapshot.marketplace_id,
+                issue_type=f"advertising_{finding['code']}",
+                severity=finding["severity"],
+                title=finding["title"],
                 summary=f"Campaign {finding['campaign_id']} requires deterministic advertising review.",
-                evidence=[{"snapshot_id": snapshot.id, "source": snapshot.source, "verified_amazon_data": snapshot.verified_amazon_data, **_json_safe(finding)}],
-                action_type=candidates_by_code.get(finding["code"], f"review_{finding['code']}"), expected_outcome="Complete an operator-reviewed advertising change and verify the next reporting period.",
+                evidence=[
+                    {
+                        "snapshot_id": snapshot.id,
+                        "source": snapshot.source,
+                        "verified_amazon_data": snapshot.verified_amazon_data,
+                        **_json_safe(finding),
+                    }
+                ],
+                action_type=candidates_by_code.get(finding["code"], f"review_{finding['code']}"),
+                expected_outcome="Complete an operator-reviewed advertising change and verify the next reporting period.",
                 parameters={
-                    "campaign_id": finding["campaign_id"], "seller_sku": snapshot.seller_sku,
-                    "automation_eligible": False, "execution_mode": "manual_only",
+                    "campaign_id": finding["campaign_id"],
+                    "seller_sku": snapshot.seller_sku,
+                    "automation_eligible": False,
+                    "execution_mode": "manual_only",
                     "growth_blocked": evaluation["guards"]["growth_blocked"],
                 },
                 freshness=observed_at,
             )
             with self.session_factory.begin() as session:
-                row = session.scalar(select(AdvertisingBudgetDiagnosticRow).where(
-                    AdvertisingBudgetDiagnosticRow.tenant_id == tenant_id,
-                    AdvertisingBudgetDiagnosticRow.snapshot_id == snapshot.id,
-                    AdvertisingBudgetDiagnosticRow.code == finding["code"],
-                ))
+                row = session.scalar(
+                    select(AdvertisingBudgetDiagnosticRow).where(
+                        AdvertisingBudgetDiagnosticRow.tenant_id == tenant_id,
+                        AdvertisingBudgetDiagnosticRow.snapshot_id == snapshot.id,
+                        AdvertisingBudgetDiagnosticRow.code == finding["code"],
+                    )
+                )
                 if row is None:
-                    row = AdvertisingBudgetDiagnosticRow(id=str(uuid4()), tenant_id=tenant_id, snapshot_id=snapshot.id, code=finding["code"])
+                    row = AdvertisingBudgetDiagnosticRow(
+                        id=str(uuid4()), tenant_id=tenant_id, snapshot_id=snapshot.id, code=finding["code"]
+                    )
                     session.add(row)
                 row.seller_sku = snapshot.seller_sku
                 row.marketplace_id = snapshot.marketplace_id
@@ -298,19 +399,21 @@ class AdvertisingRepository:
             filters.append(AdvertisingBudgetDiagnosticRow.status == status)
         offset = (page - 1) * page_size
         with self.session_factory() as session:
-            total = int(session.scalar(
-                select(func.count()).select_from(AdvertisingBudgetDiagnosticRow).where(*filters)
-            ) or 0)
-            rows = list(session.scalars(
-                select(AdvertisingBudgetDiagnosticRow)
-                .where(*filters)
-                .order_by(
-                    AdvertisingBudgetDiagnosticRow.created_at.desc(),
-                    AdvertisingBudgetDiagnosticRow.id.desc(),
+            total = int(
+                session.scalar(select(func.count()).select_from(AdvertisingBudgetDiagnosticRow).where(*filters)) or 0
+            )
+            rows = list(
+                session.scalars(
+                    select(AdvertisingBudgetDiagnosticRow)
+                    .where(*filters)
+                    .order_by(
+                        AdvertisingBudgetDiagnosticRow.created_at.desc(),
+                        AdvertisingBudgetDiagnosticRow.id.desc(),
+                    )
+                    .offset(offset)
+                    .limit(page_size)
                 )
-                .offset(offset)
-                .limit(page_size)
-            ))
+            )
         return [_diagnostic_dict(row) for row in rows], total
 
     def list_snapshots(self, *, tenant_id: str, seller_sku: str | None = None) -> list[dict[str, Any]]:
@@ -322,7 +425,9 @@ class AdvertisingRepository:
         return [_ad_snapshot_dict(row) for row in rows]
 
     def list_search_terms(self, *, tenant_id: str, seller_sku: str | None = None) -> list[dict[str, Any]]:
-        statement = select(SearchTermPerformanceSnapshotRow).where(SearchTermPerformanceSnapshotRow.tenant_id == tenant_id)
+        statement = select(SearchTermPerformanceSnapshotRow).where(
+            SearchTermPerformanceSnapshotRow.tenant_id == tenant_id
+        )
         if seller_sku:
             statement = statement.where(SearchTermPerformanceSnapshotRow.seller_sku == seller_sku)
         with self.session_factory() as session:
@@ -342,39 +447,89 @@ class AdvertisingRepository:
             filters.append(SearchTermPerformanceSnapshotRow.seller_sku == seller_sku)
         offset = (page - 1) * page_size
         with self.session_factory() as session:
-            total = int(session.scalar(
-                select(func.count()).select_from(SearchTermPerformanceSnapshotRow).where(*filters)
-            ) or 0)
-            rows = list(session.scalars(
-                select(SearchTermPerformanceSnapshotRow)
-                .where(*filters)
-                .order_by(
-                    SearchTermPerformanceSnapshotRow.period_end.desc(),
-                    SearchTermPerformanceSnapshotRow.id.desc(),
+            total = int(
+                session.scalar(select(func.count()).select_from(SearchTermPerformanceSnapshotRow).where(*filters)) or 0
+            )
+            rows = list(
+                session.scalars(
+                    select(SearchTermPerformanceSnapshotRow)
+                    .where(*filters)
+                    .order_by(
+                        SearchTermPerformanceSnapshotRow.period_end.desc(),
+                        SearchTermPerformanceSnapshotRow.id.desc(),
+                    )
+                    .offset(offset)
+                    .limit(page_size)
                 )
-                .offset(offset)
-                .limit(page_size)
-            ))
+            )
         return [_search_term_dict(row) for row in rows], total
 
-    def _ensure_work_item(self, *, tenant_id: str, seller_sku: str, marketplace_id: str, issue_type: str, severity: str, title: str, summary: str, evidence: list[dict[str, Any]], action_type: str, expected_outcome: str, parameters: dict[str, Any], freshness: datetime) -> dict[str, Any]:
+    def _ensure_work_item(
+        self,
+        *,
+        tenant_id: str,
+        seller_sku: str,
+        marketplace_id: str,
+        issue_type: str,
+        severity: str,
+        title: str,
+        summary: str,
+        evidence: list[dict[str, Any]],
+        action_type: str,
+        expected_outcome: str,
+        parameters: dict[str, Any],
+        freshness: datetime,
+    ) -> dict[str, Any]:
         now = datetime.now(UTC)
-        dedupe = sha256(f"{tenant_id}:{issue_type}:{marketplace_id}:{seller_sku}:{parameters}".encode()).hexdigest()[:64]
-        issue = self.issue_repository.upsert(OperationalIssue(
-            tenant_id=tenant_id, seller_sku=seller_sku, marketplace_id=marketplace_id,
-            issue_type=issue_type, severity=severity, title=title, summary=summary, status="open",
-            dedupe_key=dedupe, confidence=Decimal("0.95"), data_freshness_at=freshness,
-            evidence=tuple(evidence), missing_data=(), detected_at=now, last_detected_at=now,
-            created_at=now, updated_at=now, priority_score=Decimal("0"),
-        ))
-        action = self.action_repository.upsert(RecommendedAction(
-            tenant_id=tenant_id, issue_id=issue.id, action_type=action_type, title=title,
-            description=summary, execution_mode="single_approval", risk_level=severity, status="proposed",
-            parameters=parameters, evidence=tuple(evidence), expected_outcome=expected_outcome,
-            confidence=Decimal("0.95"), automation_eligible=False, dedupe_key=dedupe,
-            created_at=now, updated_at=now,
-        ), canonical_issue_id=issue.id)
-        item = self.work_item_repository.get_by_source(tenant_id=tenant_id, source_type="recommended_action", source_id=action.id)
+        dedupe = sha256(f"{tenant_id}:{issue_type}:{marketplace_id}:{seller_sku}:{parameters}".encode()).hexdigest()[
+            :64
+        ]
+        issue = self.issue_repository.upsert(
+            OperationalIssue(
+                tenant_id=tenant_id,
+                seller_sku=seller_sku,
+                marketplace_id=marketplace_id,
+                issue_type=issue_type,
+                severity=severity,
+                title=title,
+                summary=summary,
+                status="open",
+                dedupe_key=dedupe,
+                confidence=Decimal("0.95"),
+                data_freshness_at=freshness,
+                evidence=tuple(evidence),
+                missing_data=(),
+                detected_at=now,
+                last_detected_at=now,
+                created_at=now,
+                updated_at=now,
+                priority_score=Decimal("0"),
+            )
+        )
+        action = self.action_repository.upsert(
+            RecommendedAction(
+                tenant_id=tenant_id,
+                issue_id=issue.id,
+                action_type=action_type,
+                title=title,
+                description=summary,
+                execution_mode="single_approval",
+                risk_level=severity,
+                status="proposed",
+                parameters=parameters,
+                evidence=tuple(evidence),
+                expected_outcome=expected_outcome,
+                confidence=Decimal("0.95"),
+                automation_eligible=False,
+                dedupe_key=dedupe,
+                created_at=now,
+                updated_at=now,
+            ),
+            canonical_issue_id=issue.id,
+        )
+        item = self.work_item_repository.get_by_source(
+            tenant_id=tenant_id, source_type="recommended_action", source_id=action.id
+        )
         return {"issue_id": issue.id, "action_id": action.id, "work_item_id": item.id if item else None}
 
 
@@ -390,9 +545,16 @@ class VoCRepository:
         verified = bool(payload.get("verified_amazon_data", False))
         _validate_source(source, verified)
         with self.session_factory.begin() as session:
-            row = session.scalar(select(ReturnEventRow).where(ReturnEventRow.tenant_id == tenant_id, ReturnEventRow.external_return_id == payload["external_return_id"]))
+            row = session.scalar(
+                select(ReturnEventRow).where(
+                    ReturnEventRow.tenant_id == tenant_id,
+                    ReturnEventRow.external_return_id == payload["external_return_id"],
+                )
+            )
             if row is None:
-                row = ReturnEventRow(id=str(uuid4()), tenant_id=tenant_id, external_return_id=payload["external_return_id"])
+                row = ReturnEventRow(
+                    id=str(uuid4()), tenant_id=tenant_id, external_return_id=payload["external_return_id"]
+                )
                 session.add(row)
             row.external_order_id = payload.get("external_order_id")
             row.marketplace_id = payload["marketplace_id"]
@@ -414,9 +576,16 @@ class VoCRepository:
         verified = bool(payload.get("verified_amazon_data", False))
         _validate_source(source, verified)
         with self.session_factory.begin() as session:
-            row = session.scalar(select(ReviewObservationRow).where(ReviewObservationRow.tenant_id == tenant_id, ReviewObservationRow.external_review_id == payload["external_review_id"]))
+            row = session.scalar(
+                select(ReviewObservationRow).where(
+                    ReviewObservationRow.tenant_id == tenant_id,
+                    ReviewObservationRow.external_review_id == payload["external_review_id"],
+                )
+            )
             if row is None:
-                row = ReviewObservationRow(id=str(uuid4()), tenant_id=tenant_id, external_review_id=payload["external_review_id"])
+                row = ReviewObservationRow(
+                    id=str(uuid4()), tenant_id=tenant_id, external_review_id=payload["external_review_id"]
+                )
                 session.add(row)
             row.marketplace_id = payload["marketplace_id"]
             row.seller_sku = payload["seller_sku"]
@@ -437,9 +606,20 @@ class VoCRepository:
         _validate_source(source, verified)
         normalized_tag = normalize_voc_reason(payload["tag"])
         with self.session_factory.begin() as session:
-            row = session.scalar(select(BuyerMessageTagRow).where(BuyerMessageTagRow.tenant_id == tenant_id, BuyerMessageTagRow.external_message_id == payload["external_message_id"], BuyerMessageTagRow.tag == normalized_tag))
+            row = session.scalar(
+                select(BuyerMessageTagRow).where(
+                    BuyerMessageTagRow.tenant_id == tenant_id,
+                    BuyerMessageTagRow.external_message_id == payload["external_message_id"],
+                    BuyerMessageTagRow.tag == normalized_tag,
+                )
+            )
             if row is None:
-                row = BuyerMessageTagRow(id=str(uuid4()), tenant_id=tenant_id, external_message_id=payload["external_message_id"], tag=normalized_tag)
+                row = BuyerMessageTagRow(
+                    id=str(uuid4()),
+                    tenant_id=tenant_id,
+                    external_message_id=payload["external_message_id"],
+                    tag=normalized_tag,
+                )
                 session.add(row)
             row.marketplace_id = payload["marketplace_id"]
             row.seller_sku = payload["seller_sku"]
@@ -452,28 +632,103 @@ class VoCRepository:
             session.flush()
             return _message_dict(row)
 
-    def summarize(self, *, tenant_id: str, seller_sku: str, marketplace_id: str, period_start: datetime, period_end: datetime, min_sample_size: int = 5) -> dict[str, Any]:
+    def summarize(
+        self,
+        *,
+        tenant_id: str,
+        seller_sku: str,
+        marketplace_id: str,
+        period_start: datetime,
+        period_end: datetime,
+        min_sample_size: int = 5,
+    ) -> dict[str, Any]:
         with self.session_factory() as session:
-            returns = list(session.scalars(select(ReturnEventRow).where(ReturnEventRow.tenant_id == tenant_id, ReturnEventRow.seller_sku == seller_sku, ReturnEventRow.marketplace_id == marketplace_id, ReturnEventRow.observed_at >= period_start, ReturnEventRow.observed_at <= period_end)))
-            reviews = list(session.scalars(select(ReviewObservationRow).where(ReviewObservationRow.tenant_id == tenant_id, ReviewObservationRow.seller_sku == seller_sku, ReviewObservationRow.marketplace_id == marketplace_id, ReviewObservationRow.observed_at >= period_start, ReviewObservationRow.observed_at <= period_end)))
-            messages = list(session.scalars(select(BuyerMessageTagRow).where(BuyerMessageTagRow.tenant_id == tenant_id, BuyerMessageTagRow.seller_sku == seller_sku, BuyerMessageTagRow.marketplace_id == marketplace_id, BuyerMessageTagRow.observed_at >= period_start, BuyerMessageTagRow.observed_at <= period_end)))
+            returns = list(
+                session.scalars(
+                    select(ReturnEventRow).where(
+                        ReturnEventRow.tenant_id == tenant_id,
+                        ReturnEventRow.seller_sku == seller_sku,
+                        ReturnEventRow.marketplace_id == marketplace_id,
+                        ReturnEventRow.observed_at >= period_start,
+                        ReturnEventRow.observed_at <= period_end,
+                    )
+                )
+            )
+            reviews = list(
+                session.scalars(
+                    select(ReviewObservationRow).where(
+                        ReviewObservationRow.tenant_id == tenant_id,
+                        ReviewObservationRow.seller_sku == seller_sku,
+                        ReviewObservationRow.marketplace_id == marketplace_id,
+                        ReviewObservationRow.observed_at >= period_start,
+                        ReviewObservationRow.observed_at <= period_end,
+                    )
+                )
+            )
+            messages = list(
+                session.scalars(
+                    select(BuyerMessageTagRow).where(
+                        BuyerMessageTagRow.tenant_id == tenant_id,
+                        BuyerMessageTagRow.seller_sku == seller_sku,
+                        BuyerMessageTagRow.marketplace_id == marketplace_id,
+                        BuyerMessageTagRow.observed_at >= period_start,
+                        BuyerMessageTagRow.observed_at <= period_end,
+                    )
+                )
+            )
         summary = summarize_voc(
-            tenant_id=tenant_id, seller_sku=seller_sku, marketplace_id=marketplace_id,
-            returns=[{"reason_code": row.reason_code, "quantity": row.quantity, "observed_at": row.observed_at.isoformat()} for row in returns],
-            reviews=[{"rating": row.rating, "reason_code": row.reason_code, "observed_at": row.observed_at.isoformat()} for row in reviews],
+            tenant_id=tenant_id,
+            seller_sku=seller_sku,
+            marketplace_id=marketplace_id,
+            returns=[
+                {"reason_code": row.reason_code, "quantity": row.quantity, "observed_at": row.observed_at.isoformat()}
+                for row in returns
+            ],
+            reviews=[
+                {"rating": row.rating, "reason_code": row.reason_code, "observed_at": row.observed_at.isoformat()}
+                for row in reviews
+            ],
             messages=[{"tag": row.tag, "observed_at": row.observed_at.isoformat()} for row in messages],
             min_sample_size=min_sample_size,
         )
         work_item_id = None
         if summary["recommended_action"]:
-            evidence = [{"summary": _json_safe(summary), "source": "deterministic_voc_aggregation", "verified_amazon_data": all(row.verified_amazon_data for row in returns + reviews + messages)}]
-            action = self._ensure_work_item(tenant_id=tenant_id, seller_sku=seller_sku, marketplace_id=marketplace_id, summary=summary, evidence=evidence, freshness=period_end)
+            evidence = [
+                {
+                    "summary": _json_safe(summary),
+                    "source": "deterministic_voc_aggregation",
+                    "verified_amazon_data": all(row.verified_amazon_data for row in returns + reviews + messages),
+                }
+            ]
+            action = self._ensure_work_item(
+                tenant_id=tenant_id,
+                seller_sku=seller_sku,
+                marketplace_id=marketplace_id,
+                summary=summary,
+                evidence=evidence,
+                freshness=period_end,
+            )
             work_item_id = action["work_item_id"]
         now = datetime.now(UTC)
         with self.session_factory.begin() as session:
-            row = session.scalar(select(SKUVoCSummaryRow).where(SKUVoCSummaryRow.tenant_id == tenant_id, SKUVoCSummaryRow.marketplace_id == marketplace_id, SKUVoCSummaryRow.seller_sku == seller_sku, SKUVoCSummaryRow.period_start == period_start, SKUVoCSummaryRow.period_end == period_end))
+            row = session.scalar(
+                select(SKUVoCSummaryRow).where(
+                    SKUVoCSummaryRow.tenant_id == tenant_id,
+                    SKUVoCSummaryRow.marketplace_id == marketplace_id,
+                    SKUVoCSummaryRow.seller_sku == seller_sku,
+                    SKUVoCSummaryRow.period_start == period_start,
+                    SKUVoCSummaryRow.period_end == period_end,
+                )
+            )
             if row is None:
-                row = SKUVoCSummaryRow(id=str(uuid4()), tenant_id=tenant_id, marketplace_id=marketplace_id, seller_sku=seller_sku, period_start=period_start, period_end=period_end)
+                row = SKUVoCSummaryRow(
+                    id=str(uuid4()),
+                    tenant_id=tenant_id,
+                    marketplace_id=marketplace_id,
+                    seller_sku=seller_sku,
+                    period_start=period_start,
+                    period_end=period_end,
+                )
                 session.add(row)
             row.return_count = len(returns)
             row.review_count = len(reviews)
@@ -499,26 +754,65 @@ class VoCRepository:
             rows = list(session.scalars(statement.order_by(SKUVoCSummaryRow.period_end.desc())))
         return [_voc_dict(row) for row in rows]
 
-    def _ensure_work_item(self, *, tenant_id: str, seller_sku: str, marketplace_id: str, summary: dict[str, Any], evidence: list[dict[str, Any]], freshness: datetime) -> dict[str, Any]:
+    def _ensure_work_item(
+        self,
+        *,
+        tenant_id: str,
+        seller_sku: str,
+        marketplace_id: str,
+        summary: dict[str, Any],
+        evidence: list[dict[str, Any]],
+        freshness: datetime,
+    ) -> dict[str, Any]:
         now = datetime.now(UTC)
         code = summary["top_reason_code"]
         dedupe = sha256(f"{tenant_id}:voc:{marketplace_id}:{seller_sku}:{code}".encode()).hexdigest()[:64]
-        issue = self.issue_repository.upsert(OperationalIssue(
-            tenant_id=tenant_id, seller_sku=seller_sku, marketplace_id=marketplace_id,
-            issue_type=f"voc_{code}", severity="high", title=summary["recommended_action"]["title"],
-            summary=f"{summary['top_reason_count']} of {summary['sample_size']} observed VOC records use reason {code}.",
-            status="open", dedupe_key=dedupe, confidence=Decimal("0.85"), data_freshness_at=freshness,
-            evidence=tuple(evidence), missing_data=(), detected_at=now, last_detected_at=now,
-            created_at=now, updated_at=now,
-        ))
+        issue = self.issue_repository.upsert(
+            OperationalIssue(
+                tenant_id=tenant_id,
+                seller_sku=seller_sku,
+                marketplace_id=marketplace_id,
+                issue_type=f"voc_{code}",
+                severity="high",
+                title=summary["recommended_action"]["title"],
+                summary=f"{summary['top_reason_count']} of {summary['sample_size']} observed VOC records use reason {code}.",
+                status="open",
+                dedupe_key=dedupe,
+                confidence=Decimal("0.85"),
+                data_freshness_at=freshness,
+                evidence=tuple(evidence),
+                missing_data=(),
+                detected_at=now,
+                last_detected_at=now,
+                created_at=now,
+                updated_at=now,
+            )
+        )
         route = route_voc_reason(code)
-        action = self.action_repository.upsert(RecommendedAction(
-            tenant_id=tenant_id, issue_id=issue.id, action_type="create_product_improvement_task",
-            title=summary["recommended_action"]["title"], description="Review return, review and customer-service evidence before changing product, packaging, Listing or quality controls.",
-            execution_mode="single_approval", risk_level="high", status="proposed", parameters={"reason_code": code, "seller_sku": seller_sku, **route}, evidence=tuple(evidence),
-            expected_outcome=summary["recommended_action"]["expected_outcome"], confidence=Decimal("0.85"), automation_eligible=False, dedupe_key=dedupe, created_at=now, updated_at=now,
-        ), canonical_issue_id=issue.id)
-        item = self.work_item_repository.get_by_source(tenant_id=tenant_id, source_type="recommended_action", source_id=action.id)
+        action = self.action_repository.upsert(
+            RecommendedAction(
+                tenant_id=tenant_id,
+                issue_id=issue.id,
+                action_type="create_product_improvement_task",
+                title=summary["recommended_action"]["title"],
+                description="Review return, review and customer-service evidence before changing product, packaging, Listing or quality controls.",
+                execution_mode="single_approval",
+                risk_level="high",
+                status="proposed",
+                parameters={"reason_code": code, "seller_sku": seller_sku, **route},
+                evidence=tuple(evidence),
+                expected_outcome=summary["recommended_action"]["expected_outcome"],
+                confidence=Decimal("0.85"),
+                automation_eligible=False,
+                dedupe_key=dedupe,
+                created_at=now,
+                updated_at=now,
+            ),
+            canonical_issue_id=issue.id,
+        )
+        item = self.work_item_repository.get_by_source(
+            tenant_id=tenant_id, source_type="recommended_action", source_id=action.id
+        )
         return {"work_item_id": item.id if item else None}
 
 
@@ -559,31 +853,137 @@ def _json_safe(value: Any) -> Any:
 
 
 def _signal_dict(row: AmazonOperationalSignalRow) -> dict[str, Any]:
-    return {"id": row.id, "tenant_id": row.tenant_id, "marketplace_id": row.marketplace_id, "signal_type": row.signal_type, "resource_id": row.resource_id, "severity": row.severity, "title": row.title, "summary": row.summary, "observed_at": row.observed_at, "collected_at": row.collected_at, "freshness_seconds": row.freshness_seconds, "verified_amazon_data": row.verified_amazon_data, "source": row.source, "raw_status_code": row.raw_status_code, "evidence_manifest": row.evidence_manifest or [], "updated_at": row.updated_at}
+    return {
+        "id": row.id,
+        "tenant_id": row.tenant_id,
+        "marketplace_id": row.marketplace_id,
+        "signal_type": row.signal_type,
+        "resource_id": row.resource_id,
+        "severity": row.severity,
+        "title": row.title,
+        "summary": row.summary,
+        "observed_at": row.observed_at,
+        "collected_at": row.collected_at,
+        "freshness_seconds": row.freshness_seconds,
+        "verified_amazon_data": row.verified_amazon_data,
+        "source": row.source,
+        "raw_status_code": row.raw_status_code,
+        "evidence_manifest": row.evidence_manifest or [],
+        "updated_at": row.updated_at,
+    }
 
 
 def _ad_snapshot_dict(row: AdvertisingDailySnapshotRow) -> dict[str, Any]:
-    return {"id": row.id, "tenant_id": row.tenant_id, "marketplace_id": row.marketplace_id, "seller_sku": row.seller_sku, "entity_type": row.entity_type, "entity_id": row.entity_id, "campaign_id": row.campaign_id, "ad_group_id": row.ad_group_id, "period_start": row.period_start, "period_end": row.period_end, "currency": row.currency, "spend": row.spend, "attributed_sales": row.attributed_sales, "total_sales": row.total_sales, "budget": row.budget, "impressions": row.impressions, "clicks": row.clicks, "orders": row.orders, "metrics": row.metrics or {}, "source": row.source, "verified_amazon_data": row.verified_amazon_data, "observed_at": row.observed_at, "collected_at": row.collected_at}
+    return {
+        "id": row.id,
+        "tenant_id": row.tenant_id,
+        "marketplace_id": row.marketplace_id,
+        "seller_sku": row.seller_sku,
+        "entity_type": row.entity_type,
+        "entity_id": row.entity_id,
+        "campaign_id": row.campaign_id,
+        "ad_group_id": row.ad_group_id,
+        "period_start": row.period_start,
+        "period_end": row.period_end,
+        "currency": row.currency,
+        "spend": row.spend,
+        "attributed_sales": row.attributed_sales,
+        "total_sales": row.total_sales,
+        "budget": row.budget,
+        "impressions": row.impressions,
+        "clicks": row.clicks,
+        "orders": row.orders,
+        "metrics": row.metrics or {},
+        "source": row.source,
+        "verified_amazon_data": row.verified_amazon_data,
+        "observed_at": row.observed_at,
+        "collected_at": row.collected_at,
+    }
 
 
 def _search_term_dict(row: SearchTermPerformanceSnapshotRow) -> dict[str, Any]:
-    return {"id": row.id, "tenant_id": row.tenant_id, "marketplace_id": row.marketplace_id, "seller_sku": row.seller_sku, "campaign_id": row.campaign_id, "ad_group_id": row.ad_group_id, "search_term": row.search_term, "period_start": row.period_start, "period_end": row.period_end, "currency": row.currency, "spend": row.spend, "attributed_sales": row.attributed_sales, "impressions": row.impressions, "clicks": row.clicks, "orders": row.orders, "metrics": row.metrics or {}, "source": row.source, "verified_amazon_data": row.verified_amazon_data, "observed_at": row.observed_at, "collected_at": row.collected_at}
+    return {
+        "id": row.id,
+        "tenant_id": row.tenant_id,
+        "marketplace_id": row.marketplace_id,
+        "seller_sku": row.seller_sku,
+        "campaign_id": row.campaign_id,
+        "ad_group_id": row.ad_group_id,
+        "search_term": row.search_term,
+        "period_start": row.period_start,
+        "period_end": row.period_end,
+        "currency": row.currency,
+        "spend": row.spend,
+        "attributed_sales": row.attributed_sales,
+        "impressions": row.impressions,
+        "clicks": row.clicks,
+        "orders": row.orders,
+        "metrics": row.metrics or {},
+        "source": row.source,
+        "verified_amazon_data": row.verified_amazon_data,
+        "observed_at": row.observed_at,
+        "collected_at": row.collected_at,
+    }
 
 
 def _diagnostic_dict(row: AdvertisingBudgetDiagnosticRow) -> dict[str, Any]:
-    return {"id": row.id, "snapshot_id": row.snapshot_id, "seller_sku": row.seller_sku, "marketplace_id": row.marketplace_id, "campaign_id": row.campaign_id, "code": row.code, "severity": row.severity, "title": row.title, "details": row.details or {}, "status": row.status, "work_item_id": row.work_item_id, "created_at": row.created_at, "updated_at": row.updated_at}
+    return {
+        "id": row.id,
+        "snapshot_id": row.snapshot_id,
+        "seller_sku": row.seller_sku,
+        "marketplace_id": row.marketplace_id,
+        "campaign_id": row.campaign_id,
+        "code": row.code,
+        "severity": row.severity,
+        "title": row.title,
+        "details": row.details or {},
+        "status": row.status,
+        "work_item_id": row.work_item_id,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+    }
 
 
 def _return_dict(row: ReturnEventRow) -> dict[str, Any]:
-    return {"id": row.id, "external_return_id": row.external_return_id, "marketplace_id": row.marketplace_id, "seller_sku": row.seller_sku, "reason_code": row.reason_code, "quantity": row.quantity, "observed_at": row.observed_at, "source": row.source, "verified_amazon_data": row.verified_amazon_data}
+    return {
+        "id": row.id,
+        "external_return_id": row.external_return_id,
+        "marketplace_id": row.marketplace_id,
+        "seller_sku": row.seller_sku,
+        "reason_code": row.reason_code,
+        "quantity": row.quantity,
+        "observed_at": row.observed_at,
+        "source": row.source,
+        "verified_amazon_data": row.verified_amazon_data,
+    }
 
 
 def _review_dict(row: ReviewObservationRow) -> dict[str, Any]:
-    return {"id": row.id, "external_review_id": row.external_review_id, "marketplace_id": row.marketplace_id, "seller_sku": row.seller_sku, "rating": row.rating, "reason_code": row.reason_code, "observed_at": row.observed_at, "source": row.source, "verified_amazon_data": row.verified_amazon_data}
+    return {
+        "id": row.id,
+        "external_review_id": row.external_review_id,
+        "marketplace_id": row.marketplace_id,
+        "seller_sku": row.seller_sku,
+        "rating": row.rating,
+        "reason_code": row.reason_code,
+        "observed_at": row.observed_at,
+        "source": row.source,
+        "verified_amazon_data": row.verified_amazon_data,
+    }
 
 
 def _message_dict(row: BuyerMessageTagRow) -> dict[str, Any]:
-    return {"id": row.id, "external_message_id": row.external_message_id, "marketplace_id": row.marketplace_id, "seller_sku": row.seller_sku, "tag": row.tag, "confidence": row.confidence, "observed_at": row.observed_at, "source": row.source, "verified_amazon_data": row.verified_amazon_data}
+    return {
+        "id": row.id,
+        "external_message_id": row.external_message_id,
+        "marketplace_id": row.marketplace_id,
+        "seller_sku": row.seller_sku,
+        "tag": row.tag,
+        "confidence": row.confidence,
+        "observed_at": row.observed_at,
+        "source": row.source,
+        "verified_amazon_data": row.verified_amazon_data,
+    }
 
 
 def _voc_dict(row: SKUVoCSummaryRow) -> dict[str, Any]:

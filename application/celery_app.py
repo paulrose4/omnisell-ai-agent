@@ -5,20 +5,19 @@ from datetime import UTC, datetime
 
 from celery import Celery
 
-from api.config import get_settings
 from api.amazon_factory import create_amazon_adapter, create_secret_store
+from api.config import get_settings
+from application.actions import execute_action
 from application.amazon_sync import AmazonReadSyncService
 from application.operations_runtime import build_operations_refresh_service
-from infrastructure.repositories.commerce_sync import CommerceSyncRepository, SyncCursorRepository
-from infrastructure.repositories.tenants import TenantRepository
-from application.actions import execute_action
 from infrastructure.database.session import create_session_factory, tenant_context
-from infrastructure.repositories.tasks import DurableTaskRepository
-from infrastructure.repositories.workflows import SQLWorkflowStore
 from infrastructure.repositories.audit import SQLAuditLogger
-from infrastructure.repositories.work_items import OperationalWorkItemRepository
+from infrastructure.repositories.commerce_sync import CommerceSyncRepository, SyncCursorRepository
 from infrastructure.repositories.customer_case_operations import CustomerCaseOperationsBridge
-
+from infrastructure.repositories.tasks import DurableTaskRepository
+from infrastructure.repositories.tenants import TenantRepository
+from infrastructure.repositories.work_items import OperationalWorkItemRepository
+from infrastructure.repositories.workflows import SQLWorkflowStore
 
 settings = get_settings()
 celery_app = Celery("omnisell", broker=settings.redis_url, backend=settings.redis_url)
@@ -58,7 +57,14 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True, name="omnisell.execute_action", autoretry_for=(TimeoutError, ConnectionError), retry_backoff=True, retry_jitter=True, max_retries=5)
+@celery_app.task(
+    bind=True,
+    name="omnisell.execute_action",
+    autoretry_for=(TimeoutError, ConnectionError),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5,
+)
 def execute_action_task(self, task_id: str, tenant_id: str, action: str, payload: dict) -> dict:
     with tenant_context(tenant_id):
         session_factory = create_session_factory(settings.database_url)
@@ -87,7 +93,8 @@ def execute_action_task(self, task_id: str, tenant_id: str, action: str, payload
             final = self.request.retries >= self.max_retries
             task_status = "dead_letter" if final else "failed"
             repository.update_status(
-                tenant_id=tenant_id, task_id=task_id,
+                tenant_id=tenant_id,
+                task_id=task_id,
                 status=task_status,
                 error_code=type(exc).__name__,
                 error_message=str(exc)[:1000],
@@ -113,7 +120,13 @@ def _update_agent_dispatch(*, store, action: str, payload: dict, task_id: str, s
     )
 
 
-@celery_app.task(name="omnisell.amazon_sync", autoretry_for=(TimeoutError, ConnectionError), retry_backoff=True, retry_jitter=True, max_retries=5)
+@celery_app.task(
+    name="omnisell.amazon_sync",
+    autoretry_for=(TimeoutError, ConnectionError),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5,
+)
 def amazon_sync_task(task_id: str, tenant_id: str, connection_id: str, resources: list[str]) -> dict:
     with tenant_context(tenant_id):
         return _run_amazon_sync_task(task_id, tenant_id, connection_id, resources)
@@ -125,18 +138,27 @@ def _run_amazon_sync_task(task_id: str, tenant_id: str, connection_id: str, reso
     tenant_repository = TenantRepository(session_factory)
     connection = tenant_repository.get_connection(tenant_id=tenant_id, connection_id=connection_id)
     if connection is None:
-        task_repository.update_status(tenant_id=tenant_id, task_id=task_id, status="dead_letter", error_code="ConnectionNotFound", error_message="Amazon connection no longer exists.")
+        task_repository.update_status(
+            tenant_id=tenant_id,
+            task_id=task_id,
+            status="dead_letter",
+            error_code="ConnectionNotFound",
+            error_message="Amazon connection no longer exists.",
+        )
         return {"status": "dead_letter"}
     task_repository.update_status(tenant_id=tenant_id, task_id=task_id, status="running")
     adapter = create_amazon_adapter(
-        settings=settings, connection=connection, secret_store=create_secret_store(settings, session_factory),
+        settings=settings,
+        connection=connection,
+        secret_store=create_secret_store(settings, session_factory),
         tenant_repository=tenant_repository,
     )
 
     async def run() -> dict:
         try:
             return await AmazonReadSyncService(
-                adapter=adapter, connection=connection,
+                adapter=adapter,
+                connection=connection,
                 commerce_repository=CommerceSyncRepository(session_factory),
                 cursor_repository=SyncCursorRepository(session_factory),
             ).sync(tuple(resources))
@@ -146,7 +168,10 @@ def _run_amazon_sync_task(task_id: str, tenant_id: str, connection_id: str, reso
     result = asyncio.run(run())
     failed = [name for name, value in result.items() if value["status"] == "failed"]
     task_repository.update_status(
-        tenant_id=tenant_id, task_id=task_id, status="failed" if failed else "succeeded", result=result,
+        tenant_id=tenant_id,
+        task_id=task_id,
+        status="failed" if failed else "succeeded",
+        result=result,
         error_code="PartialSyncFailure" if failed else None,
         error_message=f"Failed resources: {', '.join(failed)}" if failed else None,
     )
@@ -161,14 +186,26 @@ def _run_amazon_sync_task(task_id: str, tenant_id: str, connection_id: str, reso
     return result
 
 
-def _enqueue_operations_refresh(*, task_repository: DurableTaskRepository, connection, correlation_id: str, actor_id: str, seller_skus: list[str] | None) -> int:
+def _enqueue_operations_refresh(
+    *,
+    task_repository: DurableTaskRepository,
+    connection,
+    correlation_id: str,
+    actor_id: str,
+    seller_skus: list[str] | None,
+) -> int:
     dispatched = 0
     for marketplace_id in connection.marketplace_ids:
         payload = {"connection_id": connection.id, "marketplace_id": marketplace_id, "seller_skus": seller_skus}
         task = task_repository.create(
-            tenant_id=connection.tenant_id, actor_id=actor_id, queue_name="operations", action="operations.refresh",
-            payload=payload, idempotency_key=f"operations-refresh:{connection.id}:{marketplace_id}:{correlation_id}",
-            correlation_id=correlation_id, max_attempts=5,
+            tenant_id=connection.tenant_id,
+            actor_id=actor_id,
+            queue_name="operations",
+            action="operations.refresh",
+            payload=payload,
+            idempotency_key=f"operations-refresh:{connection.id}:{marketplace_id}:{correlation_id}",
+            correlation_id=correlation_id,
+            max_attempts=5,
         )
         if task.status == "pending":
             operations_refresh_task.delay(task.id, connection.tenant_id, connection.id, marketplace_id, seller_skus)
@@ -177,30 +214,53 @@ def _enqueue_operations_refresh(*, task_repository: DurableTaskRepository, conne
 
 
 @celery_app.task(bind=True, name="omnisell.operations_refresh", max_retries=5)
-def operations_refresh_task(self, task_id: str, tenant_id: str, connection_id: str, marketplace_id: str, seller_skus: list[str] | None = None) -> dict:
+def operations_refresh_task(
+    self, task_id: str, tenant_id: str, connection_id: str, marketplace_id: str, seller_skus: list[str] | None = None
+) -> dict:
     with tenant_context(tenant_id):
         session_factory = create_session_factory(settings.database_url)
         tasks = DurableTaskRepository(session_factory)
         tenants = TenantRepository(session_factory)
         connection = tenants.get_connection(tenant_id=tenant_id, connection_id=connection_id)
         if connection is None or marketplace_id not in connection.marketplace_ids:
-            tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="dead_letter", error_code="ConnectionNotFound", error_message="Amazon connection or marketplace no longer exists.")
+            tasks.update_status(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                status="dead_letter",
+                error_code="ConnectionNotFound",
+                error_message="Amazon connection or marketplace no longer exists.",
+            )
             return {"status": "dead_letter"}
         tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="running")
         try:
             result = build_operations_refresh_service(session_factory).refresh(
-                tenant_id=tenant_id, connection_id=connection_id, marketplace_id=marketplace_id, seller_skus=seller_skus,
+                tenant_id=tenant_id,
+                connection_id=connection_id,
+                marketplace_id=marketplace_id,
+                seller_skus=seller_skus,
             )
             tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="succeeded", result=result)
             return result
         except (TimeoutError, ConnectionError) as exc:
             final = self.request.retries >= self.max_retries
-            tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="dead_letter" if final else "failed", error_code=type(exc).__name__, error_message=str(exc)[:1000])
+            tasks.update_status(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                status="dead_letter" if final else "failed",
+                error_code=type(exc).__name__,
+                error_message=str(exc)[:1000],
+            )
             if final:
                 raise
-            raise self.retry(exc=exc, countdown=min(300, 2 ** (self.request.retries + 1)))
+            raise self.retry(exc=exc, countdown=min(300, 2 ** (self.request.retries + 1))) from exc
         except Exception as exc:
-            tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="dead_letter", error_code=type(exc).__name__, error_message=str(exc)[:1000])
+            tasks.update_status(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                status="dead_letter",
+                error_code=type(exc).__name__,
+                error_message=str(exc)[:1000],
+            )
             raise
 
 
@@ -215,8 +275,11 @@ def dispatch_operations_refresh() -> dict:
         with tenant_context(tenant_id):
             for connection in tenants.list_active_connections(tenant_id=tenant_id):
                 dispatched += _enqueue_operations_refresh(
-                    task_repository=tasks, connection=connection, correlation_id=f"scheduled-operations-refresh:{bucket}",
-                    actor_id="scheduler", seller_skus=None,
+                    task_repository=tasks,
+                    connection=connection,
+                    correlation_id=f"scheduled-operations-refresh:{bucket}",
+                    actor_id="scheduler",
+                    seller_skus=None,
                 )
     return {"dispatched": dispatched}
 
@@ -292,15 +355,20 @@ def dispatch_amazon_sync(resources: list[str]) -> dict:
         with tenant_context(tenant_id):
             for connection in tenant_repository.list_active_connections(tenant_id=tenant_id):
                 task = task_repository.create(
-                    tenant_id=connection.tenant_id, actor_id="scheduler", queue_name="sync", action="amazon.sync",
+                    tenant_id=connection.tenant_id,
+                    actor_id="scheduler",
+                    queue_name="sync",
+                    action="amazon.sync",
                     payload={"connection_id": connection.id, "resources": resources},
                     idempotency_key=f"scheduled-sync:{connection.id}:{','.join(resources)}:{bucket}",
-                    correlation_id=f"scheduler:{bucket}", max_attempts=5,
+                    correlation_id=f"scheduler:{bucket}",
+                    max_attempts=5,
                 )
                 if task.status == "pending":
                     amazon_sync_task.delay(task.id, connection.tenant_id, connection.id, resources)
                     dispatched += 1
     return {"dispatched": dispatched, "resources": resources}
+
 
 _NOTIFICATION_RESOURCE_MAP = {
     "ORDER_CHANGE": ["orders"],
@@ -326,17 +394,28 @@ def consume_amazon_notifications() -> dict:
             for event in events.claim_pending(tenant_id=tenant_id, limit=100):
                 try:
                     event_type = event.event_type.upper()
-                    resources = next((value for key, value in _NOTIFICATION_RESOURCE_MAP.items() if key in event_type), None)
+                    resources = next(
+                        (value for key, value in _NOTIFICATION_RESOURCE_MAP.items() if key in event_type), None
+                    )
                     connection_id = str((event.payload or {}).get("_connection_id") or "")
                     if not resources or not connection_id:
-                        events.mark_dead_letter(tenant_id=tenant_id, event_id=event.id, error_code="UnknownNotificationType", error_message=f"No deterministic sync mapping for {event.event_type}")
+                        events.mark_dead_letter(
+                            tenant_id=tenant_id,
+                            event_id=event.id,
+                            error_code="UnknownNotificationType",
+                            error_message=f"No deterministic sync mapping for {event.event_type}",
+                        )
                         failed += 1
                         continue
                     task = tasks.create(
-                        tenant_id=event.tenant_id, actor_id="amazon-notification", queue_name="sync", action="amazon.sync",
+                        tenant_id=event.tenant_id,
+                        actor_id="amazon-notification",
+                        queue_name="sync",
+                        action="amazon.sync",
                         payload={"connection_id": connection_id, "resources": resources},
                         idempotency_key=f"notification:{event.external_event_id}:{','.join(resources)}",
-                        correlation_id=event.external_event_id, max_attempts=5,
+                        correlation_id=event.external_event_id,
+                        max_attempts=5,
                     )
                     if task.status == "pending":
                         amazon_sync_task.delay(task.id, event.tenant_id, connection_id, resources)
@@ -347,41 +426,86 @@ def consume_amazon_notifications() -> dict:
                     failed += 1
     return {"processed": processed, "failed": failed}
 
+
 @celery_app.task(name="omnisell.amazon_reconciliation")
 def amazon_reconciliation_task(task_id: str, tenant_id: str, connection_id: str) -> dict:
     from application.reconciliation import AmazonReconciliationService
     from infrastructure.repositories.operations import OperationalIssueRepository
     from infrastructure.repositories.reconciliation import ReconciliationRepository
+
     with tenant_context(tenant_id):
-        session_factory=create_session_factory(settings.database_url)
-        tasks=DurableTaskRepository(session_factory)
-        tasks.update_status(tenant_id=tenant_id,task_id=task_id,status="running")
-        tenants=TenantRepository(session_factory)
-        connection=tenants.get_connection(tenant_id=tenant_id,connection_id=connection_id)
+        session_factory = create_session_factory(settings.database_url)
+        tasks = DurableTaskRepository(session_factory)
+        tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="running")
+        tenants = TenantRepository(session_factory)
+        connection = tenants.get_connection(tenant_id=tenant_id, connection_id=connection_id)
         if connection is None:
-            result={"status":"connection_not_found"}
-            tasks.update_status(tenant_id=tenant_id,task_id=task_id,status="dead_letter",result=result,error_code="ConnectionNotFound",error_message="Amazon connection not found")
+            result = {"status": "connection_not_found"}
+            tasks.update_status(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                status="dead_letter",
+                result=result,
+                error_code="ConnectionNotFound",
+                error_message="Amazon connection not found",
+            )
             return result
-        adapter=create_amazon_adapter(settings=settings,connection=connection,secret_store=create_secret_store(settings,session_factory),tenant_repository=tenants)
+        adapter = create_amazon_adapter(
+            settings=settings,
+            connection=connection,
+            secret_store=create_secret_store(settings, session_factory),
+            tenant_repository=tenants,
+        )
+
         async def run():
             try:
-                return await AmazonReconciliationService(adapter=adapter,connection=connection,commerce_repository=CommerceSyncRepository(session_factory),reconciliation_repository=ReconciliationRepository(session_factory),issue_repository=OperationalIssueRepository(session_factory)).run()
-            finally: await adapter.close()
+                return await AmazonReconciliationService(
+                    adapter=adapter,
+                    connection=connection,
+                    commerce_repository=CommerceSyncRepository(session_factory),
+                    reconciliation_repository=ReconciliationRepository(session_factory),
+                    issue_repository=OperationalIssueRepository(session_factory),
+                ).run()
+            finally:
+                await adapter.close()
+
         try:
-            result=asyncio.run(run())
-            payload={"run_id":result.id,"status":result.status,"summary":result.summary}
-            tasks.update_status(tenant_id=tenant_id,task_id=task_id,status="succeeded",result=payload)
+            result = asyncio.run(run())
+            payload = {"run_id": result.id, "status": result.status, "summary": result.summary}
+            tasks.update_status(tenant_id=tenant_id, task_id=task_id, status="succeeded", result=payload)
             return payload
         except Exception as exc:
-            tasks.update_status(tenant_id=tenant_id,task_id=task_id,status="failed",error_code=type(exc).__name__,error_message=str(exc)[:1000])
+            tasks.update_status(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                status="failed",
+                error_code=type(exc).__name__,
+                error_message=str(exc)[:1000],
+            )
             raise
+
 
 @celery_app.task(name="omnisell.dispatch_amazon_reconciliation")
 def dispatch_amazon_reconciliation() -> dict:
-    session_factory=create_session_factory(settings.database_url); tenants=TenantRepository(session_factory); tasks=DurableTaskRepository(session_factory); count=0; bucket=datetime.now(UTC).strftime("%Y%m%d")
+    session_factory = create_session_factory(settings.database_url)
+    tenants = TenantRepository(session_factory)
+    tasks = DurableTaskRepository(session_factory)
+    count = 0
+    bucket = datetime.now(UTC).strftime("%Y%m%d")
     for tenant_id in tenants.list_tenant_ids():
         with tenant_context(tenant_id):
             for connection in tenants.list_active_connections(tenant_id=tenant_id):
-                task,created=tasks.create_once(tenant_id=connection.tenant_id,actor_id="scheduler",queue_name="sync",action="amazon.reconciliation",payload={"connection_id":connection.id},idempotency_key=f"scheduled-reconciliation:{connection.id}:{bucket}",correlation_id=f"scheduler:{bucket}",max_attempts=5)
-                if created: amazon_reconciliation_task.delay(task.id,connection.tenant_id,connection.id); count+=1
-    return {"dispatched":count}
+                task, created = tasks.create_once(
+                    tenant_id=connection.tenant_id,
+                    actor_id="scheduler",
+                    queue_name="sync",
+                    action="amazon.reconciliation",
+                    payload={"connection_id": connection.id},
+                    idempotency_key=f"scheduled-reconciliation:{connection.id}:{bucket}",
+                    correlation_id=f"scheduler:{bucket}",
+                    max_attempts=5,
+                )
+                if created:
+                    amazon_reconciliation_task.delay(task.id, connection.tenant_id, connection.id)
+                    count += 1
+    return {"dispatched": count}

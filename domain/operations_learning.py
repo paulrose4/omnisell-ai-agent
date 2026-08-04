@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from typing import Any, Iterable
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from typing import Any
 
 from domain.operational_intelligence import calculate_advertising_metrics, diagnose_advertising
-
 
 RATE = Decimal("0.0001")
 
@@ -179,7 +179,13 @@ def prepare_attribution_plan(
         raise ValueError("attribution currency must be an ISO 4217 code")
     if minimum_sample <= 0:
         raise ValueError("minimum_sample must be positive")
-    method = "randomized_controlled" if randomized_experiment else "difference_in_differences" if has_control_group else "interrupted_time_series"
+    method = (
+        "randomized_controlled"
+        if randomized_experiment
+        else "difference_in_differences"
+        if has_control_group
+        else "interrupted_time_series"
+    )
     return {
         "primary_metric": primary_metric,
         "desired_direction": desired_direction,
@@ -196,7 +202,9 @@ def prepare_attribution_plan(
 
 
 def calculate_incremental_contribution_profit(
-    *, baseline: dict[str, Any], result: dict[str, Any],
+    *,
+    baseline: dict[str, Any],
+    result: dict[str, Any],
 ) -> Decimal | None:
     baseline_value = _optional_decimal(baseline.get("contribution_profit"))
     result_value = _optional_decimal(result.get("contribution_profit"))
@@ -301,26 +309,36 @@ def evaluate_sponsored_products(
     growth_blocked = inventory_status in {"critical_stockout", "out_of_stock", "stale"} or (
         contribution_profit is not None and contribution_profit <= 0
     )
-    if metrics["acos"] is not None and break_even_acos is not None and metrics["acos"] <= break_even_acos and contribution_profit is not None and contribution_profit <= 0:
-        findings.append({
-            "code": "low_acos_but_contribution_loss",
-            "severity": "critical",
-            "title": "ACoS看似健康但SKU仍在亏损",
-            "seller_sku": seller_sku,
-            "marketplace_id": marketplace_id,
-            "campaign_id": campaign_id,
-            "contribution_profit": str(contribution_profit),
-        })
+    if (
+        metrics["acos"] is not None
+        and break_even_acos is not None
+        and metrics["acos"] <= break_even_acos
+        and contribution_profit is not None
+        and contribution_profit <= 0
+    ):
+        findings.append(
+            {
+                "code": "low_acos_but_contribution_loss",
+                "severity": "critical",
+                "title": "ACoS看似健康但SKU仍在亏损",
+                "seller_sku": seller_sku,
+                "marketplace_id": marketplace_id,
+                "campaign_id": campaign_id,
+                "contribution_profit": str(contribution_profit),
+            }
+        )
     if inventory_status in {"critical_stockout", "out_of_stock", "stale"}:
-        findings.append({
-            "code": "inventory_guard_blocks_growth",
-            "severity": "high",
-            "title": "库存护栏阻止广告放量",
-            "seller_sku": seller_sku,
-            "marketplace_id": marketplace_id,
-            "campaign_id": campaign_id,
-            "inventory_status": inventory_status,
-        })
+        findings.append(
+            {
+                "code": "inventory_guard_blocks_growth",
+                "severity": "high",
+                "title": "库存护栏阻止广告放量",
+                "seller_sku": seller_sku,
+                "marketplace_id": marketplace_id,
+                "campaign_id": campaign_id,
+                "inventory_status": inventory_status,
+            }
+        )
 
     candidates: list[dict[str, Any]] = []
     codes = {item["code"] for item in findings}
@@ -373,7 +391,9 @@ def calculate_labor_metrics(events: Iterable[ActivityEvent]) -> dict[str, int | 
                 cycle_completed = event.occurred_at
     if active_started is not None:
         raise ValueError("activity interval is still open")
-    cycle_seconds = int((cycle_completed - cycle_started).total_seconds()) if cycle_started and cycle_completed else None
+    cycle_seconds = (
+        int((cycle_completed - cycle_started).total_seconds()) if cycle_started and cycle_completed else None
+    )
     waiting_seconds = cycle_seconds - active_seconds if cycle_seconds is not None else None
     return {
         "active_touch_seconds": active_seconds,
@@ -383,7 +403,9 @@ def calculate_labor_metrics(events: Iterable[ActivityEvent]) -> dict[str, int | 
 
 
 def evaluate_issue_feedback(
-    *, labels: Iterable[IssueFeedbackLabel], missed_issue_severities: Iterable[str] = (),
+    *,
+    labels: Iterable[IssueFeedbackLabel],
+    missed_issue_severities: Iterable[str] = (),
 ) -> dict[str, Decimal | int | None]:
     materialized = list(labels)
     missed = list(missed_issue_severities)

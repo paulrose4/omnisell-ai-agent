@@ -11,7 +11,6 @@ from evals.production_acceptance import (
     score_predictions,
 )
 
-
 NOW = datetime(2026, 7, 20, 3, 0, tzinfo=UTC)
 
 
@@ -38,7 +37,12 @@ def test_generated_replay_is_ninety_days_and_never_claims_verified_amazon_data()
     assert dataset["metadata"]["classification"] == "synthetic_anonymized_replay"
     assert len({record["date"] for record in dataset["records"]}) == 90
     assert {record["domain"] for record in dataset["records"]} >= {
-        "inventory", "profitability", "advertising", "listing", "voc", "amazon_signal",
+        "inventory",
+        "profitability",
+        "advertising",
+        "listing",
+        "voc",
+        "amazon_signal",
     }
     assert all(record["source"] in {"mock", "manual", "csv_import", "system_estimate"} for record in dataset["records"])
     assert all(record["verified_amazon_data"] is False for record in dataset["records"])

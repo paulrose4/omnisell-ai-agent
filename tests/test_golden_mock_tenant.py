@@ -5,10 +5,10 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import scripts.seed_golden_mock_tenant as seed_cli
-from application.golden_mock import seed_golden_mock_tenant
 from application.demo_reset import reset_mock_demo_tenant
-from domain.models import OperationalIssue, RecommendedAction
+from application.golden_mock import seed_golden_mock_tenant
 from commerce.adapters.amazon.secrets import SecretRow
+from domain.models import OperationalIssue, RecommendedAction
 from infrastructure.database.bootstrap import initialize_database
 from infrastructure.database.models import ChannelConnectionRow
 from infrastructure.database.session import create_session_factory
@@ -72,30 +72,68 @@ def test_mock_demo_reset_clears_derived_data_and_preserves_configuration(tmp_pat
     session_factory = create_session_factory(database_url)
     with session_factory.begin() as session:
         session.add(SecretRow(id="secret-1", tenant_id="local-demo", ciphertext=b"encrypted-refresh-token"))
-        session.add(ChannelConnectionRow(
-            id="connection-1", tenant_id="local-demo", provider="amazon",
-            selling_partner_id="seller-1", region="na", marketplace_ids=["ATVPDKIKX0DER"],
-            secret_ref="db-secret://secret-1", status="active", version=1,
-        ))
-    seed_golden_mock_tenant(session_factory=session_factory, tenant_id="local-demo", now=datetime(2026, 7, 15, 8, 0, tzinfo=UTC))
+        session.add(
+            ChannelConnectionRow(
+                id="connection-1",
+                tenant_id="local-demo",
+                provider="amazon",
+                selling_partner_id="seller-1",
+                region="na",
+                marketplace_ids=["ATVPDKIKX0DER"],
+                secret_ref="db-secret://secret-1",
+                status="active",
+                version=1,
+            )
+        )
+    seed_golden_mock_tenant(
+        session_factory=session_factory, tenant_id="local-demo", now=datetime(2026, 7, 15, 8, 0, tzinfo=UTC)
+    )
     issues = OperationalIssueRepository(session_factory)
     actions = RecommendedActionRepository(session_factory)
     now = datetime(2026, 7, 15, 8, 0, tzinfo=UTC)
-    issues.upsert(OperationalIssue(
-        id="reset-issue",
-        tenant_id="local-demo", seller_sku="MOCK-RESET", marketplace_id="ATVPDKIKX0DER",
-        issue_type="inventory_stockout_risk", severity="high", title="Reset me", summary="Derived data",
-        status="open", dedupe_key="reset-issue", confidence=Decimal("0.5"), data_freshness_at=now,
-        evidence=({"source": "mock"},), missing_data=(), detected_at=now, last_detected_at=now,
-        created_at=now, updated_at=now,
-    ))
-    actions.upsert(RecommendedAction(
-        tenant_id="local-demo", issue_id="reset-issue", action_type="review_stock",
-        title="Reset me", description="Derived action", execution_mode="recommendation_only",
-        risk_level="medium", status="proposed", parameters={}, evidence=(), expected_outcome="Reset",
-        confidence=Decimal("0.5"), automation_eligible=False, dedupe_key="reset-action",
-        created_at=now, updated_at=now,
-    ), canonical_issue_id="reset-issue")
+    issues.upsert(
+        OperationalIssue(
+            id="reset-issue",
+            tenant_id="local-demo",
+            seller_sku="MOCK-RESET",
+            marketplace_id="ATVPDKIKX0DER",
+            issue_type="inventory_stockout_risk",
+            severity="high",
+            title="Reset me",
+            summary="Derived data",
+            status="open",
+            dedupe_key="reset-issue",
+            confidence=Decimal("0.5"),
+            data_freshness_at=now,
+            evidence=({"source": "mock"},),
+            missing_data=(),
+            detected_at=now,
+            last_detected_at=now,
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    actions.upsert(
+        RecommendedAction(
+            tenant_id="local-demo",
+            issue_id="reset-issue",
+            action_type="review_stock",
+            title="Reset me",
+            description="Derived action",
+            execution_mode="recommendation_only",
+            risk_level="medium",
+            status="proposed",
+            parameters={},
+            evidence=(),
+            expected_outcome="Reset",
+            confidence=Decimal("0.5"),
+            automation_eligible=False,
+            dedupe_key="reset-action",
+            created_at=now,
+            updated_at=now,
+        ),
+        canonical_issue_id="reset-issue",
+    )
 
     result = reset_mock_demo_tenant(session_factory=session_factory, tenant_id="local-demo")
 

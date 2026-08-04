@@ -7,7 +7,6 @@ from contextvars import ContextVar, Token
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-
 _current_tenant_id: ContextVar[str | None] = ContextVar("database_tenant_id", default=None)
 
 
@@ -24,7 +23,9 @@ def _apply_postgresql_tenant_context(session: Session, transaction: object, conn
     if connection.dialect.name != "postgresql":
         return
     tenant_id = _current_tenant_id.get()
-    connection.execute(text("SELECT set_config('app.current_tenant_id', :tenant_id, true)"), {"tenant_id": tenant_id or ""})
+    connection.execute(
+        text("SELECT set_config('app.current_tenant_id', :tenant_id, true)"), {"tenant_id": tenant_id or ""}
+    )
 
 
 def create_database_engine(database_url: str):

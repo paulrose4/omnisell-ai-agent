@@ -13,7 +13,6 @@ from domain.models import FulfillmentMode, Money, Order, OrderLine, OrderStatus
 from infrastructure.database.bootstrap import initialize_database
 from infrastructure.database.models import ChannelConnectionRow
 
-
 MARKETPLACE_ID = "ATVPDKIKX0DER"
 
 
@@ -30,41 +29,55 @@ def _headers(user_id: str, role: str, scopes: str = "read write") -> dict[str, s
 def test_mock_customer_service_case360_policy_and_hitl(tmp_path) -> None:
     database_url = f"sqlite:///{tmp_path / 'mock-customer-service.sqlite'}"
     initialize_database(database_url, default_tenant_id="local-demo")
-    app = create_app(Settings(
-        database_url=database_url,
-        auto_create_schema=False,
-        api_key="test-key",
-        auth_mode="api_key",
-        mock_drill_enabled=True,
-        amazon_writes_enabled=False,
-        amazon_pilot_read_only=True,
-    ))
+    app = create_app(
+        Settings(
+            database_url=database_url,
+            auto_create_schema=False,
+            api_key="test-key",
+            auth_mode="api_key",
+            mock_drill_enabled=True,
+            amazon_writes_enabled=False,
+            amazon_pilot_read_only=True,
+        )
+    )
     engine = app.state.session_factory.kw["bind"]
     event.listen(engine, "connect", lambda dbapi_connection, _: dbapi_connection.execute("PRAGMA foreign_keys=ON"))
     engine.dispose()
     with app.state.session_factory.begin() as session:
-        session.add(ChannelConnectionRow(
-            id="mock-connection", tenant_id="local-demo", provider="amazon",
-            selling_partner_id="mock-seller", region="na", marketplace_ids=[MARKETPLACE_ID],
-            secret_ref="memory://mock", status="active", version=1,
-        ))
-    app.state.commerce_sync_repository.upsert_order(Order(
-        tenant_id="local-demo",
-        channel_connection_id="mock-connection",
-        external_order_id="MOCK-CS-ORDER-1",
-        marketplace_id=MARKETPLACE_ID,
-        status=OrderStatus.SHIPPED,
-        fulfillment_mode=FulfillmentMode.FBA,
-        purchased_at=datetime(2026, 7, 14, 8, 0, tzinfo=UTC),
-        platform_status="Shipped",
-        lines=[OrderLine(
-            seller_sku="MOCK-STOCKOUT",
-            quantity=1,
-            title="Mock Travel Bottle",
-            unit_price=Money(Decimal("29.99"), "USD"),
-        )],
-        platform_extensions={"data_source": "mock_amazon", "verified_amazon_data": False},
-    ))
+        session.add(
+            ChannelConnectionRow(
+                id="mock-connection",
+                tenant_id="local-demo",
+                provider="amazon",
+                selling_partner_id="mock-seller",
+                region="na",
+                marketplace_ids=[MARKETPLACE_ID],
+                secret_ref="memory://mock",
+                status="active",
+                version=1,
+            )
+        )
+    app.state.commerce_sync_repository.upsert_order(
+        Order(
+            tenant_id="local-demo",
+            channel_connection_id="mock-connection",
+            external_order_id="MOCK-CS-ORDER-1",
+            marketplace_id=MARKETPLACE_ID,
+            status=OrderStatus.SHIPPED,
+            fulfillment_mode=FulfillmentMode.FBA,
+            purchased_at=datetime(2026, 7, 14, 8, 0, tzinfo=UTC),
+            platform_status="Shipped",
+            lines=[
+                OrderLine(
+                    seller_sku="MOCK-STOCKOUT",
+                    quantity=1,
+                    title="Mock Travel Bottle",
+                    unit_price=Money(Decimal("29.99"), "USD"),
+                )
+            ],
+            platform_extensions={"data_source": "mock_amazon", "verified_amazon_data": False},
+        )
+    )
 
     async def scenario() -> None:
         for handler in app.router.on_startup:
@@ -78,7 +91,10 @@ def test_mock_customer_service_case360_policy_and_hitl(tmp_path) -> None:
                 scenarios = await client.get("/api/mock-customer-service/scenarios", headers=operator)
                 assert scenarios.status_code == 200
                 assert {item["scenario_id"] for item in scenarios.json()["items"]} >= {
-                    "delivery_delay", "refund_demand", "cancel_request", "damaged_item",
+                    "delivery_delay",
+                    "refund_demand",
+                    "cancel_request",
+                    "damaged_item",
                 }
 
                 created = await client.post(
@@ -121,7 +137,11 @@ def test_mock_customer_service_case360_policy_and_hitl(tmp_path) -> None:
                 resolved = await client.post(
                     f"/api/customer-cases/{delivery_case['id']}/resolve",
                     headers=operator,
-                    json={"resolution_code": "information_provided", "root_cause_code": "amazon_fulfillment_issue", "note": "Buyer informed"},
+                    json={
+                        "resolution_code": "information_provided",
+                        "root_cause_code": "amazon_fulfillment_issue",
+                        "note": "Buyer informed",
+                    },
                 )
                 assert resolved.status_code == 200
                 assert resolved.json()["status"] == "resolved"
@@ -183,11 +203,16 @@ def test_mock_customer_service_case360_policy_and_hitl(tmp_path) -> None:
                 changed_after_approval = await client.post(
                     f"/api/customer-cases/{damaged_case['id']}/send",
                     headers=operator,
-                    json={"reply": f"{detail.json()['draft_reply']} We guarantee compensation.", "note": "approval hash changed"},
+                    json={
+                        "reply": f"{detail.json()['draft_reply']} We guarantee compensation.",
+                        "note": "approval hash changed",
+                    },
                 )
                 assert changed_after_approval.status_code == 409
 
-                audit = await client.get("/api/admin/audit?limit=100", headers=_headers("owner-1", "owner", "read write admin"))
+                audit = await client.get(
+                    "/api/admin/audit?limit=100", headers=_headers("owner-1", "owner", "read write admin")
+                )
                 actions = {item["action"] for item in audit.json()["items"]}
                 assert "customer_case_created" in actions
                 assert "customer_reply_sent_mock" in actions

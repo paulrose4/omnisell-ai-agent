@@ -41,13 +41,18 @@ class PriceRecommendationService:
         if inventory is None:
             raise PricingEvidenceNotFound("inventory snapshot not found")
         profile = self.cost_repository.get_active(
-            tenant_id=tenant_id, marketplace_id=input_data.marketplace_id,
-            seller_sku=input_data.seller_sku, effective_at=profit.window_end,
+            tenant_id=tenant_id,
+            marketplace_id=input_data.marketplace_id,
+            seller_sku=input_data.seller_sku,
+            effective_at=profit.window_end,
         )
         if profile is None:
             raise PricingEvidenceNotFound("effective cost profile not found")
         return self.calculator.calculate(
-            input_data=input_data, profile=profile, profit_snapshot=profit, inventory_snapshot=inventory,
+            input_data=input_data,
+            profile=profile,
+            profit_snapshot=profit,
+            inventory_snapshot=inventory,
         )
 
     def save(self, recommendation):
