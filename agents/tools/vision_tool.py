@@ -32,12 +32,17 @@ _DATA_URL_PREFIX = re.compile(r"^data:image/[a-zA-Z0-9.+-]+;base64,", re.IGNOREC
 
 def _ollama_base_url(base_url: str | None = None) -> str:
     resolved = (
-        base_url
-        or os.getenv("VISION_BASE_URL")
-        or os.getenv("OLLAMA_BASE_URL")
-        or os.getenv("VLLM_BASE_URL")
-        or DEFAULT_VISION_BASE_URL
-    ).strip().rstrip("/")
+        (
+            base_url
+            or os.getenv("VISION_BASE_URL")
+            or os.getenv("OLLAMA_BASE_URL")
+            or os.getenv("MODEL_BASE_URL")
+            or os.getenv("VLLM_BASE_URL")
+            or DEFAULT_VISION_BASE_URL
+        )
+        .strip()
+        .rstrip("/")
+    )
     if resolved.endswith("/v1"):
         resolved = resolved[:-3]
     return resolved
@@ -72,11 +77,11 @@ def _max_image_bytes(max_image_bytes: int | None = None) -> int:
 
 
 def _text_base_url() -> str:
-    return os.getenv("VLLM_BASE_URL", DEFAULT_TEXT_BASE_URL).strip()
+    return (os.getenv("MODEL_BASE_URL") or os.getenv("VLLM_BASE_URL") or DEFAULT_TEXT_BASE_URL).strip()
 
 
 def _text_model_name() -> str:
-    return os.getenv("VLLM_MODEL_NAME", DEFAULT_TEXT_MODEL_NAME).strip()
+    return (os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME") or DEFAULT_TEXT_MODEL_NAME).strip()
 
 
 def normalize_image_base64(image_base64: str, max_image_bytes: int | None = None) -> str:
@@ -219,7 +224,7 @@ Rules:
 - Do not invent order status, refund results, compensation, delivery status, or platform decisions.
 - If human review is needed, say so clearly.
 - Start with a direct conclusion, then list next steps.
-- Reply in this target language code: {target_language or 'zh'}.
+- Reply in this target language code: {target_language or "zh"}.
 
 Customer question:
 {question}
@@ -229,10 +234,14 @@ Image analysis:
 
 Knowledge base matched: {grounded}
 Knowledge-base answer:
-{rag_answer or 'No sufficient knowledge-base evidence was found.'}
+{rag_answer or "No sufficient knowledge-base evidence was found."}
 """
     try:
-        client = OpenAI(base_url=_text_base_url(), api_key=os.getenv("VLLM_API_KEY", "not-needed"), timeout=90.0)
+        client = OpenAI(
+            base_url=_text_base_url(),
+            api_key=os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed"),
+            timeout=90.0,
+        )
         response = client.chat.completions.create(
             model=_text_model_name(),
             messages=[

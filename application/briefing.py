@@ -68,18 +68,19 @@ class DailyOperationsBriefService:
                 self.action_repository.upsert(action, canonical_issue_id=canonical_issue.id)
             self.issue_repository.resolve_complete_scan_absent(
                 tenant_id=tenant_id,
-                complete_scopes={
-                    (signal.marketplace_id, signal.seller_sku, "listing_basic")
-                    for signal in signals
-                },
+                complete_scopes={(signal.marketplace_id, signal.seller_sku, "listing_basic") for signal in signals},
                 active_dedupe_keys=active_listing_keys,
                 resolved_at=now,
             )
         issues = self.issue_repository.list_issues(tenant_id=tenant_id)
         actions = self.action_repository.list_actions(tenant_id=tenant_id)
         built = self.builder.build(
-            tenant_id=tenant_id, brief_date=resolved_date, timezone=timezone,
-            generated_at=now, issues=issues, actions=actions,
+            tenant_id=tenant_id,
+            brief_date=resolved_date,
+            timezone=timezone,
+            generated_at=now,
+            issues=issues,
+            actions=actions,
         )
         persisted = self.brief_repository.save(built.brief)
         return PersistedBriefResult(brief=persisted, sku_health=persisted.sku_health)

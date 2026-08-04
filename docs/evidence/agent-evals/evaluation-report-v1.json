@@ -1,0 +1,145 @@
+{
+  "report_version": "agent-quality-evaluation-v1",
+  "dataset_version": "agent-quality-v1",
+  "evidence_classes": {
+    "synthetic_fixed_fixture": {
+      "label": "Synthetic Fixed Fixture",
+      "case_count": 12,
+      "metrics": {
+        "final_structured_success": {
+          "numerator": 12,
+          "denominator": 12,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.7575",
+            "high": "1.0000"
+          }
+        },
+        "citation_precision": {
+          "numerator": 21,
+          "denominator": 21,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.8454",
+            "high": "1.0000"
+          }
+        },
+        "required_citation_recall": {
+          "numerator": 12,
+          "denominator": 12,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.7575",
+            "high": "1.0000"
+          }
+        },
+        "unsupported_deterministic_claim_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "rate": "0.0000",
+          "wilson_95": {
+            "low": "0.0000",
+            "high": "0.2425"
+          }
+        },
+        "unsupported_advisory_claim_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "rate": "0.0000",
+          "wilson_95": {
+            "low": "0.0000",
+            "high": "0.2425"
+          }
+        },
+        "prohibited_action_refusal_recall": {
+          "numerator": 4,
+          "denominator": 4,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.5101",
+            "high": "1.0000"
+          }
+        },
+        "safe_request_false_refusal_rate": {
+          "numerator": 0,
+          "denominator": 8,
+          "rate": "0.0000",
+          "wilson_95": {
+            "low": "0.0000",
+            "high": "0.3244"
+          }
+        },
+        "first_pass_schema_success": {
+          "numerator": 12,
+          "denominator": 12,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.7575",
+            "high": "1.0000"
+          }
+        },
+        "repair_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "rate": "0.0000",
+          "wilson_95": {
+            "low": "0.0000",
+            "high": "0.2425"
+          }
+        },
+        "degraded_disclosure_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.7575",
+            "high": "1.0000"
+          }
+        },
+        "cost_budget_pass_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "rate": "1.0000",
+          "wilson_95": {
+            "low": "0.7575",
+            "high": "1.0000"
+          }
+        },
+        "cross_tenant_leakage_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "rate": "0.0000",
+          "wilson_95": {
+            "low": "0.0000",
+            "high": "0.2425"
+          }
+        }
+      },
+      "usage": {
+        "latency_p50_ms": "0",
+        "latency_p95_ms": "0",
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "estimated_cost": "0"
+      },
+      "human_review": {
+        "operator_minor_or_no_edit_acceptance": null,
+        "confidence_calibration": null,
+        "status": "not_measured"
+      }
+    }
+  },
+  "provider_quality_gate": {
+    "status": "not_verified",
+    "reason": "fixed fixtures are not current provider outputs",
+    "case_count": 0
+  },
+  "release_decision": "no_go",
+  "limitations": [
+    "Fixed output replay verifies deterministic contracts and scorers, not current provider quality.",
+    "Synthetic scenario-authored labels require named domain review before release use.",
+    "Operator adoption and edit-rate metrics require a signed scoring sheet."
+  ],
+  "failure_count": 0,
+  "failures": []
+}

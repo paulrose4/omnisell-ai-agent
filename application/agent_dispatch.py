@@ -32,7 +32,7 @@ class QueuedAgentWorkflow:
             request=request,
             prompt_version=advisor.prompt_version,
             agent_type=advisor.agent_type,
-            schema_version="1.0",
+            schema_version="2.0",
             idempotency_key=str(idempotency_key) if idempotency_key else None,
         )
         row = self.store.get_run(tenant_id=tenant_id, run_id=run_id)

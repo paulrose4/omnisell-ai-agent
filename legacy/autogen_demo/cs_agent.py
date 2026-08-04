@@ -5,19 +5,18 @@ from pathlib import Path
 from typing import Any
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 try:
     from .base import create_assistant_agent, create_llm_config, register_tools
-    from .tools.rag_tool import answer_customer_question, search_knowledge_base
-    from .tools.translator import detect_and_translate, translate_text
-    from .tools.vision_tool import analyze_customer_image, answer_visual_customer_question
+    from agents.tools.rag_tool import answer_customer_question, search_knowledge_base
+    from agents.tools.translator import detect_and_translate, translate_text
+    from agents.tools.vision_tool import analyze_customer_image, answer_visual_customer_question
 except ImportError:
-    from base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
-    from tools.rag_tool import answer_customer_question, search_knowledge_base  # type: ignore[no-redef]
-    from tools.translator import detect_and_translate, translate_text  # type: ignore[no-redef]
-    from tools.vision_tool import analyze_customer_image, answer_visual_customer_question  # type: ignore[no-redef]
+    from legacy.autogen_demo.base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
+    from agents.tools.rag_tool import answer_customer_question, search_knowledge_base  # type: ignore[no-redef]
+    from agents.tools.translator import detect_and_translate, translate_text  # type: ignore[no-redef]
+    from agents.tools.vision_tool import analyze_customer_image, answer_visual_customer_question  # type: ignore[no-redef]
 
 
 CS_AGENT_SYSTEM_PROMPT = """⚠️ CRITICAL RULES - VIOLATION IS NOT ALLOWED:

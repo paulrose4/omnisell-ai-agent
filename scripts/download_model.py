@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import subprocess
 
-
 DEFAULT_MODELS = ["qwen2.5:3b", "llava:7b"]
 
 

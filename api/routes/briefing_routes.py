@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 from api.security import require_api_key
 
-
 router = APIRouter(prefix="/api/operations", tags=["operations-briefing"], dependencies=[Depends(require_api_key)])
 
 
@@ -25,18 +24,26 @@ async def generate_brief(payload: BriefGenerationRequest, request: Request) -> d
     principal = request.state.principal
     try:
         result = request.app.state.daily_brief_service.generate(
-            tenant_id=principal.tenant_id, brief_date=payload.brief_date,
-            timezone=payload.timezone, scan_listings=payload.scan_listings,
+            tenant_id=principal.tenant_id,
+            brief_date=payload.brief_date,
+            timezone=payload.timezone,
+            scan_listings=payload.scan_listings,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"error": "invalid_brief_request", "message": str(exc)}) from exc
     request.app.state.audit_logger.log_operation(
-        action="daily_operations_brief_generated", status="success",
+        action="daily_operations_brief_generated",
+        status="success",
         details={
-            "tenant_id": principal.tenant_id, "brief_id": result.brief.id,
-            "brief_date": result.brief.brief_date.isoformat(), "timezone": result.brief.timezone,
-            "open_issue_count": result.brief.total_open_issues, "scan_listings": payload.scan_listings,
-        }, actor=principal.user_id, risk_level="low",
+            "tenant_id": principal.tenant_id,
+            "brief_id": result.brief.id,
+            "brief_date": result.brief.brief_date.isoformat(),
+            "timezone": result.brief.timezone,
+            "open_issue_count": result.brief.total_open_issues,
+            "scan_listings": payload.scan_listings,
+        },
+        actor=principal.user_id,
+        risk_level="low",
     )
     return {"brief": _serialize(result.brief), "sku_health": [_serialize(item) for item in result.sku_health]}
 
@@ -46,7 +53,9 @@ async def get_latest_brief(request: Request) -> dict:
     _require_scope(request, "read")
     brief = request.app.state.daily_brief_repository.get_latest(tenant_id=request.state.principal.tenant_id)
     if brief is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Daily operations brief not found."})
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Daily operations brief not found."}
+        )
     return _serialize(brief)
 
 
@@ -56,26 +65,33 @@ async def get_dashboard(request: Request) -> dict:
     principal = request.state.principal
     dashboard = request.app.state.daily_brief_service.dashboard(tenant_id=principal.tenant_id)
     if dashboard is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Generate a daily operations brief first."})
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Generate a daily operations brief first."}
+        )
     work_items = request.app.state.work_item_repository.list(tenant_id=principal.tenant_id, active_only=True)
-    active_issues = request.app.state.operational_issue_repository.list_issues(tenant_id=principal.tenant_id, active_only=True)
+    active_issues = request.app.state.operational_issue_repository.list_issues(
+        tenant_id=principal.tenant_id, active_only=True
+    )
     now = datetime.now(UTC)
     stale_cutoff = now - timedelta(hours=6)
-    mock_mode = any(
-        item.seller_sku.startswith(("MOCK-", "GOLDEN-"))
-        for item in dashboard.brief.sku_health
-    )
+    mock_mode = any(item.seller_sku.startswith(("MOCK-", "GOLDEN-")) for item in dashboard.brief.sku_health)
     case_flow = request.app.state.customer_case_operations_bridge.dashboard_summary(
         tenant_id=principal.tenant_id,
     )
     return {
         "data_mode": "mock" if mock_mode else "connected",
-        "data_disclaimer": "Mock data is synthetic and must not be treated as verified Amazon data." if mock_mode else None,
+        "data_disclaimer": "Mock data is synthetic and must not be treated as verified Amazon data."
+        if mock_mode
+        else None,
         "queue_summary": {
             "urgent": sum(1 for item in work_items if item.severity in {"critical", "high"}),
             "overdue": sum(1 for item in work_items if item.due_at < now),
             "awaiting_approval": sum(1 for item in work_items if item.status == "awaiting_approval"),
-            "stale_data": sum(1 for item in active_issues if item.data_freshness_at < stale_cutoff or "stale" in str(item.degraded_reason or "")),
+            "stale_data": sum(
+                1
+                for item in active_issues
+                if item.data_freshness_at < stale_cutoff or "stale" in str(item.degraded_reason or "")
+            ),
             "verification_failed": sum(1 for item in active_issues if item.status == "verification_failed"),
             "my_tasks": sum(1 for item in work_items if item.assignee_id == principal.user_id),
             "shift_owner": principal.user_id,
@@ -98,8 +114,14 @@ async def get_sku_health(request: Request) -> dict:
     _require_scope(request, "read")
     brief = request.app.state.daily_brief_repository.get_latest(tenant_id=request.state.principal.tenant_id)
     if brief is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Generate a daily operations brief first."})
-    return {"items": [_serialize(item) for item in brief.sku_health], "total": len(brief.sku_health), "brief_id": brief.id}
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Generate a daily operations brief first."}
+        )
+    return {
+        "items": [_serialize(item) for item in brief.sku_health],
+        "total": len(brief.sku_health),
+        "brief_id": brief.id,
+    }
 
 
 def _require_scope(request: Request, scope: str) -> None:

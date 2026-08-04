@@ -1,0 +1,108 @@
+{
+  "report_version": "1.0",
+  "generated_at": "2026-08-04T19:09:22.179772+00:00",
+  "baseline_ref": "00de543",
+  "token_estimation_rule": "ceil(compact_schema_utf8_bytes / 1.8)",
+  "schemas": {
+    "OperationsBriefAnalysisDraft": {
+      "baseline": {
+        "raw_chars": 4192,
+        "compact_chars": 3102,
+        "compact_utf8_bytes": 3102,
+        "estimated_tokens": 1724,
+        "open_map_count": 2,
+        "max_length_constraints": 0,
+        "max_items_constraints": 0
+      },
+      "current": {
+        "raw_chars": 7756,
+        "compact_chars": 6036,
+        "compact_utf8_bytes": 6036,
+        "estimated_tokens": 3354,
+        "open_map_count": 0,
+        "max_length_constraints": 31,
+        "max_items_constraints": 18
+      },
+      "change": {
+        "compact_chars": 2934,
+        "estimated_tokens": 1630,
+        "open_map_count": -2
+      }
+    },
+    "CustomerCaseAnalysisDraft": {
+      "baseline": {
+        "raw_chars": 4605,
+        "compact_chars": 3397,
+        "compact_utf8_bytes": 3397,
+        "estimated_tokens": 1888,
+        "open_map_count": 2,
+        "max_length_constraints": 0,
+        "max_items_constraints": 0
+      },
+      "current": {
+        "raw_chars": 7874,
+        "compact_chars": 6183,
+        "compact_utf8_bytes": 6183,
+        "estimated_tokens": 3435,
+        "open_map_count": 0,
+        "max_length_constraints": 29,
+        "max_items_constraints": 17
+      },
+      "change": {
+        "compact_chars": 2786,
+        "estimated_tokens": 1547,
+        "open_map_count": -2
+      }
+    },
+    "ListingOptimizationAnalysisDraft": {
+      "baseline": {
+        "raw_chars": 4291,
+        "compact_chars": 3167,
+        "compact_utf8_bytes": 3167,
+        "estimated_tokens": 1760,
+        "open_map_count": 2,
+        "max_length_constraints": 0,
+        "max_items_constraints": 0
+      },
+      "current": {
+        "raw_chars": 7734,
+        "compact_chars": 6125,
+        "compact_utf8_bytes": 6125,
+        "estimated_tokens": 3403,
+        "open_map_count": 0,
+        "max_length_constraints": 26,
+        "max_items_constraints": 16
+      },
+      "change": {
+        "compact_chars": 2958,
+        "estimated_tokens": 1643,
+        "open_map_count": -2
+      }
+    },
+    "ReconciliationInvestigationDraft": {
+      "baseline": {
+        "raw_chars": 4260,
+        "compact_chars": 3155,
+        "compact_utf8_bytes": 3155,
+        "estimated_tokens": 1753,
+        "open_map_count": 4,
+        "max_length_constraints": 0,
+        "max_items_constraints": 0
+      },
+      "current": {
+        "raw_chars": 10431,
+        "compact_chars": 8212,
+        "compact_utf8_bytes": 8212,
+        "estimated_tokens": 4563,
+        "open_map_count": 0,
+        "max_length_constraints": 39,
+        "max_items_constraints": 22
+      },
+      "change": {
+        "compact_chars": 5057,
+        "estimated_tokens": 2810,
+        "open_map_count": -4
+      }
+    }
+  }
+}

@@ -38,6 +38,7 @@ class Retriever:
         language: str | None = None,
         category_filter: str | None = None,
         source_type: str | None = None,
+        tenant_id: str | None = None,
     ) -> list[dict[str, Any]]:
         return self.retrieve_with_score(
             query=query,
@@ -45,6 +46,7 @@ class Retriever:
             language=language,
             category_filter=category_filter,
             source_type=source_type,
+            tenant_id=tenant_id,
         )
 
     def retrieve_with_score(
@@ -54,8 +56,11 @@ class Retriever:
         language: str | None = None,
         category_filter: str | None = None,
         source_type: str | None = None,
+        tenant_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        where = self._build_where(language=language, category_filter=category_filter, source_type=source_type, tenant_id=tenant_id)
+        where = self._build_where(
+            language=language, category_filter=category_filter, source_type=source_type, tenant_id=tenant_id
+        )
         query_embedding = self.embedder.encode_one(query)
         result = self.chroma.query(
             query_embeddings=[query_embedding],
@@ -72,6 +77,7 @@ class Retriever:
         language: str | None = None,
         category_filter: str | None = None,
         source_type: str | None = None,
+        tenant_id: str | None = None,
     ) -> list[dict[str, Any]]:
         return await self.aretrieve_with_score(
             query=query,
@@ -79,6 +85,7 @@ class Retriever:
             language=language,
             category_filter=category_filter,
             source_type=source_type,
+            tenant_id=tenant_id,
         )
 
     async def aretrieve_with_score(
@@ -88,6 +95,7 @@ class Retriever:
         language: str | None = None,
         category_filter: str | None = None,
         source_type: str | None = None,
+        tenant_id: str | None = None,
     ) -> list[dict[str, Any]]:
         return await asyncio.to_thread(
             self.retrieve_with_score,
@@ -96,6 +104,7 @@ class Retriever:
             language,
             category_filter,
             source_type,
+            tenant_id,
         )
 
     def _build_where(
@@ -103,6 +112,7 @@ class Retriever:
         language: str | None = None,
         category_filter: str | None = None,
         source_type: str | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, Any] | None:
         filters: list[dict[str, Any]] = []
         if tenant_id:
@@ -126,7 +136,7 @@ class Retriever:
         distances = result.get("distances", [[]])[0] or []
 
         formatted = []
-        for document, metadata, distance in zip(documents, metadatas, distances):
+        for document, metadata, distance in zip(documents, metadatas, distances, strict=True):
             similarity = 1.0 - float(distance)
             formatted.append(
                 {

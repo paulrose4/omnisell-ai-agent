@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from agents.contracts import CustomerCaseAnalysisEnvelope
-from agents.prompts.customer_case_v3 import CUSTOMER_CASE_PROMPT_VERSION, CUSTOMER_CASE_SYSTEM_PROMPT
+from agents.prompts.customer_case_v4 import CUSTOMER_CASE_PROMPT_VERSION, CUSTOMER_CASE_SYSTEM_PROMPT
 from agents.runtime import StructuredBoundedAdvisor
 from agents.validators.evidence import EvidenceValidator
 from model_gateway.gateway import ModelGateway

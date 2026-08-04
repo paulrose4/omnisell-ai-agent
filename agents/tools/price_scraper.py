@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from statistics import mean
 from typing import Any
 
-
 DEFAULT_COMPETITORS = ["Shopee Mall", "Lazada Choice", "TikTok Shop", "Amazon Global"]
 
 
@@ -63,7 +62,9 @@ def generate_price_recommendation(
     if min_margin_rate < 0 or min_margin_rate >= 1:
         raise ValueError("min_margin_rate must be between 0 and 1.")
 
-    prices = competitor_prices or fetch_competitor_prices(product_id=product_id, current_price=current_price, currency=currency, market=market)
+    prices = competitor_prices or fetch_competitor_prices(
+        product_id=product_id, current_price=current_price, currency=currency, market=market
+    )
     numeric_prices = [float(item["price"]) for item in prices if float(item["price"]) > 0]
     if not numeric_prices:
         raise ValueError("competitor_prices must contain at least one positive price.")

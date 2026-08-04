@@ -5,17 +5,16 @@ from pathlib import Path
 from typing import Any
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 try:
     from .base import create_assistant_agent, create_llm_config, register_tools
-    from .tools.platform_api import get_product_detail, get_product_price
-    from .tools.price_scraper import fetch_competitor_prices, generate_price_recommendation
+    from agents.tools.platform_api import get_product_detail, get_product_price
+    from agents.tools.price_scraper import fetch_competitor_prices, generate_price_recommendation
 except ImportError:
-    from base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
-    from tools.platform_api import get_product_detail, get_product_price  # type: ignore[no-redef]
-    from tools.price_scraper import fetch_competitor_prices, generate_price_recommendation  # type: ignore[no-redef]
+    from legacy.autogen_demo.base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
+    from agents.tools.platform_api import get_product_detail, get_product_price  # type: ignore[no-redef]
+    from agents.tools.price_scraper import fetch_competitor_prices, generate_price_recommendation  # type: ignore[no-redef]
 
 
 PRICE_AGENT_SYSTEM_PROMPT = """⚠️ CRITICAL RULES - VIOLATION IS NOT ALLOWED:

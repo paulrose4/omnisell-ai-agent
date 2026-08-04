@@ -19,8 +19,8 @@ except Exception:
     register_function = None  # type: ignore[assignment]
 
 
-DEFAULT_VLLM_BASE_URL = "http://localhost:11434/v1"
-DEFAULT_VLLM_MODEL_NAME = "qwen2.5:3b"
+DEFAULT_MODEL_BASE_URL = "http://localhost:11434/v1"
+DEFAULT_MODEL_NAME = "qwen2.5:3b"
 
 
 class LegacyAgentRuntimeUnavailable(RuntimeError):
@@ -39,24 +39,27 @@ def _require_legacy_runtime(component: str, runtime: Any) -> Any:
 
 try:
     from safety.audit import AuditLogger
-    from safety.circuit_breaker import CircuitBreaker
+    from safety.circuit_breaker import CircuitBreaker, get_circuit_breaker as get_registered_circuit_breaker
     from safety.hitl import ApprovalRequiredError, ApprovalStatus, HITLManager, RiskLevel
+    from safety.policy_engine import PolicyDecision, PolicyEngine
     from safety.refund_gate import RefundGate
     from safety.tool_auth import ToolPermissionValidator
 except Exception:
     AuditLogger = None  # type: ignore[assignment]
     CircuitBreaker = None  # type: ignore[assignment]
+    get_registered_circuit_breaker = None  # type: ignore[assignment]
     HITLManager = None  # type: ignore[assignment]
     ApprovalRequiredError = RuntimeError  # type: ignore[assignment]
     ApprovalStatus = None  # type: ignore[assignment]
     RiskLevel = None  # type: ignore[assignment]
+    PolicyDecision = None  # type: ignore[assignment]
+    PolicyEngine = None  # type: ignore[assignment]
     RefundGate = None  # type: ignore[assignment]
     ToolPermissionValidator = None  # type: ignore[assignment]
 
 
 _AUDIT_LOGGER: Any | None = None
 _HITL_MANAGER: Any | None = None
-_CIRCUIT_BREAKERS: dict[str, Any] = {}
 
 
 def get_audit_logger() -> Any:
@@ -81,11 +84,9 @@ def get_hitl_manager() -> Any:
 
 def get_circuit_breaker(name: str) -> Any:
     """Return a per-tool circuit breaker."""
-    if name not in _CIRCUIT_BREAKERS:
-        if CircuitBreaker is None:
-            raise RuntimeError("safety.circuit_breaker.CircuitBreaker is unavailable.")
-        _CIRCUIT_BREAKERS[name] = CircuitBreaker(name=name)
-    return _CIRCUIT_BREAKERS[name]
+    if get_registered_circuit_breaker is None:
+        raise RuntimeError("safety.circuit_breaker.get_circuit_breaker is unavailable.")
+    return get_registered_circuit_breaker(name)
 
 
 def create_llm_config(
@@ -95,11 +96,11 @@ def create_llm_config(
     temperature: float = 0.2,
     timeout: int = 120,
 ) -> dict[str, Any]:
-    """Create an AutoGen OpenAI-compatible LLM config for the local vLLM server."""
+    """Create a demo-only AutoGen config for an OpenAI-compatible endpoint."""
     instrument_openai_calls()
-    resolved_base_url = base_url or os.getenv("VLLM_BASE_URL", DEFAULT_VLLM_BASE_URL)
-    resolved_model_name = model_name or os.getenv("VLLM_MODEL_NAME", DEFAULT_VLLM_MODEL_NAME)
-    resolved_api_key = api_key or os.getenv("VLLM_API_KEY", "not-needed")
+    resolved_base_url = base_url or os.getenv("MODEL_BASE_URL") or os.getenv("VLLM_BASE_URL", DEFAULT_MODEL_BASE_URL)
+    resolved_model_name = model_name or os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", DEFAULT_MODEL_NAME)
+    resolved_api_key = api_key or os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
 
     return {
         "config_list": [
@@ -171,7 +172,14 @@ def safe_tool_execution(
         signature = inspect.signature(tool)
 
         async def _prepare_or_block(payload: dict[str, Any]) -> Any:
-            request = manager.submit_request(action=tool.__name__, payload=payload, requester="agent_tool")
+            if PolicyEngine is None:
+                raise RuntimeError("safety.policy_engine.PolicyEngine is unavailable.")
+            policy = PolicyEngine().evaluate(action=tool.__name__, arguments=payload)
+            request = manager.submit_request(
+                action=tool.__name__, payload=payload, requester="agent_tool",
+                risk_level=policy.risk_level, reason=policy.reason, policy_decision=policy.decision,
+                policy_version=policy.policy_version,
+            )
             if request.status == ApprovalStatus.PENDING:
                 logger.log_operation(
                     action=tool.__name__,
@@ -186,7 +194,14 @@ def safe_tool_execution(
             return request
 
         def _prepare_or_block_sync(payload: dict[str, Any]) -> Any:
-            request = manager.submit_request(action=tool.__name__, payload=payload, requester="agent_tool")
+            if PolicyEngine is None:
+                raise RuntimeError("safety.policy_engine.PolicyEngine is unavailable.")
+            policy = PolicyEngine().evaluate(action=tool.__name__, arguments=payload)
+            request = manager.submit_request(
+                action=tool.__name__, payload=payload, requester="agent_tool",
+                risk_level=policy.risk_level, reason=policy.reason, policy_decision=policy.decision,
+                policy_version=policy.policy_version,
+            )
             if request.status == ApprovalStatus.PENDING:
                 logger.log_operation(
                     action=tool.__name__,

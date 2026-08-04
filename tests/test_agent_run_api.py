@@ -12,12 +12,19 @@ from api.config import Settings
 from api.main import create_app
 from infrastructure.database.bootstrap import initialize_database
 
-
 ENDPOINTS = (
     ("operations_brief_agent_service", "/api/agent-runs/operations-brief-analysis", {"brief_id": "brief-1"}),
     ("customer_case_agent_service", "/api/agent-runs/customer-case-analysis", {"case_id": "case-1"}),
-    ("listing_optimization_agent_service", "/api/agent-runs/listing-optimization-analysis", {"snapshot_id": "snapshot-1"}),
-    ("reconciliation_agent_service", "/api/agent-runs/reconciliation-investigation", {"reconciliation_run_id": "recon-1"}),
+    (
+        "listing_optimization_agent_service",
+        "/api/agent-runs/listing-optimization-analysis",
+        {"snapshot_id": "snapshot-1"},
+    ),
+    (
+        "reconciliation_agent_service",
+        "/api/agent-runs/reconciliation-investigation",
+        {"reconciliation_run_id": "recon-1"},
+    ),
 )
 
 
@@ -70,7 +77,9 @@ def _headers(*, tenant_id: str = "tenant-a", scopes: str = "read") -> dict[str, 
 def _run_api_scenario(tmp_path, scenario) -> None:
     database_url = f"sqlite:///{tmp_path / 'agent-run-api.sqlite'}"
     initialize_database(database_url, default_tenant_id="tenant-a")
-    app = create_app(Settings(database_url=database_url, auto_create_schema=False, api_key="test-key", auth_mode="api_key"))
+    app = create_app(
+        Settings(database_url=database_url, auto_create_schema=False, api_key="test-key", auth_mode="api_key")
+    )
 
     async def run() -> None:
         for handler in app.router.on_startup:
@@ -165,9 +174,7 @@ def test_agent_submission_endpoints_return_explicit_tenant_quota_error(
         assert response.status_code == 429
         assert response.headers["Retry-After"] == "37"
         body = response.json()
-        assert {key: body[key] for key in (
-            "error", "message", "scope", "retry_after_seconds"
-        )} == {
+        assert {key: body[key] for key in ("error", "message", "scope", "retry_after_seconds")} == {
             "error": "agent_quota_exceeded",
             "message": "Tenant Agent minute quota exhausted.",
             "scope": "minute",

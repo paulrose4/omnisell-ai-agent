@@ -5,10 +5,9 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
-from agents.prompts.operations_brief_v4 import OPERATIONS_BRIEF_PROMPT_VERSION, OPERATIONS_BRIEF_SYSTEM_PROMPT
+from agents.prompts.operations_brief_v7 import OPERATIONS_BRIEF_PROMPT_VERSION, OPERATIONS_BRIEF_SYSTEM_PROMPT
 from agents.registry import AdvisorRegistry
 from application.operations_brief_agent import OperationsBriefAgentService, OperationsBriefEvidenceCollector
-
 
 NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
 
@@ -118,7 +117,12 @@ def test_operations_brief_collector_uses_persisted_tenant_scoped_records() -> No
     bundle = asyncio.run(collector.collect(tenant_id="tenant-a", request={"brief_id": "brief-1"}))
 
     assert bundle.tenant_id == "tenant-a"
-    assert {item.evidence_id for item in bundle.evidence} == {"brief-1", "issue-1", "action-1", "sku-health:GOLDEN-SKU-1:ATVPDKIKX0DER"}
+    assert {item.evidence_id for item in bundle.evidence} == {
+        "brief-1",
+        "issue-1",
+        "action-1",
+        "sku-health:GOLDEN-SKU-1:ATVPDKIKX0DER",
+    }
     assert all(item.source == "mock" for item in bundle.evidence)
     assert not any(item.verified_amazon_data for item in bundle.evidence)
     issue = bundle.by_id()["issue-1"]
@@ -133,19 +137,32 @@ def test_operations_brief_collector_compacts_large_queue_without_losing_high_ris
     class LargeBriefRepository:
         def get_latest(self, *, tenant_id: str):
             return SimpleNamespace(
-                id="brief-large", tenant_id=tenant_id, brief_date=date(2026, 7, 16), timezone="UTC",
-                generated_at=NOW, issue_counts={"critical": 10, "high": 10},
-                domain_counts={"inventory": 20}, total_open_issues=20, data_quality_issue_count=4,
-                impact_by_currency={"USD": {"profit": "5000.00"}}, unallocated_impact_issue_count=0,
-                priority_issue_ids=issue_ids, priority_action_ids=action_ids,
+                id="brief-large",
+                tenant_id=tenant_id,
+                brief_date=date(2026, 7, 16),
+                timezone="UTC",
+                generated_at=NOW,
+                issue_counts={"critical": 10, "high": 10},
+                domain_counts={"inventory": 20},
+                total_open_issues=20,
+                data_quality_issue_count=4,
+                impact_by_currency={"USD": {"profit": "5000.00"}},
+                unallocated_impact_issue_count=0,
+                priority_issue_ids=issue_ids,
+                priority_action_ids=action_ids,
                 sku_health=tuple(
                     SimpleNamespace(
-                        tenant_id=tenant_id, seller_sku=f"MOCK-{index:02d}", marketplace_id="ATVPDKIKX0DER",
+                        tenant_id=tenant_id,
+                        seller_sku=f"MOCK-{index:02d}",
+                        marketplace_id="ATVPDKIKX0DER",
                         health_status="critical" if index < 10 else "high",
-                        highest_severity="critical" if index < 10 else "high", open_issue_count=1,
-                        issue_types=("inventory_stockout_risk",), recommended_action_ids=(action_ids[index],),
+                        highest_severity="critical" if index < 10 else "high",
+                        open_issue_count=1,
+                        issue_types=("inventory_stockout_risk",),
+                        recommended_action_ids=(action_ids[index],),
                         impact_by_currency={"USD": {"profit": str(500 - index)}},
-                        has_data_quality_risk=index % 5 == 0, last_detected_at=NOW,
+                        has_data_quality_risk=index % 5 == 0,
+                        last_detected_at=NOW,
                     )
                     for index in range(20)
                 ),
@@ -156,14 +173,25 @@ def test_operations_brief_collector_compacts_large_queue_without_losing_high_ris
         def list_issues(self, *, tenant_id: str):
             return [
                 SimpleNamespace(
-                    id=issue_ids[index], tenant_id=tenant_id, seller_sku=f"MOCK-{index:02d}",
-                    marketplace_id="ATVPDKIKX0DER", issue_type="inventory_stockout_risk",
-                    severity="critical" if index < 10 else "high", title=f"Risk {index}", summary="Review risk.",
-                    status="open", confidence=Decimal("0.80"), priority_score=Decimal(str(1000 - index)),
-                    data_freshness_at=NOW, evidence=(), missing_data=("fresh_inventory",) if index % 5 == 0 else (),
-                    degraded_reason="inventory_stale" if index % 5 == 0 else None, currency="USD",
+                    id=issue_ids[index],
+                    tenant_id=tenant_id,
+                    seller_sku=f"MOCK-{index:02d}",
+                    marketplace_id="ATVPDKIKX0DER",
+                    issue_type="inventory_stockout_risk",
+                    severity="critical" if index < 10 else "high",
+                    title=f"Risk {index}",
+                    summary="Review risk.",
+                    status="open",
+                    confidence=Decimal("0.80"),
+                    priority_score=Decimal(str(1000 - index)),
+                    data_freshness_at=NOW,
+                    evidence=(),
+                    missing_data=("fresh_inventory",) if index % 5 == 0 else (),
+                    degraded_reason="inventory_stale" if index % 5 == 0 else None,
+                    currency="USD",
                     estimated_revenue_impact=Decimal(str(1000 - index)),
-                    estimated_profit_impact=Decimal(str(500 - index)), estimated_cost_impact=None,
+                    estimated_profit_impact=Decimal(str(500 - index)),
+                    estimated_cost_impact=None,
                 )
                 for index in range(20)
             ]
@@ -172,12 +200,23 @@ def test_operations_brief_collector_compacts_large_queue_without_losing_high_ris
         def list_actions(self, *, tenant_id: str, status: str | None = None):
             return [
                 SimpleNamespace(
-                    id=action_ids[index], tenant_id=tenant_id, issue_id=issue_ids[index],
-                    action_type="review_replenishment", title=f"Action {index}", description="Review evidence.",
-                    execution_mode="recommendation_only", risk_level="high", status="proposed",
-                    parameters={"seller_sku": f"MOCK-{index:02d}"}, evidence=(),
-                    expected_outcome="Restore coverage.", confidence=Decimal("0.80"), automation_eligible=False,
-                    currency="USD", expected_revenue_impact=None, expected_profit_impact=None,
+                    id=action_ids[index],
+                    tenant_id=tenant_id,
+                    issue_id=issue_ids[index],
+                    action_type="review_replenishment",
+                    title=f"Action {index}",
+                    description="Review evidence.",
+                    execution_mode="recommendation_only",
+                    risk_level="high",
+                    status="proposed",
+                    parameters={"seller_sku": f"MOCK-{index:02d}"},
+                    evidence=(),
+                    expected_outcome="Restore coverage.",
+                    confidence=Decimal("0.80"),
+                    automation_eligible=False,
+                    currency="USD",
+                    expected_revenue_impact=None,
+                    expected_profit_impact=None,
                     expected_cost_impact=None,
                 )
                 for index in range(20)
@@ -212,7 +251,9 @@ def test_operations_brief_service_routes_explicit_advisor() -> None:
         evidence_collector=collector,
     )
 
-    result = asyncio.run(service.analyze(tenant_id="tenant-a", actor_id="operator-1", correlation_id="corr-1", brief_id="brief-1"))
+    result = asyncio.run(
+        service.analyze(tenant_id="tenant-a", actor_id="operator-1", correlation_id="corr-1", brief_id="brief-1")
+    )
 
     assert result["status"] == "succeeded"
     assert workflow.kwargs["workflow_type"] == "operations_brief_analysis"
@@ -224,7 +265,7 @@ def test_operations_brief_service_routes_explicit_advisor() -> None:
 def test_operations_prompt_uses_model_facing_draft_contract() -> None:
     prompt = OPERATIONS_BRIEF_SYSTEM_PROMPT.lower()
 
-    assert OPERATIONS_BRIEF_PROMPT_VERSION == "operations-brief-v6"
+    assert OPERATIONS_BRIEF_PROMPT_VERSION == "operations-brief-v7"
     assert "evidence is an array of evidence_id strings" in prompt
     assert "runtime adds identity" in prompt
     assert "including prohibited_actions" in prompt

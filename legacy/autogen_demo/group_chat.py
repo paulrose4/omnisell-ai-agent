@@ -8,8 +8,7 @@ from pathlib import Path
 from typing import Any
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 try:
     from .base import create_group_chat, create_group_chat_manager, create_llm_config, create_user_proxy_agent
@@ -17,10 +16,10 @@ try:
     from .price_agent import create_price_agent
     from .sync_agent import create_sync_agent
 except ImportError:
-    from base import create_group_chat, create_group_chat_manager, create_llm_config, create_user_proxy_agent  # type: ignore[no-redef]
-    from cs_agent import create_cs_agent  # type: ignore[no-redef]
-    from price_agent import create_price_agent  # type: ignore[no-redef]
-    from sync_agent import create_sync_agent  # type: ignore[no-redef]
+    from legacy.autogen_demo.base import create_group_chat, create_group_chat_manager, create_llm_config, create_user_proxy_agent  # type: ignore[no-redef]
+    from legacy.autogen_demo.cs_agent import create_cs_agent  # type: ignore[no-redef]
+    from legacy.autogen_demo.price_agent import create_price_agent  # type: ignore[no-redef]
+    from legacy.autogen_demo.sync_agent import create_sync_agent  # type: ignore[no-redef]
 
 
 try:

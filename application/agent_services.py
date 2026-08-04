@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Awaitable, Callable
+from typing import Any
 
+from agents.contract_adapters import LegacyAgentPayloadError, adapt_persisted_analysis
 from agents.registry import AdvisorRegistry
 from agents.workflow_definitions import workflow_definition
 
@@ -74,6 +76,21 @@ def _serialize_run(row: Any) -> dict[str, Any]:
     state = row.state or {}
     dispatch = dict(state.get("dispatch") or {})
     definition = workflow_definition(row.workflow_type)
+    raw_analysis = getattr(row, "analysis_result", {}) or {}
+    source_schema_version = (
+        str(raw_analysis.get("schema_version") or getattr(row, "schema_version", None) or "") or None
+    )
+    analysis_status = "empty"
+    analysis_result: dict[str, Any] = {}
+    if raw_analysis:
+        try:
+            analysis_result = adapt_persisted_analysis(
+                workflow_type=row.workflow_type,
+                payload=raw_analysis,
+            )
+            analysis_status = "adapted" if source_schema_version == "1.0" else "validated"
+        except LegacyAgentPayloadError:
+            analysis_status = "legacy_incompatible"
     return {
         "run_id": row.id,
         "tenant_id": row.tenant_id,
@@ -94,7 +111,9 @@ def _serialize_run(row: Any) -> dict[str, Any]:
         "estimated_cost": str(row.estimated_cost or Decimal("0")),
         "model_usage": getattr(row, "model_usage", {}) or {},
         "evidence_manifest": getattr(row, "evidence_manifest", {}) or {},
-        "analysis_result": getattr(row, "analysis_result", {}) or {},
+        "analysis_result": analysis_result,
+        "analysis_result_status": analysis_status,
+        "analysis_result_source_schema_version": source_schema_version,
         "error_category": getattr(row, "error_category", None),
         "retry_count": int(getattr(row, "retry_count", 0) or 0),
         "dispatch_task_id": dispatch.get("task_id"),

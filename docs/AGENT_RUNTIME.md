@@ -79,13 +79,16 @@ Analysis submission creates an AgentRun and a tenant-scoped durable task, then r
 The gateway performs one low-temperature JSON Schema generation and allows at most one schema repair. It never falls back to free text. It classifies failures as `ModelUnavailable`, `ModelTimeout`, `ModelBudgetExceeded`, `ModelSchemaError`, or `ModelSafetyRejected`. Provider usage is also a data contract: missing, invalid, negative or inconsistent prompt/completion/total token counts fail closed rather than silently becoming zero.
 
 ```env
-VLLM_BASE_URL=https://api.hxprice.com/v1
-VLLM_MODEL_NAME=gpt-5.6-terra
-VLLM_API_KEY=from-secret-manager
+MODEL_BASE_URL=https://api.hxprice.com/v1
+MODEL_NAME=gpt-5.6-terra
+MODEL_API_KEY=from-secret-manager
 MODEL_MAX_TOKENS_PER_TASK=36000
 MODEL_TIMEOUT_SECONDS=240
 MODEL_INPUT_COST_PER_MILLION=2.5
 MODEL_OUTPUT_COST_PER_MILLION=15
+MODEL_PRICING_VERSION=approved-provider-pricing-2026-08
+MODEL_PRICING_EFFECTIVE_AT=2026-08-01T00:00:00Z
+MODEL_BILL_ON_UNKNOWN_FAILURE=true
 AGENT_TENANT_QUOTA_PER_MINUTE=10
 AGENT_TENANT_QUOTA_PER_DAY=200
 ```
@@ -101,11 +104,16 @@ MODEL_FALLBACK_PROVIDER=wenrugouai_openai_compatible
 MODEL_FALLBACK_TIMEOUT_SECONDS=240
 MODEL_FALLBACK_INPUT_COST_PER_MILLION=1.00
 MODEL_FALLBACK_OUTPUT_COST_PER_MILLION=2.00
+MODEL_FALLBACK_PRICING_VERSION=approved-fallback-pricing-2026-08
+MODEL_FALLBACK_PRICING_EFFECTIVE_AT=2026-08-01T00:00:00Z
+MODEL_FALLBACK_BILL_ON_UNKNOWN_FAILURE=true
 ```
 
-Failover is attempted at most once and only for timeout, connection, rate-limit or retryable provider 5xx failures. Schema, safety, context, usage and budget failures remain failed/degraded and never switch providers. Successful fallback usage records both providers, the primary failure category and the backup model; no free-text or unvalidated output is accepted.
+Failover is attempted at most once and only for timeout, connection, rate-limit or retryable provider 5xx failures. Schema, safety, context, usage and budget failures remain failed/degraded and never switch providers. Preflight reserves the sum of primary and fallback worst-case attempts; enabling fallback cannot lower the Token or cost reservation. Successful fallback usage records both providers, the primary failure category and the backup model; unknown primary billing remains a conservative unattributed upper bound rather than being recorded as zero.
 
-Configure non-zero cost rates for production cost estimates. The global token budget must reserve the initial response plus one Schema repair; startup fails if it is incompatible with any Advisor profile. `ModelUsage` persists provider/model, Prompt and Schema versions/hashes, token counts, estimated cost, latency, retry/repair metadata and provider request ID.
+Configure non-zero cost rates and versioned effective timestamps for production estimates. The global token budget must reserve the initial response plus one Schema repair; startup fails if it is incompatible with any Advisor profile. `ModelUsage` persists provider/model, Prompt and Schema versions/hashes, reserved/reported/unattributed costs, token counts, first-pass Schema success, failure categories, initial/repair latency, provider-call count, retry/failover metadata and provider request ID.
+
+`VLLM_BASE_URL`, `VLLM_MODEL_NAME`, and `VLLM_API_KEY` are deprecated compatibility aliases for one release cycle. A legacy-only configuration emits a warning without exposing secrets; conflicting new and legacy values fail startup.
 
 ## Local development and tests
 

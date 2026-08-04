@@ -12,14 +12,15 @@ from domain.models import OperationalIssue, RecommendedAction
 from infrastructure.database.bootstrap import initialize_database
 from infrastructure.database.models import TenantRow
 
-
 NOW = datetime(2026, 7, 15, 8, 0, tzinfo=UTC)
 
 
 def test_operations_agent_persists_hitl_and_resumes_without_amazon_write(tmp_path) -> None:
     database_url = f"sqlite:///{tmp_path / 'operations-agent.sqlite'}"
     initialize_database(database_url, default_tenant_id="tenant-a")
-    app = create_app(Settings(database_url=database_url, auto_create_schema=False, api_key="test-key", auth_mode="api_key"))
+    app = create_app(
+        Settings(database_url=database_url, auto_create_schema=False, api_key="test-key", auth_mode="api_key")
+    )
     with app.state.session_factory.begin() as session:
         session.add(TenantRow(id="tenant-b", name="Tenant B", slug="tenant-b"))
 
@@ -82,12 +83,14 @@ def test_operations_agent_persists_hitl_and_resumes_without_amazon_write(tmp_pat
                     "X-Permission-Scopes": "read write",
                 }
                 acknowledged = await client.patch(
-                    f"/api/operations/issues/{saved_issue.id}", headers=operator_headers,
+                    f"/api/operations/issues/{saved_issue.id}",
+                    headers=operator_headers,
                     json={"status": "acknowledged", "note": "Operator claimed the issue."},
                 )
                 assert acknowledged.status_code == 200
                 in_progress = await client.patch(
-                    f"/api/operations/issues/{saved_issue.id}", headers=operator_headers,
+                    f"/api/operations/issues/{saved_issue.id}",
+                    headers=operator_headers,
                     json={"status": "in_progress", "note": "Operator started investigation."},
                 )
                 assert in_progress.status_code == 200

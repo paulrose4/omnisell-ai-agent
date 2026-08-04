@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any
 
 from opentelemetry import metrics, trace
 
@@ -72,26 +72,28 @@ amazon_api_calls = meter.create_counter(
 
 _capture_llm_content = False
 _initialized = False
-_agent_run_context: ContextVar[dict[str, str]] = ContextVar("agent_run_context", default={})
-_SENSITIVE_TRACE_ATTRIBUTE_KEYS = frozenset({
-    "tenant_id",
-    "actor_id",
-    "user_id",
-    "run_id",
-    "correlation_id",
-    "resource_id",
-    "request_id",
-    "action_hash",
-    "idempotency_key",
-    "selling_partner_id",
-    "seller_sku",
-    "sku",
-    "order_id",
-    "listing_id",
-    "customer_case_id",
-    "evidence_id",
-    "http_route",
-})
+_agent_run_context: ContextVar[dict[str, str] | None] = ContextVar("agent_run_context", default=None)
+_SENSITIVE_TRACE_ATTRIBUTE_KEYS = frozenset(
+    {
+        "tenant_id",
+        "actor_id",
+        "user_id",
+        "run_id",
+        "correlation_id",
+        "resource_id",
+        "request_id",
+        "action_hash",
+        "idempotency_key",
+        "selling_partner_id",
+        "seller_sku",
+        "sku",
+        "order_id",
+        "listing_id",
+        "customer_case_id",
+        "evidence_id",
+        "http_route",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -125,14 +127,18 @@ def configure_telemetry(settings: Any, app: Any | None = None) -> None:
     metric_readers = []
     endpoint = str(getattr(settings, "otel_exporter_otlp_endpoint", "") or "").rstrip("/")
     headers = _parse_headers(getattr(settings, "otel_exporter_otlp_headers", ""))
-    if endpoint and OTLPSpanExporter is not None and OTLPMetricExporter is not None and BatchSpanProcessor is not None and PeriodicExportingMetricReader is not None:
+    if (
+        endpoint
+        and OTLPSpanExporter is not None
+        and OTLPMetricExporter is not None
+        and BatchSpanProcessor is not None
+        and PeriodicExportingMetricReader is not None
+    ):
         trace_provider.add_span_processor(
             BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{endpoint}/v1/traces", headers=headers))
         )
         metric_readers.append(
-            PeriodicExportingMetricReader(
-                OTLPMetricExporter(endpoint=f"{endpoint}/v1/metrics", headers=headers)
-            )
+            PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=f"{endpoint}/v1/metrics", headers=headers))
         )
     trace.set_tracer_provider(trace_provider)
     metrics.set_meter_provider(MeterProvider(resource=resource, metric_readers=metric_readers))
@@ -141,7 +147,7 @@ def configure_telemetry(settings: Any, app: Any | None = None) -> None:
     _initialized = True
     instrument_openai_calls()
     if app is not None and FastAPIInstrumentor is not None:
-            FastAPIInstrumentor.instrument_app(app)
+        FastAPIInstrumentor.instrument_app(app)
 
 
 def bind_agent_run_context(**values: str) -> Any:
@@ -153,7 +159,7 @@ def reset_agent_run_context(token: Any) -> None:
 
 
 def current_agent_run_context() -> dict[str, str]:
-    return dict(_agent_run_context.get())
+    return dict(_agent_run_context.get() or {})
 
 
 def trace_attributes(**values: Any) -> dict[str, Any]:
@@ -247,6 +253,7 @@ def _wrap_openai_create(target: type[Any], *, asynchronous: bool) -> None:
     if getattr(original, "__omnisell_instrumented__", False):
         return
     if asynchronous:
+
         @wraps(original)
         async def async_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
             model = str(kwargs.get("model", "unknown"))
@@ -254,6 +261,7 @@ def _wrap_openai_create(target: type[Any], *, asynchronous: bool) -> None:
                 response = await original(self, *args, **kwargs)
                 record_llm_response(span, response)
                 return response
+
         async_wrapper.__omnisell_instrumented__ = True  # type: ignore[attr-defined]
         target.create = async_wrapper  # type: ignore[method-assign]
         return
@@ -265,6 +273,7 @@ def _wrap_openai_create(target: type[Any], *, asynchronous: bool) -> None:
             response = original(self, *args, **kwargs)
             record_llm_response(span, response)
             return response
+
     sync_wrapper.__omnisell_instrumented__ = True  # type: ignore[attr-defined]
     target.create = sync_wrapper  # type: ignore[method-assign]
 

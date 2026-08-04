@@ -4,11 +4,11 @@ from typing import Any
 
 import pytest
 
-from agents.base import LegacyAgentRuntimeUnavailable
-from agents.group_chat import create_omnisell_team
-from agents.sync_agent import SYNC_AGENT_SYSTEM_PROMPT
-from agents.tools.price_scraper import fetch_competitor_prices, generate_price_recommendation
 from agents.tools import rag_tool
+from agents.tools.price_scraper import fetch_competitor_prices, generate_price_recommendation
+from legacy.autogen_demo.base import LegacyAgentRuntimeUnavailable
+from legacy.autogen_demo.group_chat import create_omnisell_team
+from legacy.autogen_demo.sync_agent import SYNC_AGENT_SYSTEM_PROMPT
 
 
 class FakeTranslator:

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 from pathlib import Path
 from threading import RLock
 from typing import Any
-
 
 DEFAULT_COLLECTION = "omnisell_customer_kb"
 
 
 class ChromaClientManager:
-    _instances: dict[tuple[str | None, int | None, str | None], "ChromaClientManager"] = {}
+    _instances: dict[tuple[str | None, int | None, str | None], ChromaClientManager] = {}
     _instances_lock = RLock()
 
     def __new__(
@@ -18,7 +18,7 @@ class ChromaClientManager:
         host: str | None = None,
         port: int | None = None,
         persist_dir: str | Path | None = None,
-    ) -> "ChromaClientManager":
+    ) -> ChromaClientManager:
         key = (host, port, str(Path(persist_dir).resolve()) if persist_dir else None)
         with cls._instances_lock:
             if key not in cls._instances:
@@ -47,7 +47,9 @@ class ChromaClientManager:
         try:
             import chromadb
         except Exception as exc:
-            raise RuntimeError("chromadb is required. Install dependencies with `pip install -r requirements.txt`.") from exc
+            raise RuntimeError(
+                "chromadb is required. Install dependencies with `pip install -r requirements.txt`."
+            ) from exc
 
         if self.persist_dir:
             self.persist_dir.mkdir(parents=True, exist_ok=True)
@@ -75,10 +77,8 @@ class ChromaClientManager:
 
     def reset_collection(self, name: str = DEFAULT_COLLECTION) -> Any:
         with self._lock:
-            try:
+            with suppress(Exception):
                 self._client.delete_collection(name)
-            except Exception:
-                pass
             self._collections.pop(name, None)
             return self.get_collection(name)
 

@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+from agents.registry import AdvisorRegistry
+from application.agent_services import AgentRunService
+from domain.models import WorkflowStatus
 from infrastructure.database.bootstrap import initialize_database
 from infrastructure.database.session import create_session_factory
 from infrastructure.repositories.workflows import SQLWorkflowStore
+from workflows.engine import PersistentAgentWorkflow
 
 
 def test_agent_run_idempotency_is_tenant_and_workflow_scoped(tmp_path) -> None:
@@ -11,31 +18,38 @@ def test_agent_run_idempotency_is_tenant_and_workflow_scoped(tmp_path) -> None:
     store = SQLWorkflowStore(create_session_factory(url))
 
     first = store.create_run(
-        tenant_id="tenant-a", actor_id="operator-1", workflow_type="operations_brief_analysis",
-        correlation_id="corr-1", idempotency_key="idem-1", request={"brief_id": "brief-1"},
+        tenant_id="tenant-a",
+        actor_id="operator-1",
+        workflow_type="operations_brief_analysis",
+        correlation_id="corr-1",
+        idempotency_key="idem-1",
+        request={"brief_id": "brief-1"},
     )
     duplicate = store.create_run(
-        tenant_id="tenant-a", actor_id="operator-2", workflow_type="operations_brief_analysis",
-        correlation_id="corr-2", idempotency_key="idem-1", request={"brief_id": "brief-1"},
+        tenant_id="tenant-a",
+        actor_id="operator-2",
+        workflow_type="operations_brief_analysis",
+        correlation_id="corr-2",
+        idempotency_key="idem-1",
+        request={"brief_id": "brief-1"},
     )
     other_workflow = store.create_run(
-        tenant_id="tenant-a", actor_id="operator-1", workflow_type="customer_case_analysis",
-        correlation_id="corr-3", idempotency_key="idem-1", request={"case_id": "case-1"},
+        tenant_id="tenant-a",
+        actor_id="operator-1",
+        workflow_type="customer_case_analysis",
+        correlation_id="corr-3",
+        idempotency_key="idem-1",
+        request={"case_id": "case-1"},
     )
 
     assert duplicate == first
     assert other_workflow != first
-    assert store.find_by_idempotency(tenant_id="tenant-a", workflow_type="operations_brief_analysis", idempotency_key="idem-1").id == first
-
-
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from types import SimpleNamespace
-
-from agents.registry import AdvisorRegistry
-from application.agent_services import AgentRunService
-from domain.models import WorkflowStatus
-from workflows.engine import PersistentAgentWorkflow
+    assert (
+        store.find_by_idempotency(
+            tenant_id="tenant-a", workflow_type="operations_brief_analysis", idempotency_key="idem-1"
+        ).id
+        == first
+    )
 
 
 def test_concurrent_create_run_claims_single_idempotent_owner(tmp_path) -> None:
@@ -66,8 +80,9 @@ class ConcurrentCollector:
         self.release = asyncio.Event()
 
     async def collect(self, *, tenant_id: str, request: dict):
-        from agents.contracts import EvidenceBundle
         from datetime import UTC, datetime
+
+        from agents.contracts import EvidenceBundle
 
         self.calls += 1
         await self.release.wait()
@@ -84,6 +99,7 @@ class ConcurrentAdvisor:
     async def analyze(self, *, context, evidence):
         from datetime import UTC, datetime
         from decimal import Decimal
+
         from agents.contracts import AgentAnalysisEnvelope
 
         self.calls += 1
@@ -95,8 +111,15 @@ class ConcurrentAdvisor:
             workflow_run_id=context.workflow_run_id,
             generated_at=datetime.now(UTC),
             executive_summary="Concurrent analysis",
-            evidence=(), hypotheses=(), missing_data=(), proposed_actions=(), prohibited_actions=(),
-            confidence=Decimal("0.50"), degraded_reason=None, model_usage=None, warnings=(),
+            evidence=(),
+            hypotheses=(),
+            missing_data=(),
+            proposed_actions=(),
+            prohibited_actions=(),
+            confidence=Decimal("0.50"),
+            degraded_reason=None,
+            model_usage=None,
+            warnings=(),
         )
 
 
@@ -109,18 +132,30 @@ def test_concurrent_advisory_submission_executes_model_once(tmp_path) -> None:
     workflow = PersistentAgentWorkflow(store=store)
 
     async def scenario():
-        first = asyncio.create_task(workflow.run_advisory(
-            tenant_id="tenant-a", actor_id="operator-1", workflow_type="operations_brief_analysis",
-            correlation_id="corr-1", request={"brief_id": "brief-1", "idempotency_key": "same-key"},
-            evidence_collector=collector, advisor=advisor,
-        ))
+        first = asyncio.create_task(
+            workflow.run_advisory(
+                tenant_id="tenant-a",
+                actor_id="operator-1",
+                workflow_type="operations_brief_analysis",
+                correlation_id="corr-1",
+                request={"brief_id": "brief-1", "idempotency_key": "same-key"},
+                evidence_collector=collector,
+                advisor=advisor,
+            )
+        )
         while collector.calls == 0:
             await asyncio.sleep(0)
-        duplicate = asyncio.create_task(workflow.run_advisory(
-            tenant_id="tenant-a", actor_id="operator-2", workflow_type="operations_brief_analysis",
-            correlation_id="corr-2", request={"brief_id": "brief-1", "idempotency_key": "same-key"},
-            evidence_collector=collector, advisor=advisor,
-        ))
+        duplicate = asyncio.create_task(
+            workflow.run_advisory(
+                tenant_id="tenant-a",
+                actor_id="operator-2",
+                workflow_type="operations_brief_analysis",
+                correlation_id="corr-2",
+                request={"brief_id": "brief-1", "idempotency_key": "same-key"},
+                evidence_collector=collector,
+                advisor=advisor,
+            )
+        )
         await asyncio.sleep(0)
         collector.release.set()
         return await asyncio.gather(first, duplicate)
@@ -149,8 +184,12 @@ def test_concurrent_resume_reuses_single_retry_attempt(tmp_path) -> None:
     initialize_database(url, default_tenant_id="tenant-a")
     store = SQLWorkflowStore(create_session_factory(url))
     parent_run_id = store.create_run(
-        tenant_id="tenant-a", actor_id="operator-1", workflow_type="customer_case_analysis",
-        correlation_id="corr-parent", idempotency_key="parent-key", request={"case_id": "case-1"},
+        tenant_id="tenant-a",
+        actor_id="operator-1",
+        workflow_type="customer_case_analysis",
+        correlation_id="corr-parent",
+        idempotency_key="parent-key",
+        request={"case_id": "case-1"},
     )
     store.transition(parent_run_id, WorkflowStatus.FAILED, {"error_category": "ModelTimeout"}, tenant_id="tenant-a")
     workflow = PausedRetryWorkflow()
@@ -162,14 +201,18 @@ def test_concurrent_resume_reuses_single_retry_attempt(tmp_path) -> None:
     )
 
     async def scenario():
-        first = asyncio.create_task(service.resume(
-            tenant_id="tenant-a", run_id=parent_run_id, actor_id="operator-2", correlation_id="corr-retry-1"
-        ))
+        first = asyncio.create_task(
+            service.resume(
+                tenant_id="tenant-a", run_id=parent_run_id, actor_id="operator-2", correlation_id="corr-retry-1"
+            )
+        )
         while not workflow.requests:
             await asyncio.sleep(0)
-        second = asyncio.create_task(service.resume(
-            tenant_id="tenant-a", run_id=parent_run_id, actor_id="operator-3", correlation_id="corr-retry-2"
-        ))
+        second = asyncio.create_task(
+            service.resume(
+                tenant_id="tenant-a", run_id=parent_run_id, actor_id="operator-3", correlation_id="corr-retry-2"
+            )
+        )
         while len(workflow.requests) < 2:
             await asyncio.sleep(0)
         workflow.release.set()
@@ -178,5 +221,6 @@ def test_concurrent_resume_reuses_single_retry_attempt(tmp_path) -> None:
     asyncio.run(scenario())
 
     assert [request["idempotency_key"] for request in workflow.requests] == [
-        f"retry:{parent_run_id}:1", f"retry:{parent_run_id}:1",
+        f"retry:{parent_run_id}:1",
+        f"retry:{parent_run_id}:1",
     ]

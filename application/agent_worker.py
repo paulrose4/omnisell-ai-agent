@@ -111,7 +111,9 @@ async def _execute_agent_run(*, run_id: str, tenant_id: str) -> dict[str, Any]:
         await quota.close()
 
 
-def _build_advisor_and_collector(*, workflow_type: str, gateway: Any, session_factory: Any, audit_logger: Any) -> tuple[Any, Any]:
+def _build_advisor_and_collector(
+    *, workflow_type: str, gateway: Any, session_factory: Any, audit_logger: Any
+) -> tuple[Any, Any]:
     if workflow_type == OperationsBriefAgentService.WORKFLOW_TYPE:
         return (
             create_operations_brief_advisor(gateway=gateway),

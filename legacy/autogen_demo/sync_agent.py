@@ -5,25 +5,24 @@ from pathlib import Path
 from typing import Any
 
 if __package__ in {None, ""}:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 try:
     from .base import create_assistant_agent, create_llm_config, register_tools
-    from .tools.platform_api import (
+    from agents.tools.platform_api import (
         get_order_list,
         get_product_detail,
         get_product_list,
     )
-    from .tools.translator import detect_and_translate, translate_text
+    from agents.tools.translator import detect_and_translate, translate_text
 except ImportError:
-    from base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
-    from tools.platform_api import (  # type: ignore[no-redef]
+    from legacy.autogen_demo.base import create_assistant_agent, create_llm_config, register_tools  # type: ignore[no-redef]
+    from agents.tools.platform_api import (  # type: ignore[no-redef]
         get_order_list,
         get_product_detail,
         get_product_list,
     )
-    from tools.translator import detect_and_translate, translate_text  # type: ignore[no-redef]
+    from agents.tools.translator import detect_and_translate, translate_text  # type: ignore[no-redef]
 
 
 SYNC_AGENT_SYSTEM_PROMPT = """⚠️ CRITICAL RULES - VIOLATION IS NOT ALLOWED:

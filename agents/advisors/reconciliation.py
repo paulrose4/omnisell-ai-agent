@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from agents.contracts import ReconciliationInvestigationEnvelope
-from agents.prompts.reconciliation_investigation_v5 import RECONCILIATION_INVESTIGATION_PROMPT_VERSION, RECONCILIATION_INVESTIGATION_SYSTEM_PROMPT
+from agents.prompts.reconciliation_investigation_v6 import (
+    RECONCILIATION_INVESTIGATION_PROMPT_VERSION,
+    RECONCILIATION_INVESTIGATION_SYSTEM_PROMPT,
+)
 from agents.runtime import StructuredBoundedAdvisor
 from agents.validators.evidence import EvidenceValidator
 from model_gateway.gateway import ModelGateway

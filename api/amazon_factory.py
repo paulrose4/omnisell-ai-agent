@@ -15,7 +15,9 @@ def create_secret_store(settings: Settings, session_factory):
     return InMemorySecretStore()
 
 
-def create_amazon_adapter(*, settings: Settings, connection, secret_store, tenant_repository=None, client=None) -> AmazonSPAPIAdapter:
+def create_amazon_adapter(
+    *, settings: Settings, connection, secret_store, tenant_repository=None, client=None
+) -> AmazonSPAPIAdapter:
     return AmazonSPAPIAdapter(
         config=AmazonSPAPIConfig(
             lwa_client_id=settings.amazon_lwa_client_id,

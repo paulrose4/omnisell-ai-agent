@@ -41,13 +41,10 @@ def test_tenant_agent_quota_is_tenant_scoped_and_concurrency_bounded() -> None:
     limiter = InMemoryAgentQuotaLimiter(per_minute=3, per_day=100)
 
     async def run() -> tuple[list[bool], bool]:
-        results = await asyncio.gather(*(
-            limiter.consume(tenant_id="tenant-a", workflow_type="operations_brief_analysis")
-            for _ in range(20)
-        ))
-        other_tenant = await limiter.consume(
-            tenant_id="tenant-b", workflow_type="operations_brief_analysis"
+        results = await asyncio.gather(
+            *(limiter.consume(tenant_id="tenant-a", workflow_type="operations_brief_analysis") for _ in range(20))
         )
+        other_tenant = await limiter.consume(tenant_id="tenant-b", workflow_type="operations_brief_analysis")
         return [item.allowed for item in results], other_tenant.allowed
 
     allowed, other_tenant_allowed = asyncio.run(run())
@@ -73,10 +70,12 @@ def test_redis_agent_quota_uses_one_atomic_script_and_hashed_tenant_key() -> Non
     redis = FakeRedis()
     limiter = RedisAgentQuotaLimiter(redis=redis, per_minute=5, per_day=50)
 
-    decision = asyncio.run(limiter.consume(
-        tenant_id="tenant-sensitive-id",
-        workflow_type="customer_case_analysis",
-    ))
+    decision = asyncio.run(
+        limiter.consume(
+            tenant_id="tenant-sensitive-id",
+            workflow_type="customer_case_analysis",
+        )
+    )
 
     assert decision.allowed is True
     assert len(redis.calls) == 1
@@ -96,7 +95,9 @@ def test_redis_agent_quota_fails_closed_when_backend_is_unavailable() -> None:
     )
 
     with pytest.raises(AgentQuotaBackendUnavailable):
-        asyncio.run(limiter.consume(
-            tenant_id="tenant-a",
-            workflow_type="operations_brief_analysis",
-        ))
+        asyncio.run(
+            limiter.consume(
+                tenant_id="tenant-a",
+                workflow_type="operations_brief_analysis",
+            )
+        )

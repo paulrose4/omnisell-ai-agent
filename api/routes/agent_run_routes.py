@@ -7,7 +7,6 @@ from agents.quota import AgentQuotaBackendUnavailable, AgentQuotaExceeded
 from agents.workflow_definitions import WORKFLOW_DEFINITIONS
 from api.security import require_api_key
 
-
 router = APIRouter(prefix="/api/agent-runs", tags=["agent-runs"], dependencies=[Depends(require_api_key)])
 
 
@@ -59,21 +58,31 @@ class OperationsRecommendationRequest(BaseModel):
 
 
 @router.post("/reconciliation-investigation")
-async def investigate_reconciliation(payload: ReconciliationInvestigationRequest, request: Request, response: Response) -> dict:
+async def investigate_reconciliation(
+    payload: ReconciliationInvestigationRequest, request: Request, response: Response
+) -> dict:
     principal = request.state.principal
     if "read" not in principal.scopes and "admin" not in principal.scopes:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
     idempotency_key = request.headers.get("Idempotency-Key")
     if not idempotency_key:
-        raise HTTPException(status_code=400, detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."})
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."},
+        )
     try:
         result = await request.app.state.reconciliation_agent_service.investigate(
-            tenant_id=principal.tenant_id, actor_id=principal.user_id,
+            tenant_id=principal.tenant_id,
+            actor_id=principal.user_id,
             correlation_id=getattr(request.state, "request_id", idempotency_key),
-            reconciliation_run_id=payload.reconciliation_run_id, locale=payload.locale, idempotency_key=idempotency_key,
+            reconciliation_run_id=payload.reconciliation_run_id,
+            locale=payload.locale,
+            idempotency_key=idempotency_key,
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Reconciliation run not found."}) from exc
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Reconciliation run not found."}
+        ) from exc
     except (AgentQuotaExceeded, AgentQuotaBackendUnavailable) as exc:
         raise _quota_http_exception(exc) from exc
     response.status_code = 202
@@ -81,21 +90,31 @@ async def investigate_reconciliation(payload: ReconciliationInvestigationRequest
 
 
 @router.post("/listing-optimization-analysis")
-async def analyze_listing_optimization(payload: ListingOptimizationAnalysisRequest, request: Request, response: Response) -> dict:
+async def analyze_listing_optimization(
+    payload: ListingOptimizationAnalysisRequest, request: Request, response: Response
+) -> dict:
     principal = request.state.principal
     if "read" not in principal.scopes and "admin" not in principal.scopes:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
     idempotency_key = request.headers.get("Idempotency-Key")
     if not idempotency_key:
-        raise HTTPException(status_code=400, detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."})
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."},
+        )
     try:
         result = await request.app.state.listing_optimization_agent_service.analyze(
-            tenant_id=principal.tenant_id, actor_id=principal.user_id,
+            tenant_id=principal.tenant_id,
+            actor_id=principal.user_id,
             correlation_id=getattr(request.state, "request_id", idempotency_key),
-            snapshot_id=payload.snapshot_id, locale=payload.locale, idempotency_key=idempotency_key,
+            snapshot_id=payload.snapshot_id,
+            locale=payload.locale,
+            idempotency_key=idempotency_key,
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Listing quality snapshot not found."}) from exc
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Listing quality snapshot not found."}
+        ) from exc
     except (AgentQuotaExceeded, AgentQuotaBackendUnavailable) as exc:
         raise _quota_http_exception(exc) from exc
     response.status_code = 202
@@ -109,15 +128,23 @@ async def analyze_customer_case(payload: CustomerCaseAnalysisRequest, request: R
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
     idempotency_key = request.headers.get("Idempotency-Key")
     if not idempotency_key:
-        raise HTTPException(status_code=400, detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."})
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."},
+        )
     try:
         result = await request.app.state.customer_case_agent_service.analyze(
-            tenant_id=principal.tenant_id, actor_id=principal.user_id,
+            tenant_id=principal.tenant_id,
+            actor_id=principal.user_id,
             correlation_id=getattr(request.state, "request_id", idempotency_key),
-            case_id=payload.case_id, locale=payload.locale, idempotency_key=idempotency_key,
+            case_id=payload.case_id,
+            locale=payload.locale,
+            idempotency_key=idempotency_key,
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Customer case not found."}) from exc
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Customer case not found."}
+        ) from exc
     except (AgentQuotaExceeded, AgentQuotaBackendUnavailable) as exc:
         raise _quota_http_exception(exc) from exc
     response.status_code = 202
@@ -125,13 +152,18 @@ async def analyze_customer_case(payload: CustomerCaseAnalysisRequest, request: R
 
 
 @router.post("/operations-brief-analysis")
-async def analyze_operations_brief(payload: OperationsBriefAnalysisRequest, request: Request, response: Response) -> dict:
+async def analyze_operations_brief(
+    payload: OperationsBriefAnalysisRequest, request: Request, response: Response
+) -> dict:
     principal = request.state.principal
     if "read" not in principal.scopes and "admin" not in principal.scopes:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
     idempotency_key = request.headers.get("Idempotency-Key")
     if not idempotency_key:
-        raise HTTPException(status_code=400, detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."})
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "idempotency_key_required", "message": "Idempotency-Key header is required."},
+        )
     try:
         result = await request.app.state.operations_brief_agent_service.analyze(
             tenant_id=principal.tenant_id,
@@ -150,7 +182,9 @@ async def analyze_operations_brief(payload: OperationsBriefAnalysisRequest, requ
 
 
 @router.post("/operations-recommendations")
-async def generate_operations_recommendations(payload: OperationsRecommendationRequest, request: Request, response: Response) -> dict:
+async def generate_operations_recommendations(
+    payload: OperationsRecommendationRequest, request: Request, response: Response
+) -> dict:
     principal = request.state.principal
     if "write" not in principal.scopes and "admin" not in principal.scopes:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "write scope is required."})
@@ -174,7 +208,9 @@ async def list_workflow_definitions(request: Request) -> dict:
 
 
 @router.get("")
-async def list_agent_runs(request: Request, status: str | None = Query(default=None), limit: int = Query(default=50, ge=1, le=200)) -> dict:
+async def list_agent_runs(
+    request: Request, status: str | None = Query(default=None), limit: int = Query(default=50, ge=1, le=200)
+) -> dict:
     principal = request.state.principal
     if "read" not in principal.scopes and "admin" not in principal.scopes:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})

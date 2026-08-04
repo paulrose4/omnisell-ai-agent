@@ -16,31 +16,37 @@ class OperationsRecommendationPlanner:
         actions = []
         for candidate in request.get("candidates", []):
             requires_review = candidate["risk_level"] in {"high", "critical"}
-            actions.append(PlannedAction(
-                action="request_manual_execution" if requires_review else "generate_draft",
-                resource_id=candidate["recommended_action_id"],
-                arguments={
-                    "issue_id": candidate["issue_id"],
-                    "recommended_action_id": candidate["recommended_action_id"],
-                    "seller_sku": candidate["seller_sku"],
-                    "marketplace_id": candidate["marketplace_id"],
-                    "title": candidate["title"],
-                    "description": candidate["description"],
-                    "parameters": candidate["parameters"],
-                    "manual_execution_required": True,
-                },
-                evidence=candidate["evidence"],
-                expected_change={
-                    "recommended_action_status": "approved_for_manual_execution" if requires_review else "draft_ready",
-                    "amazon_write_performed": False,
-                },
-                confidence=float(candidate["confidence"]),
-            ))
+            actions.append(
+                PlannedAction(
+                    action="request_manual_execution" if requires_review else "generate_draft",
+                    resource_id=candidate["recommended_action_id"],
+                    arguments={
+                        "issue_id": candidate["issue_id"],
+                        "recommended_action_id": candidate["recommended_action_id"],
+                        "seller_sku": candidate["seller_sku"],
+                        "marketplace_id": candidate["marketplace_id"],
+                        "title": candidate["title"],
+                        "description": candidate["description"],
+                        "parameters": candidate["parameters"],
+                        "manual_execution_required": True,
+                    },
+                    evidence=candidate["evidence"],
+                    expected_change={
+                        "recommended_action_status": "approved_for_manual_execution"
+                        if requires_review
+                        else "draft_ready",
+                        "amazon_write_performed": False,
+                    },
+                    confidence=float(candidate["confidence"]),
+                )
+            )
         return schema(summary=f"Prepared {len(actions)} tenant-scoped operations recommendations.", actions=actions)
 
 
 class ReadOnlyOperationsToolExecutor:
-    async def execute(self, action: PlannedAction, *, tenant_id: str, actor_id: str, correlation_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def execute(
+        self, action: PlannedAction, *, tenant_id: str, actor_id: str, correlation_id: str, idempotency_key: str
+    ) -> dict[str, Any]:
         if action.action not in {"generate_draft", "request_manual_execution"}:
             raise ValueError(f"Unsupported read-only operations action: {action.action}")
         return {
@@ -57,41 +63,47 @@ class ReadOnlyOperationsToolExecutor:
 
 
 class OperationsAgentService:
-    def __init__(self, *, workflow: PersistentAgentWorkflow, workflow_store: Any, issue_repository: Any, action_repository: Any) -> None:
+    def __init__(
+        self, *, workflow: PersistentAgentWorkflow, workflow_store: Any, issue_repository: Any, action_repository: Any
+    ) -> None:
         self.workflow = workflow
         self.workflow_store = workflow_store
         self.issue_repository = issue_repository
         self.action_repository = action_repository
 
-    async def run_recommendations(self, *, tenant_id: str, actor_id: str, correlation_id: str, max_issues: int = 20) -> dict[str, Any]:
+    async def run_recommendations(
+        self, *, tenant_id: str, actor_id: str, correlation_id: str, max_issues: int = 20
+    ) -> dict[str, Any]:
         actionable_statuses = {"open", "acknowledged", "in_progress"}
         issues = [
-            item for item in self.issue_repository.list_issues(tenant_id=tenant_id)
+            item
+            for item in self.issue_repository.list_issues(tenant_id=tenant_id)
             if item.status in actionable_statuses
         ][:max_issues]
         actions_by_issue = {
-            item.issue_id: item
-            for item in self.action_repository.list_actions(tenant_id=tenant_id, status="proposed")
+            item.issue_id: item for item in self.action_repository.list_actions(tenant_id=tenant_id, status="proposed")
         }
         candidates = []
         for issue in issues:
             recommendation = actions_by_issue.get(issue.id)
             if recommendation is None:
                 continue
-            candidates.append({
-                "issue_id": issue.id,
-                "recommended_action_id": recommendation.id,
-                "seller_sku": issue.seller_sku,
-                "marketplace_id": issue.marketplace_id,
-                "risk_level": recommendation.risk_level,
-                "title": recommendation.title,
-                "description": recommendation.description,
-                "parameters": _json_safe(recommendation.parameters),
-                "evidence": _json_safe(list(recommendation.evidence)),
-                "confidence": str(recommendation.confidence),
-                "missing_data": list(issue.missing_data),
-                "data_freshness_at": issue.data_freshness_at.isoformat(),
-            })
+            candidates.append(
+                {
+                    "issue_id": issue.id,
+                    "recommended_action_id": recommendation.id,
+                    "seller_sku": issue.seller_sku,
+                    "marketplace_id": issue.marketplace_id,
+                    "risk_level": recommendation.risk_level,
+                    "title": recommendation.title,
+                    "description": recommendation.description,
+                    "parameters": _json_safe(recommendation.parameters),
+                    "evidence": _json_safe(list(recommendation.evidence)),
+                    "confidence": str(recommendation.confidence),
+                    "missing_data": list(issue.missing_data),
+                    "data_freshness_at": issue.data_freshness_at.isoformat(),
+                }
+            )
         return await self.workflow.run(
             tenant_id=tenant_id,
             actor_id=actor_id,
@@ -113,7 +125,10 @@ class OperationsAgentService:
         return None if row is None else _serialize_run(row)
 
     def list_runs(self, *, tenant_id: str, status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
-        return [_serialize_run(row) for row in self.workflow_store.list_runs(tenant_id=tenant_id, status=status, limit=limit)]
+        return [
+            _serialize_run(row)
+            for row in self.workflow_store.list_runs(tenant_id=tenant_id, status=status, limit=limit)
+        ]
 
 
 def _serialize_run(row: Any) -> dict[str, Any]:

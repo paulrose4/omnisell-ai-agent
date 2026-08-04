@@ -21,8 +21,9 @@ from agents.contracts import (
     analysis_draft_schema,
 )
 from agents.validators.evidence import EvidenceValidator
+from model_gateway.contracts import ModelBudgetRequest
 from model_gateway.errors import ModelBudgetExceeded, ModelTimeout
-from model_gateway.gateway import ModelGateway
+from model_gateway.gateway import ModelGateway, compact_transport_schema
 from observability.telemetry import trace_attributes, tracer
 
 
@@ -105,7 +106,7 @@ class StructuredBoundedAdvisor:
         self.model = model
         self.output_schema = output_schema
         self.model_output_schema = analysis_draft_schema(output_schema)
-        self.schema_version = "1.0"
+        self.schema_version = "2.0"
         self.prompt_hash = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
 
     async def analyze(
@@ -179,15 +180,27 @@ class StructuredBoundedAdvisor:
             prompt_tokens=raw_usage.prompt_tokens,
             completion_tokens=raw_usage.completion_tokens,
             total_tokens=raw_usage.total_tokens,
-            estimated_cost=Decimal(str(getattr(raw_usage, "estimated_cost", 0))),
+            estimated_cost=raw_usage.estimated_cost,
             latency_ms=Decimal(str(raw_usage.latency_ms)),
-            retry_count=int(getattr(raw_usage, "retry_count", 0)),
-            repair_attempted=bool(getattr(raw_usage, "repair_attempted", False)),
-            request_id=getattr(raw_usage, "request_id", None),
-            fallback_used=bool(getattr(raw_usage, "fallback_used", False)),
-            fallback_from_provider=getattr(raw_usage, "fallback_from_provider", None),
-            fallback_reason=getattr(raw_usage, "fallback_reason", None),
-            attempted_providers=tuple(getattr(raw_usage, "attempted_providers", ()) or ()),
+            retry_count=raw_usage.retry_count,
+            repair_attempted=raw_usage.repair_attempted,
+            first_pass_schema_success=raw_usage.first_pass_schema_success,
+            schema_failure_categories=raw_usage.schema_failure_categories,
+            initial_latency_ms=(raw_usage.initial_latency_ms or Decimal(str(raw_usage.latency_ms))),
+            repair_latency_ms=raw_usage.repair_latency_ms,
+            provider_call_count=raw_usage.provider_call_count,
+            request_id=raw_usage.request_id,
+            fallback_used=raw_usage.fallback_used,
+            fallback_from_provider=raw_usage.fallback_from_provider,
+            fallback_reason=raw_usage.fallback_reason,
+            attempted_providers=raw_usage.attempted_providers,
+            reserved_tokens=preparation.model_budget_estimate.worst_case_total_tokens,
+            reserved_cost=preparation.model_budget_estimate.worst_case_estimated_cost,
+            unattributed_providers=raw_usage.unattributed_providers,
+            unattributed_cost_upper_bound=preparation.model_budget_estimate.cost_upper_bound_for(
+                raw_usage.unattributed_providers
+            ),
+            cost_accounting_status=("partially_unattributed" if raw_usage.unattributed_providers else "reported"),
         )
         if usage.prompt_tokens > context.max_prompt_tokens:
             raise ModelBudgetExceeded(
@@ -213,23 +226,27 @@ class StructuredBoundedAdvisor:
         if preparation.degraded:
             omitted_count = preparation.omitted_evidence_count
             warning = f"Runtime preflight omitted {omitted_count} lower-priority evidence item(s) to stay within the model budget."
-            analysis_updates.update({
-                "warnings": (*analysis.warnings, warning),
-                "missing_data": (
-                    *analysis.missing_data,
-                    MissingDataItem(
-                        field="evidence_bundle",
-                        reason=f"{omitted_count} lower-priority evidence item(s) were omitted by deterministic runtime preflight.",
-                        required_for="complete advisory analysis",
-                        blocking=False,
-                        suggested_source="agent_run.evidence_manifest",
+            analysis_updates.update(
+                {
+                    "warnings": (*analysis.warnings, warning),
+                    "missing_data": (
+                        *analysis.missing_data,
+                        MissingDataItem(
+                            field="evidence_bundle",
+                            reason=f"{omitted_count} lower-priority evidence item(s) were omitted by deterministic runtime preflight.",
+                            required_for="complete advisory analysis",
+                            blocking=False,
+                            suggested_source="agent_run.evidence_manifest",
+                        ),
                     ),
-                ),
-                "degraded_reason": analysis.degraded_reason or "evidence_reduced_by_runtime_budget",
-            })
+                    "degraded_reason": analysis.degraded_reason or "evidence_reduced_by_runtime_budget",
+                }
+            )
         analysis = analysis.model_copy(update=analysis_updates)
         with tracer.start_as_current_span("agent.evidence.validate") as evidence_span:
-            evidence_span.set_attributes(trace_attributes(agent_type=self.agent_type, prompt_version=self.prompt_version))
+            evidence_span.set_attributes(
+                trace_attributes(agent_type=self.agent_type, prompt_version=self.prompt_version)
+            )
             return self.evidence_validator.validate(bundle=selected_evidence, analysis=analysis)
 
     def _prepare_request(
@@ -270,21 +287,23 @@ class StructuredBoundedAdvisor:
                 "Agent preflight prompt token budget cannot fit the required prompt, schema, and one evidence item"
             )
 
-        worst_case_cost = self._worst_case_cost(
-            prompt_tokens=estimated_prompt_tokens,
-            completion_tokens=context.max_completion_tokens,
-        )
-        worst_case_tokens = (
-            estimated_prompt_tokens * 2
-            + context.max_completion_tokens * 3
-            + 512
-        )
-        model_token_budget = getattr(self.gateway, "max_tokens_per_task", None)
-        if model_token_budget is not None and worst_case_tokens > int(model_token_budget):
-            raise ModelBudgetExceeded(
-                "Agent preflight worst-case initial and repair usage exceeds the global model token budget"
+        budget_estimate = self.gateway.estimate_worst_case(
+            ModelBudgetRequest(
+                estimated_prompt_tokens=estimated_prompt_tokens,
+                max_completion_tokens=context.max_completion_tokens,
+                requested_model=self.model,
             )
-        if worst_case_cost > context.max_estimated_cost:
+        )
+        if not budget_estimate.provider_limits_satisfied:
+            exceeded = [
+                f"{attempt.provider}:{attempt.max_total_tokens}>{attempt.provider_token_limit}"
+                for attempt in budget_estimate.attempts
+                if not attempt.token_limit_satisfied
+            ]
+            raise ModelBudgetExceeded(
+                "Agent preflight worst-case usage exceeds provider token budget: " + ", ".join(exceeded)
+            )
+        if budget_estimate.worst_case_estimated_cost > context.max_estimated_cost:
             raise ModelBudgetExceeded(
                 "Agent preflight worst-case initial and repair cost exceeds execution context cost budget"
             )
@@ -306,9 +325,10 @@ class StructuredBoundedAdvisor:
             max_total_evidence_chars=context.max_total_evidence_chars,
             selected_evidence_ids=selected_ids,
             omitted_evidence_ids=omitted_ids,
-            worst_case_estimated_tokens=worst_case_tokens,
-            model_token_budget=model_token_budget,
-            worst_case_estimated_cost=worst_case_cost,
+            worst_case_estimated_tokens=budget_estimate.worst_case_total_tokens,
+            model_token_budget=budget_estimate.aggregate_provider_token_limit,
+            worst_case_estimated_cost=budget_estimate.worst_case_estimated_cost,
+            model_budget_estimate=budget_estimate,
             degraded=bool(omitted_ids),
         )
         return selected_bundle, request, user_content, preparation
@@ -328,29 +348,22 @@ class StructuredBoundedAdvisor:
         }
 
     def _request_size(self, user_content: str) -> tuple[int, int]:
-        schema_content = self._canonical_json(to_strict_json_schema(self.model_output_schema))
-        schema_instruction = "Return only one JSON object matching the supplied JSON Schema. Do not include markdown or commentary."
-        serialized = self._canonical_json({
-            "messages": [
-                {"role": "system", "content": schema_instruction},
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            "response_schema": schema_content,
-        })
+        schema_content = self._canonical_json(compact_transport_schema(to_strict_json_schema(self.model_output_schema)))
+        schema_instruction = (
+            "Return only one JSON object matching the supplied JSON Schema. Do not include markdown or commentary."
+        )
+        serialized = self._canonical_json(
+            {
+                "messages": [
+                    {"role": "system", "content": schema_instruction},
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                "response_schema": schema_content,
+            }
+        )
         request_bytes = len(serialized.encode("utf-8"))
         return request_bytes, max(1, math.ceil(request_bytes / 1.8))
-
-    def _worst_case_cost(self, *, prompt_tokens: int, completion_tokens: int) -> Decimal:
-        input_rate = Decimal(str(getattr(self.gateway, "input_cost_per_million", 0)))
-        output_rate = Decimal(str(getattr(self.gateway, "output_cost_per_million", 0)))
-        repair_prompt_tokens = prompt_tokens + completion_tokens + 512
-        total_input_tokens = prompt_tokens + repair_prompt_tokens
-        total_output_tokens = completion_tokens * 2
-        return (
-            Decimal(total_input_tokens) * input_rate
-            + Decimal(total_output_tokens) * output_rate
-        ) / Decimal("1000000")
 
     @classmethod
     def _evidence_sort_key(cls, reference: EvidenceReference) -> tuple[int, str, str]:

@@ -30,16 +30,35 @@ from api.config import Settings
 from model_gateway.errors import ModelBudgetExceeded
 from model_gateway.gateway import OpenAICompatibleGateway
 
-
 FORBIDDEN_ACTIONS = {"refund", "payment_reversal", "cancel_order", "autonomous_cancellation", "approval_bypass"}
 SMOKE_CASES = {
     "normal:operations_brief_analyst": ("normal:operations_brief_analyst", "operations_brief_analyst", "normal"),
     "normal:customer_case_advisor": ("normal:customer_case_advisor", "customer_case_advisor", "normal"),
-    "normal:listing_optimization_advisor": ("normal:listing_optimization_advisor", "listing_optimization_advisor", "normal"),
-    "normal:reconciliation_investigator": ("normal:reconciliation_investigator", "reconciliation_investigator", "normal"),
-    "prompt_injection:customer_case_advisor": ("prompt_injection:customer_case_advisor", "customer_case_advisor", "prompt_injection"),
-    "nonexistent_evidence:reconciliation_investigator": ("nonexistent_evidence:reconciliation_investigator", "reconciliation_investigator", "nonexistent_evidence"),
-    "forbidden_actions:customer_case_advisor": ("forbidden_actions:customer_case_advisor", "customer_case_advisor", "forbidden_actions"),
+    "normal:listing_optimization_advisor": (
+        "normal:listing_optimization_advisor",
+        "listing_optimization_advisor",
+        "normal",
+    ),
+    "normal:reconciliation_investigator": (
+        "normal:reconciliation_investigator",
+        "reconciliation_investigator",
+        "normal",
+    ),
+    "prompt_injection:customer_case_advisor": (
+        "prompt_injection:customer_case_advisor",
+        "customer_case_advisor",
+        "prompt_injection",
+    ),
+    "nonexistent_evidence:reconciliation_investigator": (
+        "nonexistent_evidence:reconciliation_investigator",
+        "reconciliation_investigator",
+        "nonexistent_evidence",
+    ),
+    "forbidden_actions:customer_case_advisor": (
+        "forbidden_actions:customer_case_advisor",
+        "customer_case_advisor",
+        "forbidden_actions",
+    ),
 }
 AGENT_WORKFLOW_TYPES = {
     "operations_brief_analyst": "operations_brief_analysis",
@@ -60,10 +79,20 @@ def _enabled(name: str) -> bool:
 
 
 def _digest(value: Any) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
+    ).hexdigest()
 
 
-def _reference(*, evidence_id: str, evidence_type: str, resource_type: str, resource_id: str, metadata: dict[str, Any], observed_at: datetime | None = None) -> EvidenceReference:
+def _reference(
+    *,
+    evidence_id: str,
+    evidence_type: str,
+    resource_type: str,
+    resource_id: str,
+    metadata: dict[str, Any],
+    observed_at: datetime | None = None,
+) -> EvidenceReference:
     collected_at = datetime.now(UTC)
     return EvidenceReference(
         evidence_id=evidence_id,
@@ -239,6 +268,8 @@ def _result_summary(value: Any) -> dict[str, Any]:
         "prohibited_action_types": prohibited_types,
         "forbidden_proposed_actions": forbidden_proposed,
         "repair_attempted": bool(getattr(usage, "repair_attempted", False)) if usage else None,
+        "first_pass_schema_success": bool(getattr(usage, "first_pass_schema_success", False)) if usage else None,
+        "schema_failure_categories": list(getattr(usage, "schema_failure_categories", ()) or ()) if usage else [],
         "usage": {
             "provider": getattr(usage, "provider", None),
             "model": getattr(usage, "model", None),
@@ -247,6 +278,9 @@ def _result_summary(value: Any) -> dict[str, Any]:
             "total_tokens": getattr(usage, "total_tokens", None),
             "estimated_cost": str(getattr(usage, "estimated_cost", "")) if usage else None,
             "latency_ms": str(getattr(usage, "latency_ms", "")) if usage else None,
+            "initial_latency_ms": str(getattr(usage, "initial_latency_ms", "")) if usage else None,
+            "repair_latency_ms": str(getattr(usage, "repair_latency_ms", "")) if usage else None,
+            "provider_call_count": getattr(usage, "provider_call_count", None) if usage else None,
             "request_id_present": bool(getattr(usage, "request_id", None)) if usage else False,
         },
     }
@@ -255,7 +289,9 @@ def _result_summary(value: Any) -> dict[str, Any]:
 async def _models_probe(base_url: str, api_key: str, model: str) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"})
+            response = await client.get(
+                f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"}
+            )
         if response.status_code >= 400:
             return {"status": "failed", "http_status": response.status_code}
         payload = response.json()
@@ -272,9 +308,9 @@ async def _run(args: argparse.Namespace) -> int:
     if os.getenv("ENVIRONMENT", "development").lower() == "production":
         raise SystemExit("Real-model smoke refuses ENVIRONMENT=production.")
 
-    base_url = os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
-    model = os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
-    api_key = os.getenv("VLLM_API_KEY", "not-needed")
+    base_url = os.getenv("MODEL_BASE_URL") or os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
+    model = os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
+    api_key = os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
     budget_profiles = Settings().agent_budget_profiles
     default_provider_timeout = max(int(profile["timeout_seconds"]) for profile in budget_profiles.values())
     gateway = OpenAICompatibleGateway(
@@ -336,13 +372,24 @@ async def _run(args: argparse.Namespace) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
-    print(json.dumps({"output": str(output_path), "models_probe": manifest["models_probe"], "case_count": len(manifest["cases"])}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "output": str(output_path),
+                "models_probe": manifest["models_probe"],
+                "case_count": len(manifest["cases"]),
+            },
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Opt-in real OpenAI-compatible structured-output smoke test.")
-    parser.add_argument("--output", default=str(PROJECT_ROOT / "artifacts" / "external-validation" / "real-model-smoke.json"))
+    parser.add_argument(
+        "--output", default=str(PROJECT_ROOT / "artifacts" / "external-validation" / "real-model-smoke.json")
+    )
     parser.add_argument(
         "--case",
         action="append",
@@ -353,7 +400,7 @@ def main() -> None:
     try:
         raise SystemExit(asyncio.run(_run(args)))
     except KeyboardInterrupt:
-        raise SystemExit(130)
+        raise SystemExit(130) from None
 
 
 if __name__ == "__main__":

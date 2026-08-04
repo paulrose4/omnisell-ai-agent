@@ -18,9 +18,17 @@ class SQLWorkflowStore:
         self.session_factory = session_factory
 
     def create_run(
-        self, *, tenant_id: str, actor_id: str, workflow_type: str, correlation_id: str,
-        request: dict[str, Any], prompt_version: str = "v1", agent_type: str | None = None,
-        schema_version: str | None = None, idempotency_key: str | None = None,
+        self,
+        *,
+        tenant_id: str,
+        actor_id: str,
+        workflow_type: str,
+        correlation_id: str,
+        request: dict[str, Any],
+        prompt_version: str = "v1",
+        agent_type: str | None = None,
+        schema_version: str | None = None,
+        idempotency_key: str | None = None,
     ) -> str:
         run_id, _ = self.create_run_once(
             tenant_id=tenant_id,
@@ -36,9 +44,17 @@ class SQLWorkflowStore:
         return run_id
 
     def create_run_once(
-        self, *, tenant_id: str, actor_id: str, workflow_type: str, correlation_id: str,
-        request: dict[str, Any], prompt_version: str = "v1", agent_type: str | None = None,
-        schema_version: str | None = None, idempotency_key: str | None = None,
+        self,
+        *,
+        tenant_id: str,
+        actor_id: str,
+        workflow_type: str,
+        correlation_id: str,
+        request: dict[str, Any],
+        prompt_version: str = "v1",
+        agent_type: str | None = None,
+        schema_version: str | None = None,
+        idempotency_key: str | None = None,
     ) -> tuple[str, bool]:
         if idempotency_key:
             existing = self.find_by_idempotency(
@@ -50,14 +66,26 @@ class SQLWorkflowStore:
         now = datetime.now(UTC).isoformat()
         try:
             with self.session_factory.begin() as session:
-                session.add(AgentRunRow(
-                    id=run_id, tenant_id=tenant_id, actor_id=actor_id, workflow_type=workflow_type,
-                    correlation_id=correlation_id, idempotency_key=idempotency_key,
-                    status=WorkflowStatus.RECEIVED.value, prompt_version=prompt_version,
-                    agent_type=agent_type, schema_version=schema_version,
-                    state={"request": request, "agent_type": agent_type, "schema_version": schema_version,
-                           "history": [{"status": WorkflowStatus.RECEIVED.value, "at": now}]},
-                ))
+                session.add(
+                    AgentRunRow(
+                        id=run_id,
+                        tenant_id=tenant_id,
+                        actor_id=actor_id,
+                        workflow_type=workflow_type,
+                        correlation_id=correlation_id,
+                        idempotency_key=idempotency_key,
+                        status=WorkflowStatus.RECEIVED.value,
+                        prompt_version=prompt_version,
+                        agent_type=agent_type,
+                        schema_version=schema_version,
+                        state={
+                            "request": request,
+                            "agent_type": agent_type,
+                            "schema_version": schema_version,
+                            "history": [{"status": WorkflowStatus.RECEIVED.value, "at": now}],
+                        },
+                    )
+                )
         except IntegrityError:
             if not idempotency_key:
                 raise
@@ -71,15 +99,19 @@ class SQLWorkflowStore:
 
     def find_by_idempotency(self, *, tenant_id: str, workflow_type: str, idempotency_key: str) -> AgentRunRow | None:
         with self.session_factory() as session:
-            return session.scalar(select(AgentRunRow).where(
-                AgentRunRow.tenant_id == tenant_id,
-                AgentRunRow.workflow_type == workflow_type,
-                AgentRunRow.idempotency_key == idempotency_key,
-            ))
+            return session.scalar(
+                select(AgentRunRow).where(
+                    AgentRunRow.tenant_id == tenant_id,
+                    AgentRunRow.workflow_type == workflow_type,
+                    AgentRunRow.idempotency_key == idempotency_key,
+                )
+            )
 
     def transition(self, run_id: str, status: WorkflowStatus, state: dict[str, Any], *, tenant_id: str) -> None:
         with self.session_factory.begin() as session:
-            row = session.scalar(select(AgentRunRow).where(AgentRunRow.id == run_id, AgentRunRow.tenant_id == tenant_id))
+            row = session.scalar(
+                select(AgentRunRow).where(AgentRunRow.id == run_id, AgentRunRow.tenant_id == tenant_id)
+            )
             if row is None:
                 raise KeyError(f"Agent run not found: {run_id}")
             current = WorkflowStatus(row.status)
@@ -109,14 +141,20 @@ class SQLWorkflowStore:
 
     def get_run(self, *, tenant_id: str, run_id: str) -> AgentRunRow | None:
         with self.session_factory() as session:
-            return session.scalar(select(AgentRunRow).where(AgentRunRow.id == run_id, AgentRunRow.tenant_id == tenant_id))
+            return session.scalar(
+                select(AgentRunRow).where(AgentRunRow.id == run_id, AgentRunRow.tenant_id == tenant_id)
+            )
 
     def reset_active_run_for_recovery(self, *, tenant_id: str, run_id: str) -> bool:
         with self.session_factory.begin() as session:
-            row = session.scalar(select(AgentRunRow).where(
-                AgentRunRow.id == run_id,
-                AgentRunRow.tenant_id == tenant_id,
-            ).with_for_update())
+            row = session.scalar(
+                select(AgentRunRow)
+                .where(
+                    AgentRunRow.id == run_id,
+                    AgentRunRow.tenant_id == tenant_id,
+                )
+                .with_for_update()
+            )
             if row is None:
                 raise KeyError(f"Agent run not found: {run_id}")
             current = WorkflowStatus(row.status)
@@ -126,11 +164,13 @@ class SQLWorkflowStore:
                 previous_state = dict(row.state or {})
                 history = list(previous_state.get("history", []))
                 now = datetime.now(UTC).isoformat()
-                history.append({
-                    "status": WorkflowStatus.RECEIVED.value,
-                    "at": now,
-                    "recovered_from": current.value,
-                })
+                history.append(
+                    {
+                        "status": WorkflowStatus.RECEIVED.value,
+                        "at": now,
+                        "recovered_from": current.value,
+                    }
+                )
                 row.status = WorkflowStatus.RECEIVED.value
                 row.state = {
                     **previous_state,
@@ -142,10 +182,12 @@ class SQLWorkflowStore:
 
     def set_dispatch_task(self, *, tenant_id: str, run_id: str, task_id: str, task_status: str) -> None:
         with self.session_factory.begin() as session:
-            row = session.scalar(select(AgentRunRow).where(
-                AgentRunRow.id == run_id,
-                AgentRunRow.tenant_id == tenant_id,
-            ))
+            row = session.scalar(
+                select(AgentRunRow).where(
+                    AgentRunRow.id == run_id,
+                    AgentRunRow.tenant_id == tenant_id,
+                )
+            )
             if row is None:
                 raise KeyError(f"Agent run not found: {run_id}")
             previous_state = dict(row.state or {})
@@ -160,9 +202,9 @@ class SQLWorkflowStore:
 
     def increment_retry(self, *, tenant_id: str, run_id: str) -> int:
         with self.session_factory.begin() as session:
-            row = session.scalar(select(AgentRunRow).where(
-                AgentRunRow.id == run_id, AgentRunRow.tenant_id == tenant_id
-            ))
+            row = session.scalar(
+                select(AgentRunRow).where(AgentRunRow.id == run_id, AgentRunRow.tenant_id == tenant_id)
+            )
             if row is None:
                 raise KeyError(f"Agent run not found: {run_id}")
             row.retry_count = int(row.retry_count or 0) + 1
@@ -171,20 +213,24 @@ class SQLWorkflowStore:
     def claim_retry_attempt(self, *, tenant_id: str, run_id: str) -> int:
         for _ in range(20):
             with self.session_factory.begin() as session:
-                parent = session.scalar(select(AgentRunRow).where(
-                    AgentRunRow.id == run_id,
-                    AgentRunRow.tenant_id == tenant_id,
-                ))
+                parent = session.scalar(
+                    select(AgentRunRow).where(
+                        AgentRunRow.id == run_id,
+                        AgentRunRow.tenant_id == tenant_id,
+                    )
+                )
                 if parent is None:
                     raise KeyError(f"Agent run not found: {run_id}")
                 current_attempt = int(parent.retry_count or 0)
                 if current_attempt > 0:
                     current_key = f"retry:{run_id}:{current_attempt}"
-                    current_retry = session.scalar(select(AgentRunRow).where(
-                        AgentRunRow.tenant_id == tenant_id,
-                        AgentRunRow.workflow_type == parent.workflow_type,
-                        AgentRunRow.idempotency_key == current_key,
-                    ))
+                    current_retry = session.scalar(
+                        select(AgentRunRow).where(
+                            AgentRunRow.tenant_id == tenant_id,
+                            AgentRunRow.workflow_type == parent.workflow_type,
+                            AgentRunRow.idempotency_key == current_key,
+                        )
+                    )
                     if current_retry is None or current_retry.status != WorkflowStatus.FAILED.value:
                         return current_attempt
                 next_attempt = current_attempt + 1
@@ -206,7 +252,9 @@ class SQLWorkflowStore:
         if status:
             statement = statement.where(AgentRunRow.status == status)
         with self.session_factory() as session:
-            return list(session.scalars(statement.order_by(AgentRunRow.created_at.desc()).limit(min(max(limit, 1), 200))))
+            return list(
+                session.scalars(statement.order_by(AgentRunRow.created_at.desc()).limit(min(max(limit, 1), 200)))
+            )
 
 
 _ACTIVE = {
@@ -224,16 +272,43 @@ _ACTIVE = {
 }
 _ALLOWED_TRANSITIONS: dict[WorkflowStatus, set[WorkflowStatus]] = {
     WorkflowStatus.RECEIVED: {WorkflowStatus.VALIDATED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
-    WorkflowStatus.VALIDATED: {WorkflowStatus.EVIDENCE_COLLECTED, WorkflowStatus.PLANNED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
-    WorkflowStatus.EVIDENCE_COLLECTED: {WorkflowStatus.ANALYZED, WorkflowStatus.PLANNED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
+    WorkflowStatus.VALIDATED: {
+        WorkflowStatus.EVIDENCE_COLLECTED,
+        WorkflowStatus.PLANNED,
+        WorkflowStatus.FAILED,
+        WorkflowStatus.CANCELED,
+    },
+    WorkflowStatus.EVIDENCE_COLLECTED: {
+        WorkflowStatus.ANALYZED,
+        WorkflowStatus.PLANNED,
+        WorkflowStatus.FAILED,
+        WorkflowStatus.CANCELED,
+    },
     WorkflowStatus.ANALYZED: {WorkflowStatus.OUTPUT_VALIDATED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
     WorkflowStatus.OUTPUT_VALIDATED: {WorkflowStatus.POLICY_EVALUATED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
     WorkflowStatus.PLANNED: {WorkflowStatus.POLICY_EVALUATED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
-    WorkflowStatus.POLICY_EVALUATED: {WorkflowStatus.AWAITING_APPROVAL, WorkflowStatus.EXECUTING, WorkflowStatus.VERIFYING, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
+    WorkflowStatus.POLICY_EVALUATED: {
+        WorkflowStatus.AWAITING_APPROVAL,
+        WorkflowStatus.EXECUTING,
+        WorkflowStatus.VERIFYING,
+        WorkflowStatus.FAILED,
+        WorkflowStatus.CANCELED,
+    },
     WorkflowStatus.AWAITING_APPROVAL: {WorkflowStatus.APPROVED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
     WorkflowStatus.APPROVED: {WorkflowStatus.EXECUTING, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
-    WorkflowStatus.EXECUTING: {WorkflowStatus.EXECUTING, WorkflowStatus.AWAITING_APPROVAL, WorkflowStatus.VERIFYING, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
-    WorkflowStatus.VERIFYING: {WorkflowStatus.SUCCEEDED, WorkflowStatus.DEGRADED, WorkflowStatus.FAILED, WorkflowStatus.CANCELED},
+    WorkflowStatus.EXECUTING: {
+        WorkflowStatus.EXECUTING,
+        WorkflowStatus.AWAITING_APPROVAL,
+        WorkflowStatus.VERIFYING,
+        WorkflowStatus.FAILED,
+        WorkflowStatus.CANCELED,
+    },
+    WorkflowStatus.VERIFYING: {
+        WorkflowStatus.SUCCEEDED,
+        WorkflowStatus.DEGRADED,
+        WorkflowStatus.FAILED,
+        WorkflowStatus.CANCELED,
+    },
     WorkflowStatus.SUCCEEDED: set(),
     WorkflowStatus.DEGRADED: set(),
     WorkflowStatus.FAILED: set(),

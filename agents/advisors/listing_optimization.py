@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from agents.contracts import ListingOptimizationAnalysisEnvelope
-from agents.prompts.listing_optimization_v3 import LISTING_OPTIMIZATION_PROMPT_VERSION, LISTING_OPTIMIZATION_SYSTEM_PROMPT
+from agents.prompts.listing_optimization_v4 import (
+    LISTING_OPTIMIZATION_PROMPT_VERSION,
+    LISTING_OPTIMIZATION_SYSTEM_PROMPT,
+)
 from agents.runtime import StructuredBoundedAdvisor
 from agents.validators.evidence import EvidenceValidator
 from model_gateway.gateway import ModelGateway

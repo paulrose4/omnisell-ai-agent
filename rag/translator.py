@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-
 MODEL_MAP = {
     ("zh", "en"): "Helsinki-NLP/opus-mt-zh-en",
     ("en", "zh"): "Helsinki-NLP/opus-mt-en-zh",

@@ -7,11 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from agents.contracts import AgentAnalysisEnvelope, EvidenceBundle, EvidenceReference
+from agents.contracts import AgentAnalysisEnvelope, AgentProposedAction, EvidenceBundle, EvidenceReference
 from agents.quota import AgentQuotaDecision, AgentQuotaExceeded
 from domain.models import WorkflowStatus
 from workflows.engine import PersistentAgentWorkflow
-
 
 NOW = datetime(2026, 7, 16, 10, 0, tzinfo=UTC)
 
@@ -91,6 +90,35 @@ class BrokenAdvisor(Advisor):
         raise RuntimeError("model unavailable")
 
 
+class ActionAdvisor(Advisor):
+    async def analyze(self, *, context: object, evidence: EvidenceBundle) -> AgentAnalysisEnvelope:
+        analysis = await super().analyze(context=context, evidence=evidence)
+        action = AgentProposedAction(
+            action_type="create_internal_task_draft",
+            resource_type="daily_operations_brief",
+            resource_id="brief-1",
+            arguments={
+                "argument_type": "internal_task",
+                "related_resource_ids": ["brief-1"],
+                "related_evidence_ids": ["brief-1"],
+                "task_title": "Review brief",
+            },
+            reason="Create a reviewable internal task draft.",
+            evidence_ids=("brief-1",),
+            expected_outcome="Operator reviews the supplied evidence.",
+            risk_level="low",
+            requires_approval=False,
+        )
+        return analysis.model_copy(update={"proposed_actions": (action,)})
+
+
+class DictOnlyPolicy:
+    def evaluate(self, *, action: str, arguments: dict, confidence: float):
+        assert isinstance(arguments, dict)
+        assert arguments["argument_type"] == "internal_task"
+        return SimpleNamespace(decision=SimpleNamespace(value="require_approval"), risk_level="medium", reason="review")
+
+
 class NeverCollector:
     async def collect(self, **kwargs: object):
         raise AssertionError("quota rejection must happen before evidence collection")
@@ -144,6 +172,25 @@ def test_persistent_workflow_runs_bounded_advisory_without_executor() -> None:
     assert "execution_results" not in store.state
 
 
+def test_advisory_policy_receives_json_arguments_not_pydantic_models() -> None:
+    result = asyncio.run(
+        PersistentAgentWorkflow(
+            store=MemoryStore(),
+            policy_engine=DictOnlyPolicy(),
+        ).run_advisory(
+            tenant_id="tenant-a",
+            actor_id="operator-1",
+            workflow_type="operations_brief_analysis",
+            correlation_id="corr-action",
+            request={"brief_id": "brief-1"},
+            evidence_collector=Collector(),
+            advisor=ActionAdvisor(),
+        )
+    )
+
+    assert result["status"] == "succeeded"
+
+
 def test_persistent_workflow_records_advisor_failure_without_side_effects() -> None:
     store = MemoryStore()
     workflow = PersistentAgentWorkflow(store=store)
@@ -171,15 +218,17 @@ def test_advisory_workflow_persists_quota_failure_before_model_work() -> None:
     workflow = PersistentAgentWorkflow(store=store, quota_limiter=RejectingQuotaLimiter())
 
     with pytest.raises(AgentQuotaExceeded) as exc_info:
-        asyncio.run(workflow.run_advisory(
-            tenant_id="tenant-a",
-            actor_id="operator-1",
-            workflow_type="operations_brief_analysis",
-            correlation_id="corr-quota",
-            request={"brief_id": "brief-1", "idempotency_key": "quota-1"},
-            evidence_collector=NeverCollector(),
-            advisor=Advisor(),
-        ))
+        asyncio.run(
+            workflow.run_advisory(
+                tenant_id="tenant-a",
+                actor_id="operator-1",
+                workflow_type="operations_brief_analysis",
+                correlation_id="corr-quota",
+                request={"brief_id": "brief-1", "idempotency_key": "quota-1"},
+                evidence_collector=NeverCollector(),
+                advisor=Advisor(),
+            )
+        )
 
     assert exc_info.value.scope == "minute"
     assert exc_info.value.retry_after_seconds == 42
@@ -192,16 +241,18 @@ def test_advisory_workflow_persists_quota_failure_before_model_work() -> None:
 def test_advisory_worker_executes_precreated_run_without_creating_another() -> None:
     store = ReservedRunStore()
 
-    result = asyncio.run(PersistentAgentWorkflow(store=store).run_advisory(
-        tenant_id="tenant-a",
-        actor_id="operator-1",
-        workflow_type="operations_brief_analysis",
-        correlation_id="corr-worker",
-        request={"brief_id": "brief-1", "idempotency_key": "worker-1"},
-        evidence_collector=Collector(),
-        advisor=Advisor(),
-        reserved_run_id="run-1",
-    ))
+    result = asyncio.run(
+        PersistentAgentWorkflow(store=store).run_advisory(
+            tenant_id="tenant-a",
+            actor_id="operator-1",
+            workflow_type="operations_brief_analysis",
+            correlation_id="corr-worker",
+            request={"brief_id": "brief-1", "idempotency_key": "worker-1"},
+            evidence_collector=Collector(),
+            advisor=Advisor(),
+            reserved_run_id="run-1",
+        )
+    )
 
     assert result["run_id"] == "run-1"
     assert result["status"] == "succeeded"
@@ -211,7 +262,8 @@ class ExistingRunStore(MemoryStore):
     def __init__(self) -> None:
         super().__init__()
         self.existing = SimpleNamespace(
-            id="existing-run", status="succeeded",
+            id="existing-run",
+            status="succeeded",
             analysis_result={"agent_type": "operations_brief_analyst"},
             state={"analysis_result": {"agent_type": "operations_brief_analyst"}},
         )
@@ -236,17 +288,26 @@ class NeverReplayQuotaLimiter:
 
 def test_advisory_workflow_returns_existing_idempotent_run_without_model_call() -> None:
     store = ExistingRunStore()
-    result = asyncio.run(PersistentAgentWorkflow(
-        store=store, quota_limiter=NeverReplayQuotaLimiter(),
-    ).run_advisory(
-        tenant_id="tenant-a", actor_id="operator-1", workflow_type="operations_brief_analysis",
-        correlation_id="corr-duplicate", request={"idempotency_key": "idem-1"},
-        evidence_collector=NeverReplayCollector(), advisor=Advisor(),
-    ))
+    result = asyncio.run(
+        PersistentAgentWorkflow(
+            store=store,
+            quota_limiter=NeverReplayQuotaLimiter(),
+        ).run_advisory(
+            tenant_id="tenant-a",
+            actor_id="operator-1",
+            workflow_type="operations_brief_analysis",
+            correlation_id="corr-duplicate",
+            request={"idempotency_key": "idem-1"},
+            evidence_collector=NeverReplayCollector(),
+            advisor=Advisor(),
+        )
+    )
 
     assert result == {
-        "run_id": "existing-run", "status": "succeeded",
-        "analysis": {"agent_type": "operations_brief_analyst"}, "idempotent_replay": True,
+        "run_id": "existing-run",
+        "status": "succeeded",
+        "analysis": {"agent_type": "operations_brief_analyst"},
+        "idempotent_replay": True,
     }
 
 
@@ -260,17 +321,27 @@ class Audit:
 
 def test_advisory_workflow_emits_low_sensitivity_stage_audit_events() -> None:
     audit = Audit()
-    result = asyncio.run(PersistentAgentWorkflow(store=MemoryStore(), audit_logger=audit).run_advisory(
-        tenant_id="tenant-a", actor_id="operator-1", workflow_type="operations_brief_analysis",
-        correlation_id="corr-1", request={"brief_id": "brief-1"},
-        evidence_collector=Collector(), advisor=Advisor(),
-    ))
+    result = asyncio.run(
+        PersistentAgentWorkflow(store=MemoryStore(), audit_logger=audit).run_advisory(
+            tenant_id="tenant-a",
+            actor_id="operator-1",
+            workflow_type="operations_brief_analysis",
+            correlation_id="corr-1",
+            request={"brief_id": "brief-1"},
+            evidence_collector=Collector(),
+            advisor=Advisor(),
+        )
+    )
 
     assert result["status"] == "succeeded"
     actions = [item[0] for item in audit.actions]
     assert actions == [
-        "agent_run_started", "evidence_collected", "model_generation_started",
-        "model_generation_succeeded", "policy_evaluated", "verification_succeeded",
+        "agent_run_started",
+        "evidence_collected",
+        "model_generation_started",
+        "model_generation_succeeded",
+        "policy_evaluated",
+        "verification_succeeded",
     ]
     assert all("request" not in details and "analysis_result" not in details for _, _, details in audit.actions)
 
@@ -285,13 +356,20 @@ class AgentMetrics:
 
 def test_advisory_workflow_records_terminal_agent_metrics() -> None:
     metrics = AgentMetrics()
-    result = asyncio.run(PersistentAgentWorkflow(
-        store=MemoryStore(), metrics=metrics,
-    ).run_advisory(
-        tenant_id="tenant-a", actor_id="operator-1", workflow_type="operations_brief_analysis",
-        correlation_id="corr-1", request={"brief_id": "brief-1"},
-        evidence_collector=Collector(), advisor=Advisor(),
-    ))
+    result = asyncio.run(
+        PersistentAgentWorkflow(
+            store=MemoryStore(),
+            metrics=metrics,
+        ).run_advisory(
+            tenant_id="tenant-a",
+            actor_id="operator-1",
+            workflow_type="operations_brief_analysis",
+            correlation_id="corr-1",
+            request={"brief_id": "brief-1"},
+            evidence_collector=Collector(),
+            advisor=Advisor(),
+        )
+    )
 
     assert result["status"] == "succeeded"
     assert len(metrics.calls) == 1

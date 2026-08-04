@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import asyncio
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import pytest
 
 
 def test_missing_legacy_autogen_never_silently_creates_local_agent(monkeypatch: pytest.MonkeyPatch) -> None:
-    from agents import base
+    from legacy.autogen_demo import base
 
     monkeypatch.setattr(base, "AssistantAgent", None)
 
@@ -70,7 +71,7 @@ def test_runtime_requirements_do_not_install_legacy_autogen_proxy() -> None:
 
 
 def test_optional_sync_demo_registers_read_only_tools(monkeypatch: pytest.MonkeyPatch) -> None:
-    from agents import base, sync_agent
+    from legacy.autogen_demo import base, sync_agent
 
     monkeypatch.setattr(
         sync_agent,
@@ -91,7 +92,7 @@ def test_optional_sync_demo_registers_read_only_tools(monkeypatch: pytest.Monkey
 
 
 def test_optional_price_demo_has_no_product_write_tool(monkeypatch: pytest.MonkeyPatch) -> None:
-    from agents import base, price_agent
+    from legacy.autogen_demo import base, price_agent
 
     monkeypatch.setattr(
         price_agent,
@@ -114,3 +115,29 @@ def test_optional_price_demo_has_no_product_write_tool(monkeypatch: pytest.Monke
 def test_runtime_httpx_supports_configured_socks_proxy() -> None:
     requirements = Path("requirements.runtime.txt").read_text(encoding="utf-8").splitlines()
     assert any(line.strip().lower() == "httpx[socks]==0.28.1" for line in requirements)
+
+
+def test_production_import_graph_does_not_reference_legacy_autogen() -> None:
+    production_roots = (Path("api"), Path("application"), Path("workflows"), Path("model_gateway"), Path("agents"))
+    violations: list[str] = []
+    for root in production_roots:
+        for path in root.rglob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                module = ""
+                if isinstance(node, ast.ImportFrom):
+                    module = node.module or ""
+                elif isinstance(node, ast.Import):
+                    module = ",".join(alias.name for alias in node.names)
+                if module.startswith("legacy.autogen_demo"):
+                    violations.append(f"{path}:{getattr(node, 'lineno', 0)}")
+    assert violations == []
+
+
+def test_top_level_agents_package_does_not_export_group_chat() -> None:
+    import agents
+
+    assert not hasattr(agents, "create_omnisell_team")
+    assert not hasattr(agents, "start_chat")
+    for filename in ("base.py", "cs_agent.py", "price_agent.py", "sync_agent.py", "group_chat.py"):
+        assert not (Path("agents") / filename).exists()

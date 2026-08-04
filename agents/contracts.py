@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, ClassVar, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from model_gateway.contracts import ModelBudgetEstimate
 
 EvidenceSource = Literal[
     "amazon_api",
@@ -19,6 +21,94 @@ EvidenceSource = Literal[
 FreshnessStatus = Literal["fresh", "stale", "unknown"]
 HypothesisStatus = Literal["hypothesis", "supported", "insufficient_evidence"]
 RiskLevel = Literal["low", "medium", "high", "critical"]
+Identifier: TypeAlias = Annotated[str, Field(min_length=1, max_length=100)]
+ShortText: TypeAlias = Annotated[str, Field(min_length=1, max_length=200)]
+LongText: TypeAlias = Annotated[str, Field(min_length=1, max_length=2000)]
+OptionalLongText: TypeAlias = Annotated[str | None, Field(max_length=2000)]
+EvidenceIds: TypeAlias = Annotated[tuple[Identifier, ...], Field(max_length=20)]
+ResourceIds: TypeAlias = Annotated[tuple[Identifier, ...], Field(max_length=20)]
+ListingField = Literal[
+    "title",
+    "bullet_point_1",
+    "bullet_point_2",
+    "bullet_point_3",
+    "bullet_point_4",
+    "bullet_point_5",
+    "description",
+    "search_terms",
+]
+ReadOnlyCheckType = Literal[
+    "fetch_amazon_record",
+    "fetch_internal_record",
+    "compare_event_timeline",
+    "verify_mapping",
+    "verify_sync_cursor",
+    "inspect_audit_trail",
+]
+ActionType = Literal[
+    "create_internal_task_draft",
+    "reference_evidence",
+    "request_human_review",
+    "refund",
+    "issue_refund",
+    "approve-refund",
+    "payment_reversal",
+    "reverse_payment",
+    "autonomous_cancellation",
+    "cancel_order",
+    "approval_bypass",
+    "cross_tenant_action",
+    "arbitrary_amazon_write",
+]
+CustomerCaseActionType = Literal[
+    "draft_customer_reply",
+    "draft_compliant_reply",
+    "reference_evidence",
+    "request_human_review",
+    "refund",
+    "issue_refund",
+    "approve-refund",
+    "payment_reversal",
+    "reverse_payment",
+    "autonomous_cancellation",
+    "cancel_order",
+    "approval_bypass",
+    "cross_tenant_action",
+    "arbitrary_amazon_write",
+]
+ListingActionType = Literal[
+    "draft_listing_change",
+    "create_listing_experiment_draft",
+    "reference_evidence",
+    "request_human_review",
+    "refund",
+    "issue_refund",
+    "approve-refund",
+    "payment_reversal",
+    "reverse_payment",
+    "autonomous_cancellation",
+    "cancel_order",
+    "approval_bypass",
+    "cross_tenant_action",
+    "arbitrary_amazon_write",
+]
+ReconciliationActionType = Literal[
+    "create_internal_investigation_task",
+    "run_read_only_check",
+    "compare_records_read_only",
+    "reference_evidence",
+    "request_human_review",
+    "refund",
+    "issue_refund",
+    "approve-refund",
+    "payment_reversal",
+    "reverse_payment",
+    "autonomous_cancellation",
+    "cancel_order",
+    "approval_bypass",
+    "cross_tenant_action",
+    "arbitrary_amazon_write",
+]
 
 
 def _require_aware(value: datetime | None) -> datetime | None:
@@ -29,6 +119,23 @@ def _require_aware(value: datetime | None) -> datetime | None:
 
 class AgentContractModel(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @model_validator(mode="after")
+    def reject_serialized_json_in_text_fields(self) -> AgentContractModel:
+        for field_name in type(self).model_fields:
+            value = getattr(self, field_name)
+            if not isinstance(value, str):
+                continue
+            candidate = value.strip()
+            if not candidate or candidate[0] not in "[{" or candidate[-1] not in "]}":
+                continue
+            try:
+                decoded = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(decoded, (dict, list)):
+                raise ValueError(f"{field_name} must not contain serialized JSON")
+        return self
 
 
 class ModelUsage(AgentContractModel):
@@ -44,11 +151,27 @@ class ModelUsage(AgentContractModel):
     latency_ms: Decimal = Field(ge=0)
     retry_count: int = Field(default=0, ge=0)
     repair_attempted: bool = False
+    first_pass_schema_success: bool = True
+    schema_failure_categories: Annotated[tuple[Identifier, ...], Field(max_length=20)] = ()
+    initial_latency_ms: Decimal = Field(default=Decimal("0"), ge=0)
+    repair_latency_ms: Decimal = Field(default=Decimal("0"), ge=0)
+    provider_call_count: int = Field(default=1, ge=1, le=4)
     request_id: str | None = None
     fallback_used: bool = False
     fallback_from_provider: str | None = None
     fallback_reason: str | None = None
     attempted_providers: tuple[str, ...] = ()
+    reserved_tokens: int = Field(default=0, ge=0)
+    reserved_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    unattributed_providers: tuple[str, ...] = ()
+    unattributed_cost_upper_bound: Decimal = Field(default=Decimal("0"), ge=0)
+    cost_accounting_status: Literal["reported", "partially_unattributed"] = "reported"
+
+    @model_validator(mode="after")
+    def validate_schema_attempt_accounting(self) -> ModelUsage:
+        if self.repair_attempted and self.first_pass_schema_success:
+            raise ValueError("repair_attempted requires first_pass_schema_success=false")
+        return self
 
 
 class EvidencePreparationManifest(AgentContractModel):
@@ -68,10 +191,11 @@ class EvidencePreparationManifest(AgentContractModel):
     worst_case_estimated_tokens: int = Field(default=0, ge=0)
     model_token_budget: int | None = Field(default=None, gt=0)
     worst_case_estimated_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    model_budget_estimate: ModelBudgetEstimate
     degraded: bool = False
 
     @model_validator(mode="after")
-    def validate_counts(self) -> "EvidencePreparationManifest":
+    def validate_counts(self) -> EvidencePreparationManifest:
         if self.selected_evidence_count != len(self.selected_evidence_ids):
             raise ValueError("selected evidence count does not match selected_evidence_ids")
         if self.omitted_evidence_count != len(self.omitted_evidence_ids):
@@ -99,7 +223,7 @@ class EvidenceReference(AgentContractModel):
     _validate_collected_at = field_validator("collected_at")(_require_aware)
 
     @model_validator(mode="after")
-    def validate_source_truthfulness(self) -> "EvidenceReference":
+    def validate_source_truthfulness(self) -> EvidenceReference:
         if self.verified_amazon_data and self.source not in {"amazon_api", "advertising_api"}:
             raise ValueError(f"{self.source} evidence cannot be marked as verified Amazon data")
         return self
@@ -113,7 +237,7 @@ class EvidenceBundle(AgentContractModel):
     _validate_collected_at = field_validator("collected_at")(_require_aware)
 
     @model_validator(mode="after")
-    def validate_unique_evidence_ids(self) -> "EvidenceBundle":
+    def validate_unique_evidence_ids(self) -> EvidenceBundle:
         evidence_ids = [item.evidence_id for item in self.evidence]
         if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError("evidence_id values must be unique")
@@ -124,91 +248,322 @@ class EvidenceBundle(AgentContractModel):
 
 
 class MissingDataItem(AgentContractModel):
-    field: str = Field(min_length=1)
-    reason: str = Field(min_length=1)
-    required_for: str = Field(min_length=1)
+    field: Identifier
+    reason: LongText
+    required_for: ShortText
     blocking: bool
-    suggested_source: str | None = None
+    suggested_source: Annotated[str | None, Field(max_length=200)] = None
 
 
 class AgentHypothesis(AgentContractModel):
-    hypothesis_id: str = Field(min_length=1)
-    statement: str = Field(min_length=1)
-    supporting_evidence_ids: tuple[str, ...] = ()
-    contradicting_evidence_ids: tuple[str, ...] = ()
+    hypothesis_id: Identifier
+    statement: LongText
+    supporting_evidence_ids: EvidenceIds = ()
+    contradicting_evidence_ids: EvidenceIds = ()
     confidence: Decimal = Field(ge=0, le=1)
     status: HypothesisStatus = "hypothesis"
 
     @model_validator(mode="after")
-    def require_support_or_insufficient_status(self) -> "AgentHypothesis":
+    def require_support_or_insufficient_status(self) -> AgentHypothesis:
         if not self.supporting_evidence_ids and self.status != "insufficient_evidence":
             raise ValueError("hypothesis must cite supporting evidence or be insufficient_evidence")
         return self
 
 
-class AgentProposedAction(AgentContractModel):
-    action_type: str = Field(min_length=1)
-    resource_type: str = Field(min_length=1)
-    resource_id: str = Field(min_length=1)
-    arguments: dict[str, Any] = Field(default_factory=dict)
-    reason: str = Field(min_length=1)
-    evidence_ids: tuple[str, ...]
-    expected_outcome: str = Field(min_length=1)
+class ActionArgumentsBase(AgentContractModel):
+    argument_type: str
+
+
+class NoActionArguments(ActionArgumentsBase):
+    argument_type: Literal["none"] = "none"
+
+
+class InternalTaskActionArguments(ActionArgumentsBase):
+    argument_type: Literal["internal_task"]
+    related_resource_ids: ResourceIds = ()
+    related_evidence_ids: EvidenceIds = ()
+    task_title: Annotated[str | None, Field(max_length=200)] = None
+
+
+class ReadOnlyCheckActionArguments(ActionArgumentsBase):
+    argument_type: Literal["read_only_check"]
+    check_type: ReadOnlyCheckType
+    related_resource_ids: ResourceIds = ()
+    related_evidence_ids: EvidenceIds = ()
+
+
+class CustomerReplyDraftActionArguments(ActionArgumentsBase):
+    argument_type: Literal["customer_reply_draft"]
+    reply_mode: Literal["draft_only"] = "draft_only"
+    rag_evidence_ids: EvidenceIds = ()
+
+
+class ListingChangeDraftActionArguments(ActionArgumentsBase):
+    argument_type: Literal["listing_change_draft"]
+    fields: Annotated[tuple[ListingField, ...], Field(min_length=1, max_length=8)]
+    experiment_required: Literal[True] = True
+
+
+class EvidenceReferenceActionArguments(ActionArgumentsBase):
+    argument_type: Literal["evidence_reference"]
+    related_resource_ids: ResourceIds = ()
+    related_evidence_ids: EvidenceIds = ()
+
+
+OperationsActionArguments: TypeAlias = Annotated[
+    NoActionArguments | InternalTaskActionArguments | EvidenceReferenceActionArguments,
+    Field(discriminator="argument_type"),
+]
+CustomerCaseActionArguments: TypeAlias = Annotated[
+    NoActionArguments | CustomerReplyDraftActionArguments | EvidenceReferenceActionArguments,
+    Field(discriminator="argument_type"),
+]
+ListingActionArguments: TypeAlias = Annotated[
+    NoActionArguments | ListingChangeDraftActionArguments | EvidenceReferenceActionArguments,
+    Field(discriminator="argument_type"),
+]
+ReconciliationActionArguments: TypeAlias = Annotated[
+    NoActionArguments | InternalTaskActionArguments | ReadOnlyCheckActionArguments | EvidenceReferenceActionArguments,
+    Field(discriminator="argument_type"),
+]
+
+
+class AgentProposedActionBase(AgentContractModel):
+    action_type: str
+    resource_type: Identifier
+    resource_id: Identifier
+    arguments: ActionArgumentsBase
+    reason: LongText
+    evidence_ids: EvidenceIds
+    expected_outcome: LongText
     risk_level: RiskLevel
     requires_approval: bool
     automation_eligible: bool = False
     prohibited: bool = False
-    prohibited_reason: str | None = None
+    prohibited_reason: OptionalLongText = None
+    ARGUMENT_TYPE_BY_ACTION: ClassVar[dict[str, str]] = {}
 
     @model_validator(mode="after")
-    def enforce_advisory_boundary(self) -> "AgentProposedAction":
+    def enforce_advisory_boundary(self) -> AgentProposedActionBase:
         if self.automation_eligible:
             raise ValueError("automation_eligible is determined by deterministic policy code and must be false")
         if self.prohibited and not self.prohibited_reason:
             raise ValueError("prohibited actions require prohibited_reason")
+        expected_argument_types = self.ARGUMENT_TYPE_BY_ACTION
+        expected = expected_argument_types[self.action_type]
+        if not hasattr(self.arguments, "argument_type") or self.arguments.argument_type != expected:
+            raise ValueError(f"{self.action_type} requires arguments.argument_type={expected}")
         return self
 
 
+class AgentProposedAction(AgentProposedActionBase):
+    action_type: ActionType
+    arguments: OperationsActionArguments = Field(default_factory=NoActionArguments)
+    ARGUMENT_TYPE_BY_ACTION: ClassVar[dict[str, str]] = {
+        "create_internal_task_draft": "internal_task",
+        "reference_evidence": "evidence_reference",
+        "request_human_review": "evidence_reference",
+        "refund": "none",
+        "issue_refund": "none",
+        "approve-refund": "none",
+        "payment_reversal": "none",
+        "reverse_payment": "none",
+        "autonomous_cancellation": "none",
+        "cancel_order": "none",
+        "approval_bypass": "none",
+        "cross_tenant_action": "none",
+        "arbitrary_amazon_write": "none",
+    }
+
+
+class CustomerCaseProposedAction(AgentProposedActionBase):
+    action_type: CustomerCaseActionType
+    arguments: CustomerCaseActionArguments = Field(default_factory=NoActionArguments)
+    ARGUMENT_TYPE_BY_ACTION: ClassVar[dict[str, str]] = {
+        "draft_customer_reply": "customer_reply_draft",
+        "draft_compliant_reply": "customer_reply_draft",
+        "reference_evidence": "evidence_reference",
+        "request_human_review": "evidence_reference",
+        "refund": "none",
+        "issue_refund": "none",
+        "approve-refund": "none",
+        "payment_reversal": "none",
+        "reverse_payment": "none",
+        "autonomous_cancellation": "none",
+        "cancel_order": "none",
+        "approval_bypass": "none",
+        "cross_tenant_action": "none",
+        "arbitrary_amazon_write": "none",
+    }
+
+
+class ListingProposedAction(AgentProposedActionBase):
+    action_type: ListingActionType
+    arguments: ListingActionArguments = Field(default_factory=NoActionArguments)
+    ARGUMENT_TYPE_BY_ACTION: ClassVar[dict[str, str]] = {
+        "draft_listing_change": "listing_change_draft",
+        "create_listing_experiment_draft": "listing_change_draft",
+        "reference_evidence": "evidence_reference",
+        "request_human_review": "evidence_reference",
+        "refund": "none",
+        "issue_refund": "none",
+        "approve-refund": "none",
+        "payment_reversal": "none",
+        "reverse_payment": "none",
+        "autonomous_cancellation": "none",
+        "cancel_order": "none",
+        "approval_bypass": "none",
+        "cross_tenant_action": "none",
+        "arbitrary_amazon_write": "none",
+    }
+
+
+class ReconciliationProposedAction(AgentProposedActionBase):
+    action_type: ReconciliationActionType
+    arguments: ReconciliationActionArguments = Field(default_factory=NoActionArguments)
+    ARGUMENT_TYPE_BY_ACTION: ClassVar[dict[str, str]] = {
+        "create_internal_investigation_task": "internal_task",
+        "run_read_only_check": "read_only_check",
+        "compare_records_read_only": "read_only_check",
+        "reference_evidence": "evidence_reference",
+        "request_human_review": "evidence_reference",
+        "refund": "none",
+        "issue_refund": "none",
+        "approve-refund": "none",
+        "payment_reversal": "none",
+        "reverse_payment": "none",
+        "autonomous_cancellation": "none",
+        "cancel_order": "none",
+        "approval_bypass": "none",
+        "cross_tenant_action": "none",
+        "arbitrary_amazon_write": "none",
+    }
+
+
+class InternalTaskDraft(AgentContractModel):
+    title: ShortText
+    objective: LongText
+    resource_type: Identifier
+    resource_id: Identifier
+    evidence_ids: EvidenceIds
+    priority: Literal["low", "medium", "high"]
+    expected_outcome: LongText
+
+
+class ExtractedEntity(AgentContractModel):
+    entity_type: Literal[
+        "order_id",
+        "asin",
+        "seller_sku",
+        "shipment_id",
+        "marketplace_id",
+        "tracking_id",
+        "customer_reference",
+        "other",
+    ]
+    value: ShortText
+    evidence_ids: EvidenceIds
+
+
+class ListingFieldChange(AgentContractModel):
+    field: ListingField
+    operation: Literal["replace", "append", "remove"]
+    proposed_text: Annotated[str | None, Field(max_length=2000)] = None
+    reason: LongText
+    evidence_ids: EvidenceIds
+
+    @model_validator(mode="after")
+    def require_text_unless_removing(self) -> ListingFieldChange:
+        if self.operation != "remove" and not self.proposed_text:
+            raise ValueError("proposed_text is required unless operation is remove")
+        if self.operation == "remove" and self.proposed_text is not None:
+            raise ValueError("remove operations must not include proposed_text")
+        return self
+
+
+class DifferenceCluster(AgentContractModel):
+    cluster_id: Identifier
+    difference_type: Literal[
+        "inventory",
+        "order",
+        "listing",
+        "financial",
+        "mapping",
+        "synchronization",
+        "event",
+        "audit",
+        "other",
+    ]
+    resource_ids: Annotated[tuple[Identifier, ...], Field(min_length=1, max_length=20)]
+    evidence_ids: Annotated[tuple[Identifier, ...], Field(min_length=1, max_length=20)]
+    summary: LongText
+    hypothesis_status: HypothesisStatus
+
+
+class ReadOnlyCheck(AgentContractModel):
+    check_type: ReadOnlyCheckType
+    resource_type: Identifier
+    resource_id: Identifier
+    evidence_ids: EvidenceIds
+    reason: LongText
+
+
+class InvestigationTaskDraft(AgentContractModel):
+    title: ShortText
+    objective: LongText
+    resource_type: Identifier
+    resource_id: Identifier
+    evidence_ids: EvidenceIds
+    priority: Literal["low", "medium", "high"]
+    expected_outcome: LongText
+
+
 class AgentAnalysisDraft(AgentContractModel):
-    executive_summary: str
-    evidence: tuple[str, ...]
-    hypotheses: tuple[AgentHypothesis, ...]
-    missing_data: tuple[MissingDataItem, ...]
-    proposed_actions: tuple[AgentProposedAction, ...]
-    prohibited_actions: tuple[AgentProposedAction, ...]
+    executive_summary: LongText
+    evidence: EvidenceIds
+    hypotheses: Annotated[tuple[AgentHypothesis, ...], Field(max_length=10)]
+    missing_data: Annotated[tuple[MissingDataItem, ...], Field(max_length=20)]
+    proposed_actions: Annotated[tuple[AgentProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[AgentProposedAction, ...], Field(max_length=10)]
     confidence: Decimal = Field(ge=0, le=1)
-    degraded_reason: str | None = None
-    warnings: tuple[str, ...] = ()
+    degraded_reason: OptionalLongText = None
+    warnings: Annotated[tuple[ShortText, ...], Field(max_length=20)] = ()
 
 
 class OperationsBriefAnalysisDraft(AgentAnalysisDraft):
-    grouped_issue_ids: tuple[tuple[str, ...], ...] = ()
-    daily_checklist: tuple[str, ...] = ()
-    internal_task_drafts: tuple[dict[str, Any], ...] = ()
+    grouped_issue_ids: Annotated[tuple[ResourceIds, ...], Field(max_length=20)] = ()
+    daily_checklist: Annotated[tuple[ShortText, ...], Field(max_length=8)] = ()
+    internal_task_drafts: Annotated[tuple[InternalTaskDraft, ...], Field(max_length=20)] = ()
 
 
 class CustomerCaseAnalysisDraft(AgentAnalysisDraft):
-    intents: tuple[str, ...]
-    extracted_entities: dict[str, str] = Field(default_factory=dict)
-    sentiment_recommendation: str
-    urgency_recommendation: str
-    reply_draft: str | None = None
+    proposed_actions: Annotated[tuple[CustomerCaseProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[CustomerCaseProposedAction, ...], Field(max_length=10)]
+    intents: Annotated[tuple[Identifier, ...], Field(max_length=10)]
+    extracted_entities: Annotated[tuple[ExtractedEntity, ...], Field(max_length=20)] = ()
+    sentiment_recommendation: ShortText
+    urgency_recommendation: ShortText
+    reply_draft: Annotated[str | None, Field(max_length=4000)] = None
     escalation_recommended: bool
-    rag_evidence_needed: tuple[str, ...] = ()
-    voc_tags: tuple[str, ...] = ()
+    rag_evidence_needed: Annotated[tuple[ShortText, ...], Field(max_length=20)] = ()
+    voc_tags: Annotated[tuple[Identifier, ...], Field(max_length=20)] = ()
 
 
 class ListingOptimizationAnalysisDraft(AgentAnalysisDraft):
-    proposed_changes: tuple[dict[str, Any], ...] = ()
-    experiment_hypothesis: str | None = None
-    expected_metrics: tuple[str, ...] = ()
-    unsupported_claims: tuple[str, ...] = ()
+    proposed_actions: Annotated[tuple[ListingProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[ListingProposedAction, ...], Field(max_length=10)]
+    proposed_changes: Annotated[tuple[ListingFieldChange, ...], Field(max_length=20)] = ()
+    experiment_hypothesis: OptionalLongText = None
+    expected_metrics: Annotated[tuple[Identifier, ...], Field(max_length=20)] = ()
+    unsupported_claims: Annotated[tuple[LongText, ...], Field(max_length=20)] = ()
 
 
 class ReconciliationInvestigationDraft(AgentAnalysisDraft):
-    difference_clusters: tuple[dict[str, Any], ...] = ()
-    read_only_checks: tuple[dict[str, Any], ...] = ()
-    internal_investigation_tasks: tuple[dict[str, Any], ...] = ()
+    proposed_actions: Annotated[tuple[ReconciliationProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[ReconciliationProposedAction, ...], Field(max_length=10)]
+    difference_clusters: Annotated[tuple[DifferenceCluster, ...], Field(max_length=20)] = ()
+    read_only_checks: Annotated[tuple[ReadOnlyCheck, ...], Field(max_length=20)] = ()
+    internal_investigation_tasks: Annotated[tuple[InvestigationTaskDraft, ...], Field(max_length=20)] = ()
 
 
 class AgentAnalysisEnvelope(AgentAnalysisDraft):
@@ -225,33 +580,39 @@ class AgentAnalysisEnvelope(AgentAnalysisDraft):
 
 
 class OperationsBriefAnalysisEnvelope(AgentAnalysisEnvelope):
-    grouped_issue_ids: tuple[tuple[str, ...], ...] = ()
-    daily_checklist: tuple[str, ...] = ()
-    internal_task_drafts: tuple[dict[str, Any], ...] = ()
+    grouped_issue_ids: Annotated[tuple[ResourceIds, ...], Field(max_length=20)] = ()
+    daily_checklist: Annotated[tuple[ShortText, ...], Field(max_length=8)] = ()
+    internal_task_drafts: Annotated[tuple[InternalTaskDraft, ...], Field(max_length=20)] = ()
 
 
 class CustomerCaseAnalysisEnvelope(AgentAnalysisEnvelope):
-    intents: tuple[str, ...]
-    extracted_entities: dict[str, str] = Field(default_factory=dict)
-    sentiment_recommendation: str
-    urgency_recommendation: str
-    reply_draft: str | None = None
+    proposed_actions: Annotated[tuple[CustomerCaseProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[CustomerCaseProposedAction, ...], Field(max_length=10)]
+    intents: Annotated[tuple[Identifier, ...], Field(max_length=10)]
+    extracted_entities: Annotated[tuple[ExtractedEntity, ...], Field(max_length=20)] = ()
+    sentiment_recommendation: ShortText
+    urgency_recommendation: ShortText
+    reply_draft: Annotated[str | None, Field(max_length=4000)] = None
     escalation_recommended: bool
-    rag_evidence_needed: tuple[str, ...] = ()
-    voc_tags: tuple[str, ...] = ()
+    rag_evidence_needed: Annotated[tuple[ShortText, ...], Field(max_length=20)] = ()
+    voc_tags: Annotated[tuple[Identifier, ...], Field(max_length=20)] = ()
 
 
 class ListingOptimizationAnalysisEnvelope(AgentAnalysisEnvelope):
-    proposed_changes: tuple[dict[str, Any], ...] = ()
-    experiment_hypothesis: str | None = None
-    expected_metrics: tuple[str, ...] = ()
-    unsupported_claims: tuple[str, ...] = ()
+    proposed_actions: Annotated[tuple[ListingProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[ListingProposedAction, ...], Field(max_length=10)]
+    proposed_changes: Annotated[tuple[ListingFieldChange, ...], Field(max_length=20)] = ()
+    experiment_hypothesis: OptionalLongText = None
+    expected_metrics: Annotated[tuple[Identifier, ...], Field(max_length=20)] = ()
+    unsupported_claims: Annotated[tuple[LongText, ...], Field(max_length=20)] = ()
 
 
 class ReconciliationInvestigationEnvelope(AgentAnalysisEnvelope):
-    difference_clusters: tuple[dict[str, Any], ...] = ()
-    read_only_checks: tuple[dict[str, Any], ...] = ()
-    internal_investigation_tasks: tuple[dict[str, Any], ...] = ()
+    proposed_actions: Annotated[tuple[ReconciliationProposedAction, ...], Field(max_length=10)]
+    prohibited_actions: Annotated[tuple[ReconciliationProposedAction, ...], Field(max_length=10)]
+    difference_clusters: Annotated[tuple[DifferenceCluster, ...], Field(max_length=20)] = ()
+    read_only_checks: Annotated[tuple[ReadOnlyCheck, ...], Field(max_length=20)] = ()
+    internal_investigation_tasks: Annotated[tuple[InvestigationTaskDraft, ...], Field(max_length=20)] = ()
 
 
 ANALYSIS_DRAFT_SCHEMAS: dict[type[AgentAnalysisEnvelope], type[AgentAnalysisDraft]] = {

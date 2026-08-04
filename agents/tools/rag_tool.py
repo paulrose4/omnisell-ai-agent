@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from observability.telemetry import log_structured
+from safety.tool_auth import get_tool_caller_context
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -37,13 +38,20 @@ def get_retriever() -> Retriever:
 def _tokenize(text: str) -> set[str]:
     tokens = set(re.findall(r"[a-zA-Z0-9]+|[\u4e00-\u9fff]|[\u0e00-\u0e7f]+", text.lower()))
     if len(text) >= 2:
-        tokens.update(text[index : index + 2] for index in range(len(text) - 1) if not text[index : index + 2].isspace())
+        tokens.update(
+            text[index : index + 2] for index in range(len(text) - 1) if not text[index : index + 2].isspace()
+        )
     return {token for token in tokens if token.strip()}
 
 
 def _load_faq_files() -> list[tuple[str, dict[str, Any]]]:
     rows: list[tuple[str, dict[str, Any]]] = []
-    for language, filename in {"zh": "faq_cn.json", "en": "faq_en.json", "th": "faq_th.json", "vi": "faq_vi.json"}.items():
+    for language, filename in {
+        "zh": "faq_cn.json",
+        "en": "faq_en.json",
+        "th": "faq_th.json",
+        "vi": "faq_vi.json",
+    }.items():
         path = RAG_DATA_DIR / filename
         if not path.exists():
             continue
@@ -110,6 +118,7 @@ def search_knowledge_base(
     source_type: str | None = None,
 ) -> list[dict[str, Any]]:
     """Search the OmniSell RAG knowledge base and return text, metadata, and similarity score."""
+    caller = get_tool_caller_context()
     try:
         results = get_retriever().retrieve_with_score(
             query=query,
@@ -117,6 +126,7 @@ def search_knowledge_base(
             language=language,
             category_filter=category_filter,
             source_type=source_type,
+            tenant_id=caller.tenant_id,
         )
         if results:
             return results

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 try:
     from .chroma_client import DEFAULT_COLLECTION, ChromaClientManager
@@ -85,7 +86,9 @@ def faq_to_document(item: dict[str, Any], language: str) -> str:
     for lang_key in ("en", "th", "vi"):
         translation = languages.get(lang_key)
         if isinstance(translation, dict):
-            translations.append(f"{lang_key.upper()} Q: {translation.get('question', '')}\n{lang_key.upper()} A: {translation.get('answer', '')}")
+            translations.append(
+                f"{lang_key.upper()} Q: {translation.get('question', '')}\n{lang_key.upper()} A: {translation.get('answer', '')}"
+            )
 
     return "\n".join(
         [
@@ -253,9 +256,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reset", action="store_true", help="Delete and recreate the collection before building.")
     parser.add_argument("--batch-size", type=int, default=64, help="Embedding/upsert batch size.")
     parser.add_argument("--model-name", default=DEFAULT_EMBEDDING_MODEL, help="SentenceTransformers model name.")
-    parser.add_argument("--strict-embedding", action="store_true", help="Fail instead of using the deterministic fallback embedder.")
-    parser.add_argument("--force-fallback-embedding", action="store_true", help="Use the deterministic fallback embedder for local smoke tests.")
-    parser.add_argument("--dry-run", action="store_true", help="Only load and count documents; do not connect to ChromaDB.")
+    parser.add_argument(
+        "--strict-embedding", action="store_true", help="Fail instead of using the deterministic fallback embedder."
+    )
+    parser.add_argument(
+        "--force-fallback-embedding",
+        action="store_true",
+        help="Use the deterministic fallback embedder for local smoke tests.",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Only load and count documents; do not connect to ChromaDB."
+    )
     return parser.parse_args()
 
 

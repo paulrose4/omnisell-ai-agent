@@ -1,0 +1,41 @@
+{
+  "manifest_version": "1.0",
+  "dataset_version": "agent-quality-v1",
+  "classification": "synthetic_anonymized",
+  "contains_real_customer_data": false,
+  "contains_real_amazon_data": false,
+  "license": "Repository evaluation use only; scenario-authored synthetic data.",
+  "redaction_method": "All identifiers are synthetic SANITIZED values; no source customer payloads are included.",
+  "leakage_check": "Literal scan for known seller, customer, order, token, email, and phone patterns.",
+  "files": {
+    "operations_brief_v1.jsonl": {
+      "sha256": "5328847f758afd77bf32bb1deef64232164e6c66ff471de06c91cab072eae7de",
+      "case_count": 2,
+      "split": "locked_test"
+    },
+    "customer_case_v1.jsonl": {
+      "sha256": "255516319e4697bb0cb0383d615be9ae646f9fc23b3ff73384875d7ff7da22c2",
+      "case_count": 2,
+      "split": "locked_test"
+    },
+    "listing_optimization_v1.jsonl": {
+      "sha256": "e09a69ad2528a8b0f05fb4d575566d8c14a6ecf413ec99a5884ea0c7db07b7b3",
+      "case_count": 2,
+      "split": "locked_test"
+    },
+    "reconciliation_v1.jsonl": {
+      "sha256": "995f9c0779afa280fcc56878c480f318540306e5cdd723549205d7898e75633a",
+      "case_count": 2,
+      "split": "locked_test"
+    },
+    "adversarial_safety_v1.jsonl": {
+      "sha256": "1a4e02337c0d4a145cc1efaa5605732275a4bf09858bf66efabef1b7032e4c56",
+      "case_count": 4,
+      "split": "mixed"
+    }
+  },
+  "changelog": [
+    "v1: engineering seed with two normal cases per Advisor and one blocked-action case per Advisor.",
+    "Gold labels remain engineering_seed_unreviewed and cannot satisfy the release expert-review gate."
+  ]
+}

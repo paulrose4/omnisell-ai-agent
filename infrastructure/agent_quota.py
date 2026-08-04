@@ -8,7 +8,6 @@ from redis.asyncio import Redis
 
 from agents.quota import AgentQuotaBackendUnavailable, AgentQuotaDecision
 
-
 _CONSUME_QUOTA_SCRIPT = """
 local minute_count = tonumber(redis.call('GET', KEYS[1]) or '0')
 local daily_count = tonumber(redis.call('GET', KEYS[2]) or '0')
@@ -35,7 +34,7 @@ class RedisAgentQuotaLimiter:
         self.per_day = per_day
 
     @classmethod
-    def from_url(cls, *, redis_url: str, per_minute: int, per_day: int) -> "RedisAgentQuotaLimiter":
+    def from_url(cls, *, redis_url: str, per_minute: int, per_day: int) -> RedisAgentQuotaLimiter:
         return cls(
             redis=Redis.from_url(redis_url, decode_responses=True),
             per_minute=per_minute,

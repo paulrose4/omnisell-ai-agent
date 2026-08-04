@@ -39,16 +39,16 @@ The original `http://localhost:11434/v1` / `qwen2.5:3b` check returned HTTP 502 
 First check the provider outside the application:
 
 ```powershell
-curl.exe -i "$env:VLLM_BASE_URL/models"
+curl.exe -i "$env:MODEL_BASE_URL/models"
 ```
 
 The selected model must be present in the response. Then run the explicit smoke test:
 
 ```powershell
 $env:REAL_MODEL_SMOKE = "true"
-$env:VLLM_BASE_URL = "https://staging-provider.example/v1"
-$env:VLLM_MODEL_NAME = "approved-model-id"
-$env:VLLM_API_KEY = "staging-key"
+$env:MODEL_BASE_URL = "https://staging-provider.example/v1"
+$env:MODEL_NAME = "approved-model-id"
+$env:MODEL_API_KEY = "staging-key"
 $env:MODEL_INPUT_COST_PER_MILLION = "0.00"
 $env:MODEL_OUTPUT_COST_PER_MILLION = "0.00"
 python scripts/run_real_model_staging_smoke.py

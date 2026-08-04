@@ -1,10 +1,9 @@
-﻿import os
+import os
 import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import APIConnectionError, APIStatusError, OpenAI, OpenAIError
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -13,9 +12,13 @@ def main() -> None:
     load_dotenv(PROJECT_ROOT / ".env.local")
     load_dotenv(PROJECT_ROOT / ".env")
 
-    base_url = os.getenv("LOCAL_VLLM_BASE_URL") or os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
-    model_name = os.getenv("LOCAL_VLLM_MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
-    api_key = os.getenv("LOCAL_VLLM_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
+    base_url = (
+        os.getenv("LOCAL_MODEL_BASE_URL")
+        or os.getenv("MODEL_BASE_URL")
+        or os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
+    )
+    model_name = os.getenv("LOCAL_MODEL_NAME") or os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
+    api_key = os.getenv("LOCAL_MODEL_API_KEY") or os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
 
     client = OpenAI(
         base_url=base_url,

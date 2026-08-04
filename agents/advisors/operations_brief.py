@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from agents.contracts import OperationsBriefAnalysisEnvelope
-from agents.prompts.operations_brief_v4 import OPERATIONS_BRIEF_PROMPT_VERSION, OPERATIONS_BRIEF_SYSTEM_PROMPT
+from agents.prompts.operations_brief_v7 import OPERATIONS_BRIEF_PROMPT_VERSION, OPERATIONS_BRIEF_SYSTEM_PROMPT
 from agents.runtime import StructuredBoundedAdvisor
 from agents.validators.evidence import EvidenceValidator
 from model_gateway.gateway import ModelGateway

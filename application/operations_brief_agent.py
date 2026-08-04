@@ -10,7 +10,6 @@ from typing import Any
 from agents.contracts import EvidenceBundle, EvidenceReference
 from agents.registry import AdvisorRegistry
 
-
 MAX_MODEL_RISK_PACKETS = 12
 MAX_MODEL_EVIDENCE_ITEMS = 14
 
@@ -49,143 +48,158 @@ class OperationsBriefEvidenceCollector:
             for item in self.action_repository.list_actions(tenant_id=tenant_id)
             if item.id in set(brief.priority_action_ids)
         }
-        is_mock = (
-            str((brief.source_manifest or {}).get("mode", "")).lower() == "mock"
-            or any(item.seller_sku.startswith("GOLDEN-") for item in brief.sku_health)
+        is_mock = str((brief.source_manifest or {}).get("mode", "")).lower() == "mock" or any(
+            item.seller_sku.startswith("GOLDEN-") for item in brief.sku_health
         )
         source = "mock" if is_mock else "internal_record"
         collected_at = datetime.now(UTC)
         references: list[EvidenceReference] = []
 
-        brief_metadata = _json_safe({
-            "brief_date": brief.brief_date,
-            "timezone": brief.timezone,
-            "issue_counts": brief.issue_counts,
-            "domain_counts": brief.domain_counts,
-            "total_open_issues": brief.total_open_issues,
-            "data_quality_issue_count": brief.data_quality_issue_count,
-            "impact_by_currency": brief.impact_by_currency,
-            "unallocated_impact_issue_count": brief.unallocated_impact_issue_count,
-            "priority_issue_ids": brief.priority_issue_ids,
-            "priority_action_ids": brief.priority_action_ids,
-            "source_manifest": brief.source_manifest,
-            "deterministic_values": {
+        brief_metadata = _json_safe(
+            {
+                "brief_date": brief.brief_date,
+                "timezone": brief.timezone,
                 "issue_counts": brief.issue_counts,
+                "domain_counts": brief.domain_counts,
+                "total_open_issues": brief.total_open_issues,
+                "data_quality_issue_count": brief.data_quality_issue_count,
                 "impact_by_currency": brief.impact_by_currency,
-                "priority_issue_ids": list(brief.priority_issue_ids),
-                "priority_action_ids": list(brief.priority_action_ids),
-            },
-        })
-        references.append(_reference(
-            evidence_id=brief.id,
-            evidence_type="daily_operations_brief",
-            source=source,
-            resource_type="daily_operations_brief",
-            resource_id=brief.id,
-            observed_at=brief.generated_at,
-            collected_at=collected_at,
-            metadata=brief_metadata,
-            fresh_for=self.fresh_for,
-        ))
+                "unallocated_impact_issue_count": brief.unallocated_impact_issue_count,
+                "priority_issue_ids": brief.priority_issue_ids,
+                "priority_action_ids": brief.priority_action_ids,
+                "source_manifest": brief.source_manifest,
+                "deterministic_values": {
+                    "issue_counts": brief.issue_counts,
+                    "impact_by_currency": brief.impact_by_currency,
+                    "priority_issue_ids": list(brief.priority_issue_ids),
+                    "priority_action_ids": list(brief.priority_action_ids),
+                },
+            }
+        )
+        references.append(
+            _reference(
+                evidence_id=brief.id,
+                evidence_type="daily_operations_brief",
+                source=source,
+                resource_type="daily_operations_brief",
+                resource_id=brief.id,
+                observed_at=brief.generated_at,
+                collected_at=collected_at,
+                metadata=brief_metadata,
+                fresh_for=self.fresh_for,
+            )
+        )
 
         for issue_id in brief.priority_issue_ids:
             issue = issues.get(issue_id)
             if issue is None:
                 continue
-            metadata = _json_safe({
-                "seller_sku": issue.seller_sku,
-                "marketplace_id": issue.marketplace_id,
-                "issue_type": issue.issue_type,
-                "severity": issue.severity,
-                "title": issue.title,
-                "summary": issue.summary,
-                "status": issue.status,
-                "confidence": issue.confidence,
-                "missing_data": issue.missing_data,
-                "degraded_reason": issue.degraded_reason,
-                "currency": issue.currency,
-                "evidence": issue.evidence,
-                "deterministic_values": {
-                    "priority_score": str(issue.priority_score),
-                    "estimated_revenue_impact": _money(issue.estimated_revenue_impact, issue.currency),
-                    "estimated_profit_impact": _money(issue.estimated_profit_impact, issue.currency),
-                    "estimated_cost_impact": _money(issue.estimated_cost_impact, issue.currency),
-                },
-            })
-            references.append(_reference(
-                evidence_id=issue.id,
-                evidence_type="operational_issue",
-                source=source,
-                resource_type="operational_issue",
-                resource_id=issue.id,
-                observed_at=issue.data_freshness_at,
-                collected_at=collected_at,
-                metadata=metadata,
-                fresh_for=self.fresh_for,
-                confidence=issue.confidence,
-            ))
+            metadata = _json_safe(
+                {
+                    "seller_sku": issue.seller_sku,
+                    "marketplace_id": issue.marketplace_id,
+                    "issue_type": issue.issue_type,
+                    "severity": issue.severity,
+                    "title": issue.title,
+                    "summary": issue.summary,
+                    "status": issue.status,
+                    "confidence": issue.confidence,
+                    "missing_data": issue.missing_data,
+                    "degraded_reason": issue.degraded_reason,
+                    "currency": issue.currency,
+                    "evidence": issue.evidence,
+                    "deterministic_values": {
+                        "priority_score": str(issue.priority_score),
+                        "estimated_revenue_impact": _money(issue.estimated_revenue_impact, issue.currency),
+                        "estimated_profit_impact": _money(issue.estimated_profit_impact, issue.currency),
+                        "estimated_cost_impact": _money(issue.estimated_cost_impact, issue.currency),
+                    },
+                }
+            )
+            references.append(
+                _reference(
+                    evidence_id=issue.id,
+                    evidence_type="operational_issue",
+                    source=source,
+                    resource_type="operational_issue",
+                    resource_id=issue.id,
+                    observed_at=issue.data_freshness_at,
+                    collected_at=collected_at,
+                    metadata=metadata,
+                    fresh_for=self.fresh_for,
+                    confidence=issue.confidence,
+                )
+            )
 
         for action_id in brief.priority_action_ids:
             action = actions.get(action_id)
             if action is None:
                 continue
-            metadata = _json_safe({
-                "issue_id": action.issue_id,
-                "action_type": action.action_type,
-                "title": action.title,
-                "description": action.description,
-                "execution_mode": action.execution_mode,
-                "risk_level": action.risk_level,
-                "status": action.status,
-                "parameters": action.parameters,
-                "expected_outcome": action.expected_outcome,
-                "confidence": action.confidence,
-                "automation_eligible": False,
-                "evidence": action.evidence,
-                "deterministic_values": {
-                    "expected_revenue_impact": _money(action.expected_revenue_impact, action.currency),
-                    "expected_profit_impact": _money(action.expected_profit_impact, action.currency),
-                    "expected_cost_impact": _money(action.expected_cost_impact, action.currency),
-                },
-            })
-            references.append(_reference(
-                evidence_id=action.id,
-                evidence_type="recommended_action",
-                source=source,
-                resource_type="recommended_action",
-                resource_id=action.id,
-                observed_at=brief.generated_at,
-                collected_at=collected_at,
-                metadata=metadata,
-                fresh_for=self.fresh_for,
-                confidence=action.confidence,
-            ))
+            metadata = _json_safe(
+                {
+                    "issue_id": action.issue_id,
+                    "action_type": action.action_type,
+                    "title": action.title,
+                    "description": action.description,
+                    "execution_mode": action.execution_mode,
+                    "risk_level": action.risk_level,
+                    "status": action.status,
+                    "parameters": action.parameters,
+                    "expected_outcome": action.expected_outcome,
+                    "confidence": action.confidence,
+                    "automation_eligible": False,
+                    "evidence": action.evidence,
+                    "deterministic_values": {
+                        "expected_revenue_impact": _money(action.expected_revenue_impact, action.currency),
+                        "expected_profit_impact": _money(action.expected_profit_impact, action.currency),
+                        "expected_cost_impact": _money(action.expected_cost_impact, action.currency),
+                    },
+                }
+            )
+            references.append(
+                _reference(
+                    evidence_id=action.id,
+                    evidence_type="recommended_action",
+                    source=source,
+                    resource_type="recommended_action",
+                    resource_id=action.id,
+                    observed_at=brief.generated_at,
+                    collected_at=collected_at,
+                    metadata=metadata,
+                    fresh_for=self.fresh_for,
+                    confidence=action.confidence,
+                )
+            )
 
         for item in brief.sku_health:
             evidence_id = f"sku-health:{item.seller_sku}:{item.marketplace_id}"
-            metadata = _json_safe({
-                "seller_sku": item.seller_sku,
-                "marketplace_id": item.marketplace_id,
-                "health_status": item.health_status,
-                "highest_severity": item.highest_severity,
-                "open_issue_count": item.open_issue_count,
-                "issue_types": item.issue_types,
-                "recommended_action_ids": item.recommended_action_ids,
-                "impact_by_currency": item.impact_by_currency,
-                "has_data_quality_risk": item.has_data_quality_risk,
-                "deterministic_values": {"impact_by_currency": item.impact_by_currency},
-            })
-            references.append(_reference(
-                evidence_id=evidence_id,
-                evidence_type="sku_health_summary",
-                source=source,
-                resource_type="sku_health_summary",
-                resource_id=evidence_id,
-                observed_at=item.last_detected_at,
-                collected_at=collected_at,
-                metadata=metadata,
-                fresh_for=self.fresh_for,
-            ))
+            metadata = _json_safe(
+                {
+                    "seller_sku": item.seller_sku,
+                    "marketplace_id": item.marketplace_id,
+                    "health_status": item.health_status,
+                    "highest_severity": item.highest_severity,
+                    "open_issue_count": item.open_issue_count,
+                    "issue_types": item.issue_types,
+                    "recommended_action_ids": item.recommended_action_ids,
+                    "impact_by_currency": item.impact_by_currency,
+                    "has_data_quality_risk": item.has_data_quality_risk,
+                    "deterministic_values": {"impact_by_currency": item.impact_by_currency},
+                }
+            )
+            references.append(
+                _reference(
+                    evidence_id=evidence_id,
+                    evidence_type="sku_health_summary",
+                    source=source,
+                    resource_type="sku_health_summary",
+                    resource_id=evidence_id,
+                    observed_at=item.last_detected_at,
+                    collected_at=collected_at,
+                    metadata=metadata,
+                    fresh_for=self.fresh_for,
+                )
+            )
         if len(references) > MAX_MODEL_EVIDENCE_ITEMS:
             references = _compact_operations_brief_references(
                 brief_reference=references[0],
@@ -203,7 +217,14 @@ class OperationsBriefEvidenceCollector:
 class OperationsBriefAgentService:
     WORKFLOW_TYPE = "operations_brief_analysis"
 
-    def __init__(self, *, workflow: Any, registry: AdvisorRegistry, evidence_collector: OperationsBriefEvidenceCollector, budget: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        workflow: Any,
+        registry: AdvisorRegistry,
+        evidence_collector: OperationsBriefEvidenceCollector,
+        budget: dict[str, Any] | None = None,
+    ) -> None:
         self.workflow = workflow
         self.registry = registry
         self.evidence_collector = evidence_collector
@@ -251,7 +272,9 @@ def _reference(
     confidence: Decimal = Decimal("1"),
 ) -> EvidenceReference:
     freshness_status = "fresh" if collected_at - observed_at <= fresh_for else "stale"
-    digest = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(
+        json.dumps(metadata, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
     return EvidenceReference(
         evidence_id=evidence_id,
         evidence_type=evidence_type,
@@ -305,24 +328,23 @@ def _compact_operations_brief_references(
             "covered_evidence_ids": [
                 issue.id,
                 *(action.id for action in related_actions),
-                *(
-                    [f"sku-health:{health.seller_sku}:{health.marketplace_id}"]
-                    if health is not None else []
-                ),
+                *([f"sku-health:{health.seller_sku}:{health.marketplace_id}"] if health is not None else []),
             ],
         }
-        compacted.append(_reference(
-            evidence_id=f"risk-packet:{issue.id}",
-            evidence_type="operations_risk_packet",
-            source=source,
-            resource_type="operational_issue",
-            resource_id=issue.id,
-            observed_at=issue.data_freshness_at,
-            collected_at=collected_at,
-            metadata=_json_safe(metadata),
-            fresh_for=fresh_for,
-            confidence=issue.confidence,
-        ))
+        compacted.append(
+            _reference(
+                evidence_id=f"risk-packet:{issue.id}",
+                evidence_type="operations_risk_packet",
+                source=source,
+                resource_type="operational_issue",
+                resource_id=issue.id,
+                observed_at=issue.data_freshness_at,
+                collected_at=collected_at,
+                metadata=_json_safe(metadata),
+                fresh_for=fresh_for,
+                confidence=issue.confidence,
+            )
+        )
 
     if remainder_issues:
         remainder_actions = [
@@ -343,18 +365,20 @@ def _compact_operations_brief_references(
                 *(action.id for action in remainder_actions),
             ],
         }
-        compacted.append(_reference(
-            evidence_id=f"risk-remainder:{brief_reference.evidence_id}",
-            evidence_type="operations_risk_remainder",
-            source=source,
-            resource_type="daily_operations_brief",
-            resource_id=brief_reference.resource_id,
-            observed_at=brief_reference.observed_at or collected_at,
-            collected_at=collected_at,
-            metadata=_json_safe(metadata),
-            fresh_for=fresh_for,
-            confidence=min((issue.confidence for issue in remainder_issues), default=Decimal("1")),
-        ))
+        compacted.append(
+            _reference(
+                evidence_id=f"risk-remainder:{brief_reference.evidence_id}",
+                evidence_type="operations_risk_remainder",
+                source=source,
+                resource_type="daily_operations_brief",
+                resource_id=brief_reference.resource_id,
+                observed_at=brief_reference.observed_at or collected_at,
+                collected_at=collected_at,
+                metadata=_json_safe(metadata),
+                fresh_for=fresh_for,
+                confidence=min((issue.confidence for issue in remainder_issues), default=Decimal("1")),
+            )
+        )
     return compacted
 
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from threading import Lock
-from typing import Callable, Literal, Protocol
-
+from typing import Literal, Protocol
 
 QuotaScope = Literal["minute", "day"]
 

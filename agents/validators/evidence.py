@@ -4,7 +4,9 @@ import re
 from decimal import Decimal
 from typing import Any
 
-from agents.contracts import AgentAnalysisEnvelope, AgentProposedAction, EvidenceBundle, EvidenceReference
+from pydantic import BaseModel
+
+from agents.contracts import AgentAnalysisEnvelope, AgentProposedActionBase, EvidenceBundle, EvidenceReference
 
 
 class EvidenceValidationError(RuntimeError):
@@ -61,16 +63,19 @@ class EvidenceValidator:
             raise EvidenceValidationError(f"Agent referenced evidence not present in bundle: {', '.join(unknown_ids)}")
 
         referenced_evidence = [evidence_by_id[evidence_id] for evidence_id in referenced_ids]
-        if any(item.blocking for item in analysis.missing_data) and analysis.confidence > self.BLOCKING_MISSING_DATA_CAP:
-            raise EvidenceValidationError(
-                f"blocking missing data caps confidence at {self.BLOCKING_MISSING_DATA_CAP}"
-            )
-        if analysis.confidence >= self.HIGH_CONFIDENCE_THRESHOLD:
-            if not referenced_evidence or any(item.freshness_status != "fresh" for item in referenced_evidence):
-                raise EvidenceValidationError("confidence >= 0.90 requires fresh referenced evidence")
-        if analysis.confidence >= self.STRUCTURED_CONFIDENCE_THRESHOLD:
-            if not any(item.source in self.STRUCTURED_SOURCES for item in referenced_evidence):
-                raise EvidenceValidationError("confidence >= 0.75 requires structured internal or platform evidence")
+        if (
+            any(item.blocking for item in analysis.missing_data)
+            and analysis.confidence > self.BLOCKING_MISSING_DATA_CAP
+        ):
+            raise EvidenceValidationError(f"blocking missing data caps confidence at {self.BLOCKING_MISSING_DATA_CAP}")
+        if analysis.confidence >= self.HIGH_CONFIDENCE_THRESHOLD and (
+            not referenced_evidence or any(item.freshness_status != "fresh" for item in referenced_evidence)
+        ):
+            raise EvidenceValidationError("confidence >= 0.90 requires fresh referenced evidence")
+        if analysis.confidence >= self.STRUCTURED_CONFIDENCE_THRESHOLD and not any(
+            item.source in self.STRUCTURED_SOURCES for item in referenced_evidence
+        ):
+            raise EvidenceValidationError("confidence >= 0.75 requires structured internal or platform evidence")
 
         resource_ids = {item.resource_id for item in referenced_evidence}
         for action in (*analysis.proposed_actions, *analysis.prohibited_actions):
@@ -91,7 +96,7 @@ class EvidenceValidator:
             evidence_ids.update(action.evidence_ids)
         return evidence_ids
 
-    def _validate_action_boundary(self, action: AgentProposedAction) -> None:
+    def _validate_action_boundary(self, action: AgentProposedActionBase) -> None:
         normalized = re.sub(r"[^a-z0-9]+", "_", action.action_type.strip().lower()).strip("_")
         permanently_prohibited = (
             normalized in self.PERMANENTLY_PROHIBITED_ACTIONS
@@ -110,7 +115,7 @@ class EvidenceValidator:
 
     def _validate_deterministic_values(
         self,
-        action: AgentProposedAction,
+        action: AgentProposedActionBase,
         evidence_by_id: dict[str, EvidenceReference],
     ) -> None:
         expected: dict[str, Any] = {}
@@ -142,6 +147,8 @@ class EvidenceValidator:
 
     @classmethod
     def _flatten(cls, value: Any, prefix: str = "") -> dict[str, Any]:
+        if isinstance(value, BaseModel):
+            value = value.model_dump(mode="json")
         if isinstance(value, dict):
             flattened: dict[str, Any] = {}
             for key, item in value.items():

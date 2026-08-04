@@ -3,9 +3,8 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
-
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 

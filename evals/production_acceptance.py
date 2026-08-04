@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Any, Iterable
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Any
 
 from domain.inventory import InventoryHealthCalculator, InventoryHealthInput
 from domain.listing_quality import ListingQualityEvaluator, ListingQualityInput
@@ -12,7 +13,6 @@ from domain.operational_intelligence import AmazonOperationalSignal, diagnose_ad
 from domain.operations import OperationalIssueDetector
 from domain.profitability import ProfitCalculationInput, ProfitCalculator
 from safety.policy_engine import PolicyDecision, PolicyEngine
-
 
 MARKETPLACE_ID = "ATVPDKIKX0DER"
 TENANT_ID = "synthetic-replay-tenant"
@@ -65,7 +65,10 @@ def generate_synthetic_replay(*, days: int = 90, end_at: datetime | None = None)
 
 
 def score_predictions(
-    *, gold: set[str], predicted: set[str], high_priority_gold: set[str] | None = None,
+    *,
+    gold: set[str],
+    predicted: set[str],
+    high_priority_gold: set[str] | None = None,
 ) -> dict[str, Any]:
     true_positive = len(gold & predicted)
     false_positive = len(predicted - gold)
@@ -124,20 +127,26 @@ def evaluate_replay(dataset: dict[str, Any]) -> dict[str, Any]:
                 degraded_predictions += 1
                 if not finding.get("degraded_reason"):
                     degraded_without_reason += 1
-            detection_details.append({
-                "record_id": record["record_id"],
-                "domain": record["domain"],
-                "seller_sku": record["seller_sku"],
-                **finding,
-            })
+            detection_details.append(
+                {
+                    "record_id": record["record_id"],
+                    "domain": record["domain"],
+                    "seller_sku": record["seller_sku"],
+                    **finding,
+                }
+            )
 
     metrics = score_predictions(gold=gold, predicted=predicted, high_priority_gold=high_priority_gold)
-    metrics.update({
-        "high_priority_sla_compliance": _format_rate(_ratio(high_priority_within_sla, high_priority_total)),
-        "degraded_reason_visibility": _format_rate(_ratio(degraded_predictions - degraded_without_reason, degraded_predictions)),
-        "degraded_detection_count": degraded_predictions,
-        "degraded_without_reason": degraded_without_reason,
-    })
+    metrics.update(
+        {
+            "high_priority_sla_compliance": _format_rate(_ratio(high_priority_within_sla, high_priority_total)),
+            "degraded_reason_visibility": _format_rate(
+                _ratio(degraded_predictions - degraded_without_reason, degraded_predictions)
+            ),
+            "degraded_detection_count": degraded_predictions,
+            "degraded_without_reason": degraded_without_reason,
+        }
+    )
     safety = _evaluate_safety_boundaries(dataset)
     metrics["safety_incident_count"] = safety["incident_count"]
     modeled_efficiency = _modeled_efficiency()
@@ -149,27 +158,33 @@ def evaluate_replay(dataset: dict[str, Any]) -> dict[str, Any]:
     )
     gates = {
         "synthetic_rule_replay": _gate(
-            "passed" if synthetic_passed else "failed", "verified_by_synthetic_replay",
+            "passed" if synthetic_passed else "failed",
+            "verified_by_synthetic_replay",
             "Deterministic anomaly rules, provenance labels, degraded reasons, and policy probes.",
         ),
         "expert_blind_review": _gate(
-            "not_verified", "requires_expert_real_model_validation",
+            "not_verified",
+            "requires_expert_real_model_validation",
             "Requires real Advisor and human candidates scored by at least three named Amazon operators.",
         ),
         "real_model_structured_output": _gate(
-            "not_verified", "requires_expert_real_model_validation",
+            "not_verified",
+            "requires_expert_real_model_validation",
             "Requires provider JSON Schema, timeout, rejection, repair, token, cost, and Chinese-quality evidence.",
         ),
         "real_amazon_traceability": _gate(
-            "not_verified", "requires_real_amazon_shadow_pilot",
+            "not_verified",
+            "requires_real_amazon_shadow_pilot",
             "The replay intentionally contains zero Amazon-verified facts.",
         ),
         "shadow_mode_business_effect": _gate(
-            "not_verified", "requires_real_amazon_shadow_pilot",
+            "not_verified",
+            "requires_real_amazon_shadow_pilot",
             "Requires 2-4 weeks of observed operator work, missed incidents, alert dismissals, and SLA outcomes.",
         ),
         "observed_efficiency_improvement": _gate(
-            "not_verified", "requires_real_amazon_shadow_pilot",
+            "not_verified",
+            "requires_real_amazon_shadow_pilot",
             "The replay includes an explicitly modeled estimate, not observed labor-time evidence.",
         ),
     }
@@ -203,8 +218,13 @@ def evaluate_replay(dataset: dict[str, Any]) -> dict[str, Any]:
 
 def generate_blind_review_template(candidates: Iterable[dict[str, str]]) -> dict[str, Any]:
     dimensions = (
-        "factual_grounding", "evidence_citation", "missing_data_honesty",
-        "amazon_operational_usefulness", "next_step_clarity", "policy_safety", "chinese_quality",
+        "factual_grounding",
+        "evidence_citation",
+        "missing_data_honesty",
+        "amazon_operational_usefulness",
+        "next_step_clarity",
+        "policy_safety",
+        "chinese_quality",
     )
     return {
         "rubric_version": "advisor-blind-review-v1",
@@ -260,80 +280,180 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     ]
     for name, gate in report["gates"].items():
         lines.append(f"| {name} | {gate['status']} | {gate['evidence_class']} |")
-    lines.extend([
-        "",
-        "## Interpretation",
-        "",
-        "This replay validates deterministic business-rule coverage and evaluation plumbing only. It does not prove real Seller mappings, real-model recommendation quality, actual labor savings, or 2-4 week Shadow Mode performance.",
-        "",
-        "The correct current release statement is: conditional go for an internal read-only pilot; no-go for a company production claim until all external gates are completed and signed.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Interpretation",
+            "",
+            "This replay validates deterministic business-rule coverage and evaluation plumbing only. It does not prove real Seller mappings, real-model recommendation quality, actual labor savings, or 2-4 week Shadow Mode performance.",
+            "",
+            "The correct current release statement is: conditional go for an internal read-only pilot; no-go for a company production claim until all external gates are completed and signed.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
 def _daily_inventory_records(observed_at: datetime, anomaly_active: bool) -> list[dict[str, Any]]:
     scenarios = (
         ("SYN-INV-HEALTHY", "healthy", 600, 10, None),
-        ("SYN-INV-STOCKOUT", "stockout", 20 if anomaly_active else 600, 10, "inventory_stockout_risk" if anomaly_active else None),
-        ("SYN-INV-EXCESS", "excess", 1200 if anomaly_active else 120, 2, "inventory_excess" if anomaly_active else None),
+        (
+            "SYN-INV-STOCKOUT",
+            "stockout",
+            20 if anomaly_active else 600,
+            10,
+            "inventory_stockout_risk" if anomaly_active else None,
+        ),
+        (
+            "SYN-INV-EXCESS",
+            "excess",
+            1200 if anomaly_active else 120,
+            2,
+            "inventory_excess" if anomaly_active else None,
+        ),
         ("SYN-INV-STALE", "stale", 600, 10, "inventory_data_quality" if anomaly_active else None),
     )
     records = []
     for sku, scenario, available, daily_sales, label in scenarios:
         labels = []
         if label:
-            labels.append({"code": label, "severity": "critical" if label == "inventory_stockout_risk" else "high" if label == "inventory_excess" else "medium"})
-        records.append(_record(
-            observed_at, "inventory", sku, scenario,
-            {
-                "available": available, "reserved": 0, "inbound": 0, "in_transit": 0, "unsellable": 0,
-                "sales_7_days": daily_sales * 7, "sales_14_days": daily_sales * 14,
-                "sales_30_days": daily_sales * 30, "collection_age_hours": 12 if scenario == "stale" and anomaly_active else 1,
-                "unit_revenue": "29.99", "unit_contribution_profit": "8.00",
-            }, labels,
-        ))
+            labels.append(
+                {
+                    "code": label,
+                    "severity": "critical"
+                    if label == "inventory_stockout_risk"
+                    else "high"
+                    if label == "inventory_excess"
+                    else "medium",
+                }
+            )
+        records.append(
+            _record(
+                observed_at,
+                "inventory",
+                sku,
+                scenario,
+                {
+                    "available": available,
+                    "reserved": 0,
+                    "inbound": 0,
+                    "in_transit": 0,
+                    "unsellable": 0,
+                    "sales_7_days": daily_sales * 7,
+                    "sales_14_days": daily_sales * 14,
+                    "sales_30_days": daily_sales * 30,
+                    "collection_age_hours": 12 if scenario == "stale" and anomaly_active else 1,
+                    "unit_revenue": "29.99",
+                    "unit_contribution_profit": "8.00",
+                },
+                labels,
+            )
+        )
     return records
 
 
 def _daily_profit_records(observed_at: datetime, anomaly_active: bool) -> list[dict[str, Any]]:
     scenarios = (
         ("SYN-PROFIT-HEALTHY", "healthy", "299.90", False, None),
-        ("SYN-PROFIT-LOSS", "loss", "140.00" if anomaly_active else "299.90", False, "sku_contribution_loss" if anomaly_active else None),
-        ("SYN-PROFIT-MISSING", "missing_cost", "299.90", anomaly_active, "profit_data_quality" if anomaly_active else None),
+        (
+            "SYN-PROFIT-LOSS",
+            "loss",
+            "140.00" if anomaly_active else "299.90",
+            False,
+            "sku_contribution_loss" if anomaly_active else None,
+        ),
+        (
+            "SYN-PROFIT-MISSING",
+            "missing_cost",
+            "299.90",
+            anomaly_active,
+            "profit_data_quality" if anomaly_active else None,
+        ),
     )
     records = []
     for sku, scenario, sales, missing_cost, label in scenarios:
-        labels = [{"code": label, "severity": "critical" if label == "sku_contribution_loss" else "high"}] if label else []
-        records.append(_record(
-            observed_at, "profitability", sku, scenario,
-            {
-                "currency": "USD", "units": 10, "item_sales": sales, "advertising_cost": "10.00",
-                "advertising_attributed_sales": sales, "missing_packaging_cost": missing_cost,
-            }, labels,
-        ))
+        labels = (
+            [{"code": label, "severity": "critical" if label == "sku_contribution_loss" else "high"}] if label else []
+        )
+        records.append(
+            _record(
+                observed_at,
+                "profitability",
+                sku,
+                scenario,
+                {
+                    "currency": "USD",
+                    "units": 10,
+                    "item_sales": sales,
+                    "advertising_cost": "10.00",
+                    "advertising_attributed_sales": sales,
+                    "missing_packaging_cost": missing_cost,
+                },
+                labels,
+            )
+        )
     return records
 
 
 def _daily_advertising_records(observed_at: datetime, anomaly_active: bool) -> list[dict[str, Any]]:
     scenarios = (
         ("SYN-ADS-HEALTHY", "healthy", "50", "500", 100, 10, "1000", None),
-        ("SYN-ADS-ACOS", "high_acos", "100" if anomaly_active else "50", "200" if anomaly_active else "500", 100, 10, "1000", "acos_above_break_even" if anomaly_active else None),
-        ("SYN-ADS-WASTE", "click_waste", "100" if anomaly_active else "20", "0" if anomaly_active else "300", 25, 0 if anomaly_active else 5, "1000", "click_waste_without_orders" if anomaly_active else None),
-        ("SYN-ADS-BUDGET", "budget", "180" if anomaly_active else "50", "1000", 100, 10, "300" if anomaly_active else "1000", "budget_projected_to_exhaust_early" if anomaly_active else None),
+        (
+            "SYN-ADS-ACOS",
+            "high_acos",
+            "100" if anomaly_active else "50",
+            "200" if anomaly_active else "500",
+            100,
+            10,
+            "1000",
+            "acos_above_break_even" if anomaly_active else None,
+        ),
+        (
+            "SYN-ADS-WASTE",
+            "click_waste",
+            "100" if anomaly_active else "20",
+            "0" if anomaly_active else "300",
+            25,
+            0 if anomaly_active else 5,
+            "1000",
+            "click_waste_without_orders" if anomaly_active else None,
+        ),
+        (
+            "SYN-ADS-BUDGET",
+            "budget",
+            "180" if anomaly_active else "50",
+            "1000",
+            100,
+            10,
+            "300" if anomaly_active else "1000",
+            "budget_projected_to_exhaust_early" if anomaly_active else None,
+        ),
     )
     records = []
     for sku, scenario, spend, attributed_sales, clicks, orders, budget, label in scenarios:
         severity = "high" if label in {"acos_above_break_even", "click_waste_without_orders"} else "medium"
-        records.append(_record(
-            observed_at, "advertising", sku, scenario,
-            {
-                "campaign_id": f"campaign-{sku.lower()}", "spend": spend,
-                "attributed_sales": attributed_sales, "total_sales": "1200", "impressions": 10000,
-                "clicks": clicks, "orders": orders, "budget": budget, "elapsed_days": "3",
-                "period_days": "7", "break_even_acos": "0.30",
-            }, [{"code": label, "severity": severity}] if label else [],
-        ))
+        records.append(
+            _record(
+                observed_at,
+                "advertising",
+                sku,
+                scenario,
+                {
+                    "campaign_id": f"campaign-{sku.lower()}",
+                    "spend": spend,
+                    "attributed_sales": attributed_sales,
+                    "total_sales": "1200",
+                    "impressions": 10000,
+                    "clicks": clicks,
+                    "orders": orders,
+                    "budget": budget,
+                    "elapsed_days": "3",
+                    "period_days": "7",
+                    "break_even_acos": "0.30",
+                },
+                [{"code": label, "severity": severity}] if label else [],
+            )
+        )
     return records
 
 
@@ -342,17 +462,25 @@ def _daily_listing_records(observed_at: datetime, anomaly_active: bool) -> list[
         "title": "Stainless Steel Insulated Travel Bottle for Office and Outdoor Use",
         "bullet_points": ["Durable steel", "Leak resistant", "Easy clean", "Fits cup holders", "Reusable design"],
         "description": "Detailed verified product information. " * 20,
-        "image_count": 7, "search_terms": ["travel bottle", "steel bottle", "office bottle", "reusable bottle", "outdoor bottle"],
+        "image_count": 7,
+        "search_terms": ["travel bottle", "steel bottle", "office bottle", "reusable bottle", "outdoor bottle"],
         "status": "active",
     }
     poor = {
-        "title": "Bottle", "bullet_points": ["Steel"], "description": "Short description.",
-        "image_count": 1, "search_terms": [], "status": "active",
+        "title": "Bottle",
+        "bullet_points": ["Steel"],
+        "description": "Short description.",
+        "image_count": 1,
+        "search_terms": [],
+        "status": "active",
     }
     return [
         _record(observed_at, "listing", "SYN-LISTING-GOOD", "healthy", good, []),
         _record(
-            observed_at, "listing", "SYN-LISTING-POOR", "poor" if anomaly_active else "healthy",
+            observed_at,
+            "listing",
+            "SYN-LISTING-POOR",
+            "poor" if anomaly_active else "healthy",
             poor if anomaly_active else good,
             [{"code": "listing_quality_risk", "severity": "critical"}] if anomaly_active else [],
         ),
@@ -363,11 +491,18 @@ def _daily_voc_records(observed_at: datetime, anomaly_active: bool) -> list[dict
     actionable_returns = [{"reason_code": "damaged", "quantity": 1} for _ in range(6)] if anomaly_active else []
     return [
         _record(
-            observed_at, "voc", "SYN-VOC-LOW-SAMPLE", "insufficient_sample",
-            {"returns": [{"reason_code": "damaged", "quantity": 1} for _ in range(3)], "reviews": [], "messages": []}, [],
+            observed_at,
+            "voc",
+            "SYN-VOC-LOW-SAMPLE",
+            "insufficient_sample",
+            {"returns": [{"reason_code": "damaged", "quantity": 1} for _ in range(3)], "reviews": [], "messages": []},
+            [],
         ),
         _record(
-            observed_at, "voc", "SYN-VOC-DAMAGE", "damaged_cluster" if anomaly_active else "healthy",
+            observed_at,
+            "voc",
+            "SYN-VOC-DAMAGE",
+            "damaged_cluster" if anomaly_active else "healthy",
             {"returns": actionable_returns, "reviews": [], "messages": []},
             [{"code": "voc_actionable", "severity": "high"}] if anomaly_active else [],
         ),
@@ -383,17 +518,31 @@ def _daily_amazon_signal_records(observed_at: datetime, anomaly_active: bool) ->
     )
     records = []
     for sku, signal_type, severity in scenarios:
-        records.append(_record(
-            observed_at, "amazon_signal", sku, signal_type,
-            {"signal_type": signal_type, "severity": severity, "raw_status_code": signal_type.upper(), "active": anomaly_active},
-            [{"code": signal_type, "severity": severity}] if anomaly_active else [],
-        ))
+        records.append(
+            _record(
+                observed_at,
+                "amazon_signal",
+                sku,
+                signal_type,
+                {
+                    "signal_type": signal_type,
+                    "severity": severity,
+                    "raw_status_code": signal_type.upper(),
+                    "active": anomaly_active,
+                },
+                [{"code": signal_type, "severity": severity}] if anomaly_active else [],
+            )
+        )
     return records
 
 
 def _record(
-    observed_at: datetime, domain: str, seller_sku: str, scenario: str,
-    payload: dict[str, Any], gold_labels: list[dict[str, str]],
+    observed_at: datetime,
+    domain: str,
+    seller_sku: str,
+    scenario: str,
+    payload: dict[str, Any],
+    gold_labels: list[dict[str, str]],
 ) -> dict[str, Any]:
     return {
         "record_id": f"{observed_at.date().isoformat()}:{domain}:{seller_sku}",
@@ -433,34 +582,60 @@ def _evaluate_inventory(record: dict[str, Any]) -> list[dict[str, Any]]:
     observed_at = datetime.fromisoformat(record["observed_at"])
     payload = record["payload"]
     policy = InventoryPolicy(
-        tenant_id=TENANT_ID, seller_sku=record["seller_sku"], marketplace_id=MARKETPLACE_ID,
-        supplier_lead_time_days=5, production_lead_time_days=10, shipping_lead_time_days=25,
-        amazon_receiving_days=7, safety_stock_days=7, target_coverage_days=60,
-        minimum_order_quantity=100, case_pack_quantity=20, preferred_shipping_mode="sea",
-        sales_weight_7d=Decimal("0.50"), sales_weight_14d=Decimal("0.30"), sales_weight_30d=Decimal("0.20"),
-        source="mock", effective_from=observed_at - timedelta(days=365), collected_at=observed_at, created_at=observed_at,
+        tenant_id=TENANT_ID,
+        seller_sku=record["seller_sku"],
+        marketplace_id=MARKETPLACE_ID,
+        supplier_lead_time_days=5,
+        production_lead_time_days=10,
+        shipping_lead_time_days=25,
+        amazon_receiving_days=7,
+        safety_stock_days=7,
+        target_coverage_days=60,
+        minimum_order_quantity=100,
+        case_pack_quantity=20,
+        preferred_shipping_mode="sea",
+        sales_weight_7d=Decimal("0.50"),
+        sales_weight_14d=Decimal("0.30"),
+        sales_weight_30d=Decimal("0.20"),
+        source="mock",
+        effective_from=observed_at - timedelta(days=365),
+        collected_at=observed_at,
+        created_at=observed_at,
     )
     snapshot = InventoryHealthCalculator().calculate(
         policy=policy,
         input_data=InventoryHealthInput(
-            tenant_id=TENANT_ID, seller_sku=record["seller_sku"], marketplace_id=MARKETPLACE_ID,
-            available=int(payload["available"]), reserved=int(payload["reserved"]), inbound=int(payload["inbound"]),
-            in_transit=int(payload["in_transit"]), unsellable=int(payload["unsellable"]),
-            sales_7_days=int(payload["sales_7_days"]), sales_14_days=int(payload["sales_14_days"]),
-            sales_30_days=int(payload["sales_30_days"]), inventory_source=record["source"],
+            tenant_id=TENANT_ID,
+            seller_sku=record["seller_sku"],
+            marketplace_id=MARKETPLACE_ID,
+            available=int(payload["available"]),
+            reserved=int(payload["reserved"]),
+            inbound=int(payload["inbound"]),
+            in_transit=int(payload["in_transit"]),
+            unsellable=int(payload["unsellable"]),
+            sales_7_days=int(payload["sales_7_days"]),
+            sales_14_days=int(payload["sales_14_days"]),
+            sales_30_days=int(payload["sales_30_days"]),
+            inventory_source=record["source"],
             inventory_collected_at=observed_at - timedelta(hours=int(payload["collection_age_hours"])),
-            calculated_at=observed_at, unit_revenue=Decimal(payload["unit_revenue"]),
+            calculated_at=observed_at,
+            unit_revenue=Decimal(payload["unit_revenue"]),
             unit_contribution_profit=Decimal(payload["unit_contribution_profit"]),
         ),
     )
     result = OperationalIssueDetector().detect(
-        tenant_id=TENANT_ID, inventory_snapshots=[snapshot], profit_snapshots=[], detected_at=observed_at,
+        tenant_id=TENANT_ID,
+        inventory_snapshots=[snapshot],
+        profit_snapshots=[],
+        detected_at=observed_at,
     )
     return [
         {
-            "code": issue.issue_type, "severity": issue.severity,
+            "code": issue.issue_type,
+            "severity": issue.severity,
             "degraded": bool(issue.degraded_reason or issue.missing_data),
-            "degraded_reason": issue.degraded_reason or ("missing_data:" + ",".join(issue.missing_data) if issue.missing_data else None),
+            "degraded_reason": issue.degraded_reason
+            or ("missing_data:" + ",".join(issue.missing_data) if issue.missing_data else None),
         }
         for issue in result.issues
     ]
@@ -470,32 +645,57 @@ def _evaluate_profit(record: dict[str, Any]) -> list[dict[str, Any]]:
     observed_at = datetime.fromisoformat(record["observed_at"])
     payload = record["payload"]
     profile = SKUCostProfile(
-        tenant_id=TENANT_ID, seller_sku=record["seller_sku"], marketplace_id=MARKETPLACE_ID, currency="USD",
-        product_cost=Decimal("6.00"), domestic_shipping_cost=Decimal("0.60"), international_freight_cost=Decimal("1.50"),
-        duty_cost=Decimal("0.50"), prep_cost=Decimal("0.40"), packaging_cost=None if payload["missing_packaging_cost"] else Decimal("0.35"),
-        estimated_referral_fee_rate=Decimal("0.15"), estimated_fulfillment_fee=Decimal("4.25"),
-        estimated_storage_cost=Decimal("0.20"), estimated_return_loss_rate=Decimal("0.02"),
-        exchange_rate_buffer_rate=Decimal("0.01"), target_margin_rate=Decimal("0.20"), minimum_margin_rate=Decimal("0.10"),
-        effective_from=observed_at - timedelta(days=365), source="mock", collected_at=observed_at, created_at=observed_at,
+        tenant_id=TENANT_ID,
+        seller_sku=record["seller_sku"],
+        marketplace_id=MARKETPLACE_ID,
+        currency="USD",
+        product_cost=Decimal("6.00"),
+        domestic_shipping_cost=Decimal("0.60"),
+        international_freight_cost=Decimal("1.50"),
+        duty_cost=Decimal("0.50"),
+        prep_cost=Decimal("0.40"),
+        packaging_cost=None if payload["missing_packaging_cost"] else Decimal("0.35"),
+        estimated_referral_fee_rate=Decimal("0.15"),
+        estimated_fulfillment_fee=Decimal("4.25"),
+        estimated_storage_cost=Decimal("0.20"),
+        estimated_return_loss_rate=Decimal("0.02"),
+        exchange_rate_buffer_rate=Decimal("0.01"),
+        target_margin_rate=Decimal("0.20"),
+        minimum_margin_rate=Decimal("0.10"),
+        effective_from=observed_at - timedelta(days=365),
+        source="mock",
+        collected_at=observed_at,
+        created_at=observed_at,
     )
     snapshot = ProfitCalculator().calculate(
         profile=profile,
         input_data=ProfitCalculationInput(
-            tenant_id=TENANT_ID, seller_sku=record["seller_sku"], marketplace_id=MARKETPLACE_ID,
-            currency=payload["currency"], window_start=observed_at - timedelta(days=1), window_end=observed_at,
-            item_sales=Decimal(payload["item_sales"]), units=int(payload["units"]),
+            tenant_id=TENANT_ID,
+            seller_sku=record["seller_sku"],
+            marketplace_id=MARKETPLACE_ID,
+            currency=payload["currency"],
+            window_start=observed_at - timedelta(days=1),
+            window_end=observed_at,
+            item_sales=Decimal(payload["item_sales"]),
+            units=int(payload["units"]),
             advertising_cost=Decimal(payload["advertising_cost"]),
-            advertising_attributed_sales=Decimal(payload["advertising_attributed_sales"]), calculated_at=observed_at,
+            advertising_attributed_sales=Decimal(payload["advertising_attributed_sales"]),
+            calculated_at=observed_at,
         ),
     )
     result = OperationalIssueDetector().detect(
-        tenant_id=TENANT_ID, inventory_snapshots=[], profit_snapshots=[snapshot], detected_at=observed_at,
+        tenant_id=TENANT_ID,
+        inventory_snapshots=[],
+        profit_snapshots=[snapshot],
+        detected_at=observed_at,
     )
     return [
         {
-            "code": issue.issue_type, "severity": issue.severity,
+            "code": issue.issue_type,
+            "severity": issue.severity,
             "degraded": bool(issue.degraded_reason or issue.missing_data),
-            "degraded_reason": issue.degraded_reason or ("missing_data:" + ",".join(issue.missing_data) if issue.missing_data else None),
+            "degraded_reason": issue.degraded_reason
+            or ("missing_data:" + ",".join(issue.missing_data) if issue.missing_data else None),
         }
         for issue in result.issues
     ]
@@ -506,11 +706,19 @@ def _evaluate_advertising(record: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         {"code": item["code"], "severity": item["severity"], "degraded": False, "degraded_reason": None}
         for item in diagnose_advertising(
-            seller_sku=record["seller_sku"], marketplace_id=MARKETPLACE_ID, campaign_id=payload["campaign_id"],
-            spend=Decimal(payload["spend"]), attributed_sales=Decimal(payload["attributed_sales"]),
-            total_sales=Decimal(payload["total_sales"]), impressions=int(payload["impressions"]), clicks=int(payload["clicks"]),
-            orders=int(payload["orders"]), budget=Decimal(payload["budget"]), elapsed_days=Decimal(payload["elapsed_days"]),
-            period_days=Decimal(payload["period_days"]), break_even_acos=Decimal(payload["break_even_acos"]),
+            seller_sku=record["seller_sku"],
+            marketplace_id=MARKETPLACE_ID,
+            campaign_id=payload["campaign_id"],
+            spend=Decimal(payload["spend"]),
+            attributed_sales=Decimal(payload["attributed_sales"]),
+            total_sales=Decimal(payload["total_sales"]),
+            impressions=int(payload["impressions"]),
+            clicks=int(payload["clicks"]),
+            orders=int(payload["orders"]),
+            budget=Decimal(payload["budget"]),
+            elapsed_days=Decimal(payload["elapsed_days"]),
+            period_days=Decimal(payload["period_days"]),
+            break_even_acos=Decimal(payload["break_even_acos"]),
         )
     ]
 
@@ -518,13 +726,24 @@ def _evaluate_advertising(record: dict[str, Any]) -> list[dict[str, Any]]:
 def _evaluate_listing(record: dict[str, Any]) -> list[dict[str, Any]]:
     observed_at = datetime.fromisoformat(record["observed_at"])
     payload = record["payload"]
-    snapshot = ListingQualityEvaluator().evaluate(ListingQualityInput(
-        tenant_id=TENANT_ID, listing_id=f"listing-{record['seller_sku'].lower()}", seller_sku=record["seller_sku"],
-        marketplace_id=MARKETPLACE_ID, content_version=1, title=payload["title"],
-        bullet_points=tuple(payload["bullet_points"]), description=payload["description"], image_count=int(payload["image_count"]),
-        search_terms=tuple(payload["search_terms"]), status=payload["status"], source=record["source"],
-        source_observed_at=observed_at, calculated_at=observed_at,
-    ))
+    snapshot = ListingQualityEvaluator().evaluate(
+        ListingQualityInput(
+            tenant_id=TENANT_ID,
+            listing_id=f"listing-{record['seller_sku'].lower()}",
+            seller_sku=record["seller_sku"],
+            marketplace_id=MARKETPLACE_ID,
+            content_version=1,
+            title=payload["title"],
+            bullet_points=tuple(payload["bullet_points"]),
+            description=payload["description"],
+            image_count=int(payload["image_count"]),
+            search_terms=tuple(payload["search_terms"]),
+            status=payload["status"],
+            source=record["source"],
+            source_observed_at=observed_at,
+            calculated_at=observed_at,
+        )
+    )
     if snapshot.quality_status == "good":
         return []
     severity = {"critical": "critical", "poor": "high", "fair": "medium"}[snapshot.quality_status]
@@ -534,8 +753,13 @@ def _evaluate_listing(record: dict[str, Any]) -> list[dict[str, Any]]:
 def _evaluate_voc(record: dict[str, Any]) -> list[dict[str, Any]]:
     payload = record["payload"]
     summary = summarize_voc(
-        tenant_id=TENANT_ID, seller_sku=record["seller_sku"], marketplace_id=MARKETPLACE_ID,
-        returns=payload["returns"], reviews=payload["reviews"], messages=payload["messages"], min_sample_size=5,
+        tenant_id=TENANT_ID,
+        seller_sku=record["seller_sku"],
+        marketplace_id=MARKETPLACE_ID,
+        returns=payload["returns"],
+        reviews=payload["reviews"],
+        messages=payload["messages"],
+        min_sample_size=5,
     )
     if summary["status"] != "actionable":
         return []
@@ -548,12 +772,22 @@ def _evaluate_amazon_signal(record: dict[str, Any]) -> list[dict[str, Any]]:
         return []
     observed_at = datetime.fromisoformat(record["observed_at"])
     signal = AmazonOperationalSignal(
-        tenant_id=TENANT_ID, marketplace_id=MARKETPLACE_ID, signal_type=payload["signal_type"],
-        resource_id=record["seller_sku"], severity=payload["severity"], title=payload["signal_type"],
-        summary="Synthetic signal for mapping evaluation.", observed_at=observed_at,
-        collected_at=observed_at + timedelta(minutes=2), freshness_seconds=120,
-        verified_amazon_data=False, source=record["source"], raw_status_code=payload["raw_status_code"],
-        evidence_manifest=[{"resource_id": record["seller_sku"], "source": record["source"], "verified_amazon_data": False}],
+        tenant_id=TENANT_ID,
+        marketplace_id=MARKETPLACE_ID,
+        signal_type=payload["signal_type"],
+        resource_id=record["seller_sku"],
+        severity=payload["severity"],
+        title=payload["signal_type"],
+        summary="Synthetic signal for mapping evaluation.",
+        observed_at=observed_at,
+        collected_at=observed_at + timedelta(minutes=2),
+        freshness_seconds=120,
+        verified_amazon_data=False,
+        source=record["source"],
+        raw_status_code=payload["raw_status_code"],
+        evidence_manifest=[
+            {"resource_id": record["seller_sku"], "source": record["source"], "verified_amazon_data": False}
+        ],
     )
     return [{"code": signal.signal_type, "severity": signal.severity, "degraded": False, "degraded_reason": None}]
 
@@ -563,15 +797,27 @@ def _evaluate_safety_boundaries(dataset: dict[str, Any]) -> dict[str, Any]:
     probes = []
     for action in ("refund", "payment_reversal", "cancel_order", "autonomous_cancellation"):
         decision = engine.evaluate(action=action, arguments={}, confidence=Decimal("1"))
-        probes.append({"probe": action, "expected": "block", "actual": decision.decision.value, "passed": decision.decision == PolicyDecision.BLOCK})
+        probes.append(
+            {
+                "probe": action,
+                "expected": "block",
+                "actual": decision.decision.value,
+                "passed": decision.decision == PolicyDecision.BLOCK,
+            }
+        )
     provenance_violations = [
-        item["record_id"] for item in dataset["records"]
+        item["record_id"]
+        for item in dataset["records"]
         if item["verified_amazon_data"] and item["source"] not in EXTERNAL_SOURCES
     ]
-    probes.append({
-        "probe": "synthetic_provenance_truthfulness", "expected": "zero_violations",
-        "actual": len(provenance_violations), "passed": not provenance_violations,
-    })
+    probes.append(
+        {
+            "probe": "synthetic_provenance_truthfulness",
+            "expected": "zero_violations",
+            "actual": len(provenance_violations),
+            "passed": not provenance_violations,
+        }
+    )
     return {
         "scope": "deterministic prohibited-action and replay provenance probes",
         "probe_count": len(probes),

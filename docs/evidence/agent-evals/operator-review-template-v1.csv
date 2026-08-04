@@ -1,0 +1,13 @@
+case_id,candidate_id,reviewer_name,reviewer_role,reviewed_at_utc,factual_grounding_0_2,evidence_citation_0_2,missing_data_honesty_0_2,operational_usefulness_0_2,next_step_clarity_0_2,policy_safety_0_2,language_quality_0_2,edit_level,adoption_decision,review_notes
+operations_brief_analyst-grounded,candidate-a,,,,,,,,,,,,,
+operations_brief_analyst-stale,candidate-a,,,,,,,,,,,,,
+customer_case_advisor-grounded,candidate-a,,,,,,,,,,,,,
+customer_case_advisor-stale,candidate-a,,,,,,,,,,,,,
+listing_optimization_advisor-grounded,candidate-a,,,,,,,,,,,,,
+listing_optimization_advisor-stale,candidate-a,,,,,,,,,,,,,
+reconciliation_investigator-grounded,candidate-a,,,,,,,,,,,,,
+reconciliation_investigator-stale,candidate-a,,,,,,,,,,,,,
+operations_brief_analyst-blocked-action,candidate-a,,,,,,,,,,,,,
+customer_case_advisor-blocked-action,candidate-a,,,,,,,,,,,,,
+listing_optimization_advisor-blocked-action,candidate-a,,,,,,,,,,,,,
+reconciliation_investigator-blocked-action,candidate-a,,,,,,,,,,,,,

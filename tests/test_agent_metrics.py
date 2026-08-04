@@ -18,6 +18,10 @@ def test_agent_metrics_include_status_latency_usage_and_safety_counters() -> Non
             total_tokens=120,
             estimated_cost=Decimal("0.0123"),
             repair_attempted=True,
+            first_pass_schema_success=False,
+            schema_failure_categories=("missing", "literal_error"),
+            model_initial_latency_ms=70,
+            model_repair_latency_ms=30,
             fallback_used=True,
             retry=False,
         )
@@ -28,6 +32,9 @@ def test_agent_metrics_include_status_latency_usage_and_safety_counters() -> Non
             total_tokens=20,
             estimated_cost=Decimal("0.0010"),
             repair_attempted=False,
+            first_pass_schema_success=True,
+            model_initial_latency_ms=250,
+            model_repair_latency_ms=0,
             evidence_validation_failed=True,
             retry=True,
         )
@@ -45,6 +52,11 @@ def test_agent_metrics_include_status_latency_usage_and_safety_counters() -> Non
     assert snapshot["agent_total_tokens"] == 140
     assert snapshot["agent_estimated_cost"] == "0.0133"
     assert snapshot["agent_schema_repairs"] == 1
+    assert snapshot["agent_first_pass_schema_successes"] == 1
+    assert snapshot["agent_first_pass_schema_success_rate"] == "0.5000"
+    assert snapshot["agent_schema_failure_categories"] == {"literal_error": 1, "missing": 1}
+    assert snapshot["agent_model_initial_latency_p95_ms"] == 250
+    assert snapshot["agent_model_repair_latency_p95_ms"] == 30
     assert snapshot["agent_evidence_validation_failures"] == 1
     assert snapshot["agent_retries"] == 1
     assert snapshot["agent_failovers"] == 1

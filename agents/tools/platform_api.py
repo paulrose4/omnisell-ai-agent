@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-
 DEFAULT_MOCK_PLATFORM_URL = "http://localhost:8002"
 DEFAULT_REDIRECT_URI = "http://localhost:3000/oauth/callback"
 
@@ -46,7 +45,9 @@ async def get_access_token(base_url: str | None = None) -> str:
             },
         )
         if authorize_response.status_code not in {302, 303, 307, 308}:
-            raise PlatformAPIError(f"OAuth authorize failed: {authorize_response.status_code} {authorize_response.text}")
+            raise PlatformAPIError(
+                f"OAuth authorize failed: {authorize_response.status_code} {authorize_response.text}"
+            )
 
         location = authorize_response.headers.get("location", "")
         query = parse_qs(urlparse(location).query)
@@ -146,7 +147,9 @@ async def update_product(
     }
     if not body:
         raise ValueError("At least one of title, description, price, stock must be provided.")
-    return await _request("PUT", "/api/v2/product/update", params={"product_id": product_id}, json_body=body, access_token=access_token)
+    return await _request(
+        "PUT", "/api/v2/product/update", params={"product_id": product_id}, json_body=body, access_token=access_token
+    )
 
 
 async def create_product(
@@ -174,7 +177,9 @@ async def create_product(
 
 async def delete_product(product_id: str, access_token: str | None = None) -> dict[str, Any]:
     """Soft-delete a product by changing its platform status to DELETED."""
-    return await _request("DELETE", "/api/v2/product/delete", params={"product_id": product_id}, access_token=access_token)
+    return await _request(
+        "DELETE", "/api/v2/product/delete", params={"product_id": product_id}, access_token=access_token
+    )
 
 
 async def get_order_list(
@@ -192,12 +197,16 @@ async def get_order_list(
 
 async def update_order_status(order_id: str, status: str, access_token: str | None = None) -> dict[str, Any]:
     """Update an order status using the Mock Platform's legal status transition rules."""
-    return await _request("PUT", "/api/v2/order/status", params={"order_id": order_id, "status": status}, access_token=access_token)
+    return await _request(
+        "PUT", "/api/v2/order/status", params={"order_id": order_id, "status": status}, access_token=access_token
+    )
 
 
 async def approve_return(return_id: str, access_token: str | None = None) -> dict[str, Any]:
     """Approve a pending return request by return_id."""
-    return await _request("POST", "/api/v2/order/return/approve", params={"return_id": return_id}, access_token=access_token)
+    return await _request(
+        "POST", "/api/v2/order/return/approve", params={"return_id": return_id}, access_token=access_token
+    )
 
 
 if __name__ == "__main__":

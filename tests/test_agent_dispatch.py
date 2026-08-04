@@ -63,15 +63,17 @@ def test_queued_agent_submission_returns_before_evidence_or_model_work() -> None
     queue = DurableQueue()
     workflow = QueuedAgentWorkflow(store=store, task_queue=queue)
 
-    result = asyncio.run(workflow.run_advisory(
-        tenant_id="tenant-a",
-        actor_id="operator-1",
-        workflow_type="operations_brief_analysis",
-        correlation_id="corr-1",
-        request={"brief_id": "brief-1", "idempotency_key": "idem-1"},
-        evidence_collector=NeverCollector(),
-        advisor=NeverAdvisor(),
-    ))
+    result = asyncio.run(
+        workflow.run_advisory(
+            tenant_id="tenant-a",
+            actor_id="operator-1",
+            workflow_type="operations_brief_analysis",
+            correlation_id="corr-1",
+            request={"brief_id": "brief-1", "idempotency_key": "idem-1"},
+            evidence_collector=NeverCollector(),
+            advisor=NeverAdvisor(),
+        )
+    )
 
     assert result == {
         "run_id": "run-1",
