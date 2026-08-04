@@ -25,7 +25,7 @@ def _enabled(name: str) -> bool:
 
 
 def _hash_id(value: str, salt: str) -> str:
-    return hashlib.sha256(f"{salt}:{value}".encode("utf-8")).hexdigest()[:16]
+    return hashlib.sha256(f"{salt}:{value}".encode()).hexdigest()[:16]
 
 
 def _iso(value: Any) -> str | None:
@@ -76,15 +76,27 @@ def _sample(item: Any, *, resource_type: str, salt: str) -> dict[str, Any]:
     if resource_type == "order":
         resource_id = str(getattr(item, "external_order_id", ""))
         observed_at = getattr(item, "last_updated_at", None) or getattr(item, "purchased_at", None)
-        fields = {"status": getattr(item, "platform_status", None), "marketplace_id": getattr(item, "marketplace_id", None)}
+        fields = {
+            "status": getattr(item, "platform_status", None),
+            "marketplace_id": getattr(item, "marketplace_id", None),
+        }
     elif resource_type == "inventory":
         resource_id = str(getattr(item, "seller_sku", ""))
         observed_at = extensions.get("observed_at")
-        fields = {"available": getattr(item, "available", None), "reserved": getattr(item, "reserved", None), "inbound": getattr(item, "inbound", None), "unsellable": getattr(item, "unsellable", None)}
+        fields = {
+            "available": getattr(item, "available", None),
+            "reserved": getattr(item, "reserved", None),
+            "inbound": getattr(item, "inbound", None),
+            "unsellable": getattr(item, "unsellable", None),
+        }
     else:
         resource_id = str(getattr(item, "seller_sku", ""))
         observed_at = extensions.get("observed_at")
-        fields = {"asin_present": bool(getattr(item, "external_product_id", None)), "status": getattr(item, "status", None), "title_present": bool(getattr(item, "title", None))}
+        fields = {
+            "asin_present": bool(getattr(item, "external_product_id", None)),
+            "status": getattr(item, "status", None),
+            "title_present": bool(getattr(item, "title", None)),
+        }
     return {
         "resource_id_hash": _hash_id(resource_id, salt),
         "resource_type": resource_type,
@@ -97,26 +109,38 @@ def _sample(item: Any, *, resource_type: str, salt: str) -> dict[str, Any]:
     }
 
 
-async def _pages(adapter: AmazonSPAPIAdapter, *, resource: str, marketplace_id: str, days: int, max_pages: int, salt: str) -> dict[str, Any]:
+async def _pages(
+    adapter: AmazonSPAPIAdapter, *, resource: str, marketplace_id: str, days: int, max_pages: int, salt: str
+) -> dict[str, Any]:
     page_count = 0
     item_count = 0
     samples: list[dict[str, Any]] = []
     token = None
     while page_count < max_pages:
         if resource == "orders":
-            page = await adapter.list_orders(marketplace_ids=[marketplace_id], updated_after=datetime.now(UTC) - timedelta(days=days), next_token=token)
+            page = await adapter.list_orders(
+                marketplace_ids=[marketplace_id],
+                updated_after=datetime.now(UTC) - timedelta(days=days),
+                next_token=token,
+            )
             resource_type = "order"
         else:
             page = await adapter.list_inventory(marketplace_id=marketplace_id, next_token=token)
             resource_type = "inventory"
         page_count += 1
         item_count += len(page.items)
-        for item in page.items[:3 - len(samples)]:
+        for item in page.items[: 3 - len(samples)]:
             samples.append(_sample(item, resource_type=resource_type, salt=salt))
         token = page.next_token
         if not token:
             break
-    return {"status": "succeeded", "page_count": page_count, "item_count": item_count, "has_next_token_after_limit": bool(token), "samples": samples}
+    return {
+        "status": "succeeded",
+        "page_count": page_count,
+        "item_count": item_count,
+        "has_next_token_after_limit": bool(token),
+        "samples": samples,
+    }
 
 
 async def _run(args: argparse.Namespace) -> int:
@@ -125,7 +149,9 @@ async def _run(args: argparse.Namespace) -> int:
     if os.getenv("ENVIRONMENT", "development").lower() == "production":
         raise SystemExit("Amazon smoke refuses ENVIRONMENT=production.")
     values = _require_configuration()
-    marketplaces = [item.strip() for item in os.getenv("AMAZON_MARKETPLACE_IDS", "ATVPDKIKX0DER").split(",") if item.strip()]
+    marketplaces = [
+        item.strip() for item in os.getenv("AMAZON_MARKETPLACE_IDS", "ATVPDKIKX0DER").split(",") if item.strip()
+    ]
     listing_skus = [item.strip() for item in os.getenv("AMAZON_SMOKE_LISTING_SKUS", "").split(",") if item.strip()]
     if not listing_skus:
         raise SystemExit("Set AMAZON_SMOKE_LISTING_SKUS to a bounded list of staging SKUs.")
@@ -167,8 +193,22 @@ async def _run(args: argparse.Namespace) -> int:
     }
     try:
         for marketplace_id in marketplaces:
-            manifest["resources"][f"orders:{marketplace_id}"] = await _pages(adapter, resource="orders", marketplace_id=marketplace_id, days=int(os.getenv("AMAZON_SMOKE_ORDER_DAYS", "30")), max_pages=int(os.getenv("AMAZON_SMOKE_MAX_PAGES", "20")), salt=run_id)
-            manifest["resources"][f"inventory:{marketplace_id}"] = await _pages(adapter, resource="inventory", marketplace_id=marketplace_id, days=0, max_pages=int(os.getenv("AMAZON_SMOKE_MAX_PAGES", "20")), salt=run_id)
+            manifest["resources"][f"orders:{marketplace_id}"] = await _pages(
+                adapter,
+                resource="orders",
+                marketplace_id=marketplace_id,
+                days=int(os.getenv("AMAZON_SMOKE_ORDER_DAYS", "30")),
+                max_pages=int(os.getenv("AMAZON_SMOKE_MAX_PAGES", "20")),
+                salt=run_id,
+            )
+            manifest["resources"][f"inventory:{marketplace_id}"] = await _pages(
+                adapter,
+                resource="inventory",
+                marketplace_id=marketplace_id,
+                days=0,
+                max_pages=int(os.getenv("AMAZON_SMOKE_MAX_PAGES", "20")),
+                salt=run_id,
+            )
             listing_result = {"status": "succeeded", "item_count": 0, "samples": [], "not_found_count": 0}
             for sku in listing_skus:
                 try:
@@ -181,21 +221,42 @@ async def _run(args: argparse.Namespace) -> int:
                     listing_result.setdefault("errors", []).append(type(exc).__name__)
             manifest["resources"][f"listings:{marketplace_id}"] = listing_result
 
-        provenance_samples = [sample for resource in manifest["resources"].values() for sample in resource.get("samples", [])]
+        provenance_samples = [
+            sample for resource in manifest["resources"].values() for sample in resource.get("samples", [])
+        ]
         manifest["checks"]["provenance"] = {
-            "status": "succeeded" if provenance_samples and all(item.get("data_source") == "amazon_api" and item.get("verified_amazon_data") is True and item.get("source_resource_id_present") for item in provenance_samples) else "failed",
+            "status": "succeeded"
+            if provenance_samples
+            and all(
+                item.get("data_source") == "amazon_api"
+                and item.get("verified_amazon_data") is True
+                and item.get("source_resource_id_present")
+                for item in provenance_samples
+            )
+            else "failed",
             "sample_count": len(provenance_samples),
             "observed_at_present_count": sum(bool(item.get("observed_at")) for item in provenance_samples),
         }
         manifest["checks"]["pagination"] = {
-            "status": "succeeded" if any(resource.get("page_count", 0) > 1 for resource in manifest["resources"].values()) else "not_proven",
+            "status": "succeeded"
+            if any(resource.get("page_count", 0) > 1 for resource in manifest["resources"].values())
+            else "not_proven",
             "max_pages": int(os.getenv("AMAZON_SMOKE_MAX_PAGES", "20")),
         }
         try:
-            await adapter.update_listing(seller_sku=listing_skus[0], marketplace_id=marketplaces[0], changes={"title": "blocked smoke probe"}, idempotency_key=f"smoke-block-{run_id}")
+            await adapter.update_listing(
+                seller_sku=listing_skus[0],
+                marketplace_id=marketplaces[0],
+                changes={"title": "blocked smoke probe"},
+                idempotency_key=f"smoke-block-{run_id}",
+            )
             manifest["checks"]["write_gate"] = {"status": "failed", "network_write_attempted": True}
         except AmazonWriteBlocked as exc:
-            manifest["checks"]["write_gate"] = {"status": "succeeded", "blocked_code": exc.code, "network_write_attempted": False}
+            manifest["checks"]["write_gate"] = {
+                "status": "succeeded",
+                "blocked_code": exc.code,
+                "network_write_attempted": False,
+            }
         except Exception as exc:
             manifest["checks"]["write_gate"] = {"status": "failed", "error_type": type(exc).__name__}
 
@@ -206,7 +267,9 @@ async def _run(args: argparse.Namespace) -> int:
             "server_error_responses": sum(client.statuses.get(str(code), 0) for code in (500, 502, 503, 504)),
         }
         manifest["checks"]["token_refresh"] = {
-            "status": "succeeded" if client.routes.get(os.getenv("AMAZON_LWA_TOKEN_URL", "https://api.amazon.com/auth/o2/token"), 0) >= 1 else "failed",
+            "status": "succeeded"
+            if client.routes.get(os.getenv("AMAZON_LWA_TOKEN_URL", "https://api.amazon.com/auth/o2/token"), 0) >= 1
+            else "failed",
             "token_value_logged": False,
         }
         manifest["checks"]["token_revoke"] = {
@@ -215,29 +278,46 @@ async def _run(args: argparse.Namespace) -> int:
         }
         if _enabled("AMAZON_SMOKE_ALLOW_REVOKE"):
             if os.getenv("AMAZON_SMOKE_REVOKE_CONFIRMATION") != "REVOKE_DISPOSABLE_STAGING_TOKEN":
-                raise SystemExit("Token revoke requires AMAZON_SMOKE_REVOKE_CONFIRMATION=REVOKE_DISPOSABLE_STAGING_TOKEN.")
+                raise SystemExit(
+                    "Token revoke requires AMAZON_SMOKE_REVOKE_CONFIRMATION=REVOKE_DISPOSABLE_STAGING_TOKEN."
+                )
             await adapter.revoke(values["AMAZON_REFRESH_TOKEN"])
             try:
-                await adapter.list_orders(marketplace_ids=[marketplaces[0]], updated_after=datetime.now(UTC) - timedelta(days=1))
+                await adapter.list_orders(
+                    marketplace_ids=[marketplaces[0]], updated_after=datetime.now(UTC) - timedelta(days=1)
+                )
             except Exception as exc:
-                manifest["checks"]["token_revoke"] = {"status": "succeeded", "post_revoke_error_type": type(exc).__name__}
+                manifest["checks"]["token_revoke"] = {
+                    "status": "succeeded",
+                    "post_revoke_error_type": type(exc).__name__,
+                }
             else:
                 manifest["checks"]["token_revoke"] = {"status": "failed", "post_revoke_request_succeeded": True}
         manifest["checks"]["seller_central_comparison"] = {"status": "pending_operator_signoff"}
-        manifest["checks"]["partial_failure_recovery"] = {"status": "not_run", "reason": "Execute the proxy fault-injection procedure in the external staging runbook."}
+        manifest["checks"]["partial_failure_recovery"] = {
+            "status": "not_run",
+            "reason": "Execute the proxy fault-injection procedure in the external staging runbook.",
+        }
     finally:
         await client.aclose()
     manifest["completed_at"] = datetime.now(UTC).isoformat()
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
-    print(json.dumps({"output": str(output_path), "resource_count": len(manifest["resources"]), "checks": manifest["checks"]}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {"output": str(output_path), "resource_count": len(manifest["resources"]), "checks": manifest["checks"]},
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Opt-in Amazon SP-API read-only staging smoke test.")
-    parser.add_argument("--output", default=str(PROJECT_ROOT / "artifacts" / "external-validation" / "amazon-readonly-smoke.json"))
+    parser.add_argument(
+        "--output", default=str(PROJECT_ROOT / "artifacts" / "external-validation" / "amazon-readonly-smoke.json")
+    )
     args = parser.parse_args()
     raise SystemExit(asyncio.run(_run(args)))
 

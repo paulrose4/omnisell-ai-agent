@@ -4,12 +4,10 @@ import uuid
 from copy import deepcopy
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field, field_validator, model_validator
-
 from config import AUDIT_QUEUE, DATA_LOCK, DATA_STORE, save_collection, utc_now_iso
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from oauth_server import require_bearer_token
-
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 router = APIRouter(prefix="/api/v2/product", tags=["products"])
 
@@ -46,7 +44,7 @@ class ProductUpdateRequest(BaseModel):
     stock: int | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
-    def require_one_field(self) -> "ProductUpdateRequest":
+    def require_one_field(self) -> ProductUpdateRequest:
         if self.title is None and self.description is None and self.price is None and self.stock is None:
             raise ValueError("At least one of title, description, price, stock must be provided.")
         return self

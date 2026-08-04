@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -125,10 +126,8 @@ class SandboxExecutor:
             )
         finally:
             if container is not None:
-                try:
+                with suppress(Exception):
                     container.remove(force=True)
-                except Exception:
-                    pass
 
     def _read_logs(self, container: Any) -> tuple[str, str]:
         stdout = container.logs(stdout=True, stderr=False)

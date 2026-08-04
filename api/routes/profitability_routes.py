@@ -12,7 +12,6 @@ from application.cost_imports import CostCSVImporter
 from domain.profitability import ProfitCalculationError, ProfitCalculationInput, ProfitCalculator
 from infrastructure.repositories.profitability import ImportIdempotencyConflict
 
-
 router = APIRouter(prefix="/api/profitability", tags=["profitability"], dependencies=[Depends(require_api_key)])
 
 
@@ -52,37 +51,57 @@ async def import_cost_profiles(
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict:
     if file.content_type not in {"text/csv", "application/csv", "application/vnd.ms-excel", "text/plain"}:
-        raise HTTPException(status_code=415, detail={"error": "unsupported_media_type", "message": "A UTF-8 CSV file is required."})
+        raise HTTPException(
+            status_code=415, detail={"error": "unsupported_media_type", "message": "A UTF-8 CSV file is required."}
+        )
     if file.filename and not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=415, detail={"error": "invalid_extension", "message": "The file extension must be .csv."})
+        raise HTTPException(
+            status_code=415, detail={"error": "invalid_extension", "message": "The file extension must be .csv."}
+        )
     content = await file.read()
     principal = request.state.principal
     required_scope = "read" if dry_run else "write"
     if required_scope not in principal.scopes and "admin" not in principal.scopes:
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": f"{required_scope} scope is required."})
+        raise HTTPException(
+            status_code=403, detail={"error": "forbidden", "message": f"{required_scope} scope is required."}
+        )
     importer = CostCSVImporter(request.app.state.cost_profile_repository)
     try:
         result = importer.import_bytes(
-            tenant_id=principal.tenant_id, actor_id=principal.user_id, content=content,
-            idempotency_key=idempotency_key, dry_run=dry_run,
+            tenant_id=principal.tenant_id,
+            actor_id=principal.user_id,
+            content=content,
+            idempotency_key=idempotency_key,
+            dry_run=dry_run,
         )
     except ImportIdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail={"error": "idempotency_conflict", "message": str(exc)}) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"error": "invalid_cost_import", "message": str(exc)}) from exc
     request.app.state.audit_logger.log_operation(
-        action="sku_cost_import", status="success" if not result.errors else "validation_failed",
+        action="sku_cost_import",
+        status="success" if not result.errors else "validation_failed",
         details={
-            "tenant_id": principal.tenant_id, "job_id": result.job_id, "dry_run": dry_run,
-            "total_rows": result.total_rows, "valid_rows": result.valid_rows,
-            "committed_rows": result.committed_rows, "error_count": len(result.errors),
+            "tenant_id": principal.tenant_id,
+            "job_id": result.job_id,
+            "dry_run": dry_run,
+            "total_rows": result.total_rows,
+            "valid_rows": result.valid_rows,
+            "committed_rows": result.committed_rows,
+            "error_count": len(result.errors),
             "content_sha256": result.content_sha256,
-        }, actor=principal.user_id, risk_level="medium",
+        },
+        actor=principal.user_id,
+        risk_level="medium",
     )
     return {
-        "job_id": result.job_id, "dry_run": result.dry_run, "total_rows": result.total_rows,
-        "valid_rows": result.valid_rows, "committed_rows": result.committed_rows,
-        "content_sha256": result.content_sha256, "repeated": result.repeated,
+        "job_id": result.job_id,
+        "dry_run": result.dry_run,
+        "total_rows": result.total_rows,
+        "valid_rows": result.valid_rows,
+        "committed_rows": result.committed_rows,
+        "content_sha256": result.content_sha256,
+        "repeated": result.repeated,
         "errors": [asdict(error) for error in result.errors],
     }
 
@@ -96,7 +115,9 @@ async def list_cost_profiles(
     if "read" not in request.state.principal.scopes and "admin" not in request.state.principal.scopes:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
     profiles = request.app.state.cost_profile_repository.list_profiles(
-        tenant_id=request.state.principal.tenant_id, marketplace_id=marketplace_id, seller_sku=seller_sku,
+        tenant_id=request.state.principal.tenant_id,
+        marketplace_id=marketplace_id,
+        seller_sku=seller_sku,
     )
     return {"items": [_serialize(profile) for profile in profiles], "total": len(profiles)}
 
@@ -107,15 +128,20 @@ async def calculate_profit_snapshot(payload: ProfitCalculationRequest, request: 
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
     tenant_id = request.state.principal.tenant_id
     profile = request.app.state.cost_profile_repository.get_active(
-        tenant_id=tenant_id, marketplace_id=payload.marketplace_id,
-        seller_sku=payload.seller_sku, effective_at=payload.window_end,
+        tenant_id=tenant_id,
+        marketplace_id=payload.marketplace_id,
+        seller_sku=payload.seller_sku,
+        effective_at=payload.window_end,
     )
     if profile is None:
         raise HTTPException(
             status_code=422,
             detail={
-                "error": "missing_cost_profile", "message": "No effective cost profile exists for this tenant, marketplace and SKU.",
-                "missing_data": ["sku_cost_profile"], "confidence": "0.00", "degraded_reason": "missing_cost_profile",
+                "error": "missing_cost_profile",
+                "message": "No effective cost profile exists for this tenant, marketplace and SKU.",
+                "missing_data": ["sku_cost_profile"],
+                "confidence": "0.00",
+                "degraded_reason": "missing_cost_profile",
             },
         )
     try:
@@ -127,12 +153,20 @@ async def calculate_profit_snapshot(payload: ProfitCalculationRequest, request: 
         raise HTTPException(status_code=422, detail={"error": "profit_calculation_error", "message": str(exc)}) from exc
     request.app.state.profit_snapshot_repository.save(snapshot)
     request.app.state.audit_logger.log_operation(
-        action="sku_profit_calculated", status="degraded" if snapshot.degraded_reason else "success",
+        action="sku_profit_calculated",
+        status="degraded" if snapshot.degraded_reason else "success",
         details={
-            "tenant_id": tenant_id, "snapshot_id": snapshot.id, "seller_sku": snapshot.seller_sku,
-            "marketplace_id": snapshot.marketplace_id, "calculation_version": snapshot.calculation_version,
-            "missing_inputs": list(snapshot.missing_inputs), "confidence": str(snapshot.confidence), "estimated": snapshot.estimated,
-        }, actor=request.state.principal.user_id, risk_level="low",
+            "tenant_id": tenant_id,
+            "snapshot_id": snapshot.id,
+            "seller_sku": snapshot.seller_sku,
+            "marketplace_id": snapshot.marketplace_id,
+            "calculation_version": snapshot.calculation_version,
+            "missing_inputs": list(snapshot.missing_inputs),
+            "confidence": str(snapshot.confidence),
+            "estimated": snapshot.estimated,
+        },
+        actor=request.state.principal.user_id,
+        risk_level="low",
     )
     return _serialize(snapshot)
 

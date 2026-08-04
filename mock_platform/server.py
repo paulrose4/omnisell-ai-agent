@@ -4,13 +4,12 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
 
+from config import load_data
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-from config import load_data
 from routes import auth_routes, order_routes, product_routes
 
 
@@ -39,10 +38,7 @@ app.add_middleware(
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     detail: Any = exc.detail
-    if isinstance(detail, dict):
-        content = detail
-    else:
-        content = {"error": "http_error", "message": str(detail)}
+    content = detail if isinstance(detail, dict) else {"error": "http_error", "message": str(detail)}
 
     content.setdefault("path", request.url.path)
     content = jsonable_encoder(content)

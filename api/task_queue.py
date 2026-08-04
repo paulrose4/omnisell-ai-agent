@@ -75,6 +75,11 @@ class MetricsRegistry:
         self.agent_total_tokens = 0
         self.agent_estimated_cost = Decimal("0")
         self.agent_schema_repairs = 0
+        self.agent_first_pass_schema_successes = 0
+        self.agent_structured_attempts = 0
+        self.agent_schema_failure_categories: dict[str, int] = {}
+        self.agent_model_initial_latency_ms: deque[float] = deque(maxlen=1000)
+        self.agent_model_repair_latency_ms: deque[float] = deque(maxlen=1000)
         self.agent_evidence_validation_failures = 0
         self.agent_retries = 0
         self.agent_failovers = 0
@@ -110,6 +115,10 @@ class MetricsRegistry:
         total_tokens: int = 0,
         estimated_cost: Decimal = Decimal("0"),
         repair_attempted: bool = False,
+        first_pass_schema_success: bool = True,
+        schema_failure_categories: tuple[str, ...] = (),
+        model_initial_latency_ms: float = 0,
+        model_repair_latency_ms: float = 0,
         evidence_validation_failed: bool = False,
         retry: bool = False,
         fallback_used: bool = False,
@@ -122,6 +131,16 @@ class MetricsRegistry:
             self.agent_estimated_cost += Decimal(str(estimated_cost))
             if repair_attempted:
                 self.agent_schema_repairs += 1
+            self.agent_structured_attempts += 1
+            if first_pass_schema_success:
+                self.agent_first_pass_schema_successes += 1
+            for category in schema_failure_categories:
+                self.agent_schema_failure_categories[category] = (
+                    self.agent_schema_failure_categories.get(category, 0) + 1
+                )
+            self.agent_model_initial_latency_ms.append(float(model_initial_latency_ms))
+            if model_repair_latency_ms > 0:
+                self.agent_model_repair_latency_ms.append(float(model_repair_latency_ms))
             if evidence_validation_failed:
                 self.agent_evidence_validation_failures += 1
             if retry:
@@ -164,6 +183,19 @@ class MetricsRegistry:
                 "agent_total_tokens": self.agent_total_tokens,
                 "agent_estimated_cost": str(self.agent_estimated_cost),
                 "agent_schema_repairs": self.agent_schema_repairs,
+                "agent_first_pass_schema_successes": self.agent_first_pass_schema_successes,
+                "agent_first_pass_schema_success_rate": (
+                    str(
+                        (
+                            Decimal(self.agent_first_pass_schema_successes) / Decimal(self.agent_structured_attempts)
+                        ).quantize(Decimal("0.0001"))
+                    )
+                    if self.agent_structured_attempts
+                    else None
+                ),
+                "agent_schema_failure_categories": dict(sorted(self.agent_schema_failure_categories.items())),
+                "agent_model_initial_latency_p95_ms": self._percentile(self.agent_model_initial_latency_ms, 0.95),
+                "agent_model_repair_latency_p95_ms": self._percentile(self.agent_model_repair_latency_ms, 0.95),
                 "agent_evidence_validation_failures": self.agent_evidence_validation_failures,
                 "agent_retries": self.agent_retries,
                 "agent_failovers": self.agent_failovers,

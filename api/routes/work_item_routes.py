@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from api.security import require_api_key
 
-
 router = APIRouter(prefix="/api/work-items", tags=["operational-work-items"], dependencies=[Depends(require_api_key)])
 
 
@@ -33,7 +32,19 @@ class BulkWorkItemRequest(BaseModel):
 @router.get("")
 async def list_work_items(
     request: Request,
-    view: Literal["all", "active", "today", "waiting", "verifying", "mine", "unassigned", "due_today", "awaiting_approval", "blocked", "verification_failed"] = "today",
+    view: Literal[
+        "all",
+        "active",
+        "today",
+        "waiting",
+        "verifying",
+        "mine",
+        "unassigned",
+        "due_today",
+        "awaiting_approval",
+        "blocked",
+        "verification_failed",
+    ] = "today",
     status: str | None = None,
     domain: str | None = None,
     team: str | None = None,
@@ -68,7 +79,9 @@ async def list_work_items(
         try:
             zone = ZoneInfo(timezone)
         except ZoneInfoNotFoundError as exc:
-            raise HTTPException(status_code=422, detail={"error": "invalid_timezone", "message": "Unknown IANA timezone."}) from exc
+            raise HTTPException(
+                status_code=422, detail={"error": "invalid_timezone", "message": "Unknown IANA timezone."}
+            ) from exc
         today = now.astimezone(zone).date()
         due_at_from = datetime.combine(today, time.min, tzinfo=zone).astimezone(UTC)
         due_at_before = datetime.combine(today + timedelta(days=1), time.min, tzinfo=zone).astimezone(UTC)
@@ -109,7 +122,8 @@ async def workload(request: Request) -> dict[str, Any]:
 async def customer_case_context(work_item_id: str, request: Request) -> dict[str, Any]:
     _require_read(request)
     context = request.app.state.customer_case_operations_bridge.work_item_context(
-        tenant_id=request.state.principal.tenant_id, work_item_id=work_item_id,
+        tenant_id=request.state.principal.tenant_id,
+        work_item_id=work_item_id,
     )
     if context is None:
         return {"cluster": None, "case_ids": [], "related_case_count": 0}
@@ -122,7 +136,9 @@ async def handoff_packet(request: Request, assignee_id: str | None = None) -> di
     principal = request.state.principal
     owner = assignee_id or principal.user_id
     items = request.app.state.work_item_repository.list(
-        tenant_id=principal.tenant_id, assignee_id=owner, active_only=True,
+        tenant_id=principal.tenant_id,
+        assignee_id=owner,
+        active_only=True,
     )
     return {
         "assignee_id": owner,
@@ -148,24 +164,40 @@ async def get_work_item(work_item_id: str, request: Request) -> dict[str, Any]:
 async def bulk_update(payload: BulkWorkItemRequest, request: Request) -> dict[str, Any]:
     _require_operator(request)
     principal = request.state.principal
-    if payload.operation in {"assign", "handoff"} and payload.assignee_id != principal.user_id and principal.role not in {"owner", "admin"}:
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Only Owner or Admin may assign work to another operator."})
+    if (
+        payload.operation in {"assign", "handoff"}
+        and payload.assignee_id != principal.user_id
+        and principal.role not in {"owner", "admin"}
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "forbidden", "message": "Only Owner or Admin may assign work to another operator."},
+        )
     try:
         items = request.app.state.work_item_repository.bulk_update(
-            tenant_id=principal.tenant_id, work_item_ids=payload.work_item_ids,
-            operation=payload.operation, actor_id=principal.user_id,
-            assignee_id=payload.assignee_id, due_at=payload.due_at, note=payload.note,
+            tenant_id=principal.tenant_id,
+            work_item_ids=payload.work_item_ids,
+            operation=payload.operation,
+            actor_id=principal.user_id,
+            assignee_id=payload.assignee_id,
+            due_at=payload.due_at,
+            note=payload.note,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(exc)}) from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail={"error": "invalid_bulk_operation", "message": str(exc)}) from exc
     request.app.state.audit_logger.log_operation(
-        action="work_items_bulk_updated", status="success",
+        action="work_items_bulk_updated",
+        status="success",
         details={
-            "tenant_id": principal.tenant_id, "operation": payload.operation,
-            "work_item_count": len(items), "assignee_changed": payload.assignee_id is not None,
-        }, actor=principal.user_id, risk_level="medium",
+            "tenant_id": principal.tenant_id,
+            "operation": payload.operation,
+            "work_item_count": len(items),
+            "assignee_changed": payload.assignee_id is not None,
+        },
+        actor=principal.user_id,
+        risk_level="medium",
     )
     return {"total": len(items), "items": [_json_safe(asdict(item)) for item in items]}
 
@@ -174,12 +206,16 @@ async def bulk_update(payload: BulkWorkItemRequest, request: Request) -> dict[st
 async def escalate_due(request: Request) -> dict[str, Any]:
     principal = request.state.principal
     if principal.role not in {"owner", "admin"}:
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Owner or Admin role is required."})
+        raise HTTPException(
+            status_code=403, detail={"error": "forbidden", "message": "Owner or Admin role is required."}
+        )
     items = request.app.state.work_item_repository.escalate_due(tenant_id=principal.tenant_id)
     request.app.state.audit_logger.log_operation(
-        action="work_items_sla_escalated", status="success",
+        action="work_items_sla_escalated",
+        status="success",
         details={"tenant_id": principal.tenant_id, "work_item_count": len(items)},
-        actor=principal.user_id, risk_level="medium",
+        actor=principal.user_id,
+        risk_level="medium",
     )
     return {"total": len(items), "items": [_json_safe(asdict(item)) for item in items]}
 
@@ -191,7 +227,9 @@ def _require_read(request: Request) -> None:
 
 def _require_operator(request: Request) -> None:
     principal = request.state.principal
-    if principal.role not in {"owner", "admin", "operator"} or ("write" not in principal.scopes and "admin" not in principal.scopes):
+    if principal.role not in {"owner", "admin", "operator"} or (
+        "write" not in principal.scopes and "admin" not in principal.scopes
+    ):
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Operator role is required."})
 
 

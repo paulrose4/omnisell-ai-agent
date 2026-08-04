@@ -4,7 +4,6 @@ import ast
 import re
 from dataclasses import dataclass
 
-
 MAX_CODE_LENGTH = 10_000
 
 ALLOWED_IMPORTS = {

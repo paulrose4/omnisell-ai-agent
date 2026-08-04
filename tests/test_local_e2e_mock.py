@@ -33,7 +33,9 @@ def test_mock_oidc_discovery_and_signed_token() -> None:
     assert claims["amr"] == ["pwd", "mfa"]
 
     verifier_without_nonce = "local-pkce-verifier-without-nonce-0123456789012345"
-    challenge_without_nonce = base64.urlsafe_b64encode(hashlib.sha256(verifier_without_nonce.encode()).digest()).rstrip(b"=").decode()
+    challenge_without_nonce = (
+        base64.urlsafe_b64encode(hashlib.sha256(verifier_without_nonce.encode()).digest()).rstrip(b"=").decode()
+    )
     authorization_without_nonce = client.get(
         "/oidc/authorize",
         params={
@@ -67,17 +69,29 @@ def test_mock_amazon_lwa_orders_inventory_and_listing() -> None:
     assert exchange.status_code == 200
     headers = {"x-amz-access-token": exchange.json()["access_token"]}
 
-    orders = client.get("/orders/v0/orders", headers=headers, params={"MarketplaceIds": "ATVPDKIKX0DER", "LastUpdatedAfter": "2026-07-01T00:00:00Z"})
+    orders = client.get(
+        "/orders/v0/orders",
+        headers=headers,
+        params={"MarketplaceIds": "ATVPDKIKX0DER", "LastUpdatedAfter": "2026-07-01T00:00:00Z"},
+    )
     assert orders.status_code == 200
     assert len(orders.json()["payload"]["Orders"]) == 50
     assert orders.json()["payload"]["Orders"][0]["OmniSellMockMetadata"]["data_source"] == "mock_amazon"
 
-    inventory = client.get("/fba/inventory/v1/summaries", headers=headers, params={"granularityType": "Marketplace", "granularityId": "ATVPDKIKX0DER", "marketplaceIds": "ATVPDKIKX0DER"})
+    inventory = client.get(
+        "/fba/inventory/v1/summaries",
+        headers=headers,
+        params={"granularityType": "Marketplace", "granularityId": "ATVPDKIKX0DER", "marketplaceIds": "ATVPDKIKX0DER"},
+    )
     assert inventory.status_code == 200
     assert inventory.json()["payload"]["inventorySummaries"][0]["sellerSku"] == "MOCK-HEALTHY"
     assert inventory.json()["payload"]["inventorySummaries"][0]["OmniSellMockMetadata"]["verified_amazon_data"] is False
 
-    listing = client.get("/listings/2021-08-01/items/A1LOCALMOCKSELLER/MOCK-HEALTHY", headers=headers, params={"marketplaceIds": "ATVPDKIKX0DER"})
+    listing = client.get(
+        "/listings/2021-08-01/items/A1LOCALMOCKSELLER/MOCK-HEALTHY",
+        headers=headers,
+        params={"marketplaceIds": "ATVPDKIKX0DER"},
+    )
     assert listing.status_code == 200
     assert listing.json()["summaries"][0]["asin"] == "B000000001"
     assert listing.json()["summaries"][0]["lastUpdatedDate"]
@@ -105,12 +119,23 @@ def test_mock_spapi_rejects_missing_access_token() -> None:
 
 def test_high_fidelity_store_loads_through_mock_spapi_with_pagination() -> None:
     client = TestClient(app)
-    loaded = client.post("/mock/high-fidelity/load", json={
-        "seed": 20260722, "days": 30, "sku_count": 20, "order_count": 240,
-        "campaign_count": 10, "search_term_count": 80, "return_count": 30,
-        "message_count": 40, "review_count": 20, "customer_case_count": 24,
-        "business_context_count": 12, "reference_time": "2026-07-22T04:00:00Z",
-    })
+    loaded = client.post(
+        "/mock/high-fidelity/load",
+        json={
+            "seed": 20260722,
+            "days": 30,
+            "sku_count": 20,
+            "order_count": 240,
+            "campaign_count": 10,
+            "search_term_count": 80,
+            "return_count": 30,
+            "message_count": 40,
+            "review_count": 20,
+            "customer_case_count": 24,
+            "business_context_count": 12,
+            "reference_time": "2026-07-22T04:00:00Z",
+        },
+    )
     assert loaded.status_code == 200, loaded.text
     assert loaded.json()["counts"]["orders"] == 240
     assert loaded.json()["verified_amazon_data"] is False
@@ -123,13 +148,23 @@ def test_high_fidelity_store_loads_through_mock_spapi_with_pagination() -> None:
     assert len(payload["Orders"]) == 50
     assert payload["NextToken"] == "50"
     assert payload["Orders"][0]["verified_amazon_data"] is False
-    second_page = client.get("/orders/v0/orders", headers=headers, params={"MarketplaceIds": "ATVPDKIKX0DER", "NextToken": payload["NextToken"]})
+    second_page = client.get(
+        "/orders/v0/orders",
+        headers=headers,
+        params={"MarketplaceIds": "ATVPDKIKX0DER", "NextToken": payload["NextToken"]},
+    )
     assert second_page.status_code == 200
     assert second_page.json()["payload"]["Orders"][0]["AmazonOrderId"] != payload["Orders"][0]["AmazonOrderId"]
 
-    inventory = client.get("/fba/inventory/v1/summaries", headers=headers, params={
-        "granularityType": "Marketplace", "granularityId": "ATVPDKIKX0DER", "marketplaceIds": "ATVPDKIKX0DER",
-    })
+    inventory = client.get(
+        "/fba/inventory/v1/summaries",
+        headers=headers,
+        params={
+            "granularityType": "Marketplace",
+            "granularityId": "ATVPDKIKX0DER",
+            "marketplaceIds": "ATVPDKIKX0DER",
+        },
+    )
     assert inventory.status_code == 200
     assert inventory.json()["payload"]["inventorySummaries"][0]["sellerSku"].startswith("HF-")
     assert inventory.json()["payload"]["inventorySummaries"][0]["OmniSellMockMetadata"]["verified_amazon_data"] is False

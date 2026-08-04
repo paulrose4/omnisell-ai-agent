@@ -7,11 +7,11 @@ import pytest
 from safety.audit import AuditLogger
 from safety.domain_guardrail import (
     DEFAULT_DOMAIN_TREE,
+    HARMFUL_PATTERNS,
     DomainBlockedError,
     DomainGuardrail,
     GuardrailResult,
     GuardrailStrategy,
-    HARMFUL_PATTERNS,
     preprocess,
 )
 
@@ -121,9 +121,7 @@ def test_pure_special_chars_blocked_in_strict() -> None:
 
 def test_confidence_saturates_at_one() -> None:
     guardrail = DomainGuardrail(strategy="strict")
-    result = guardrail.check(
-        "product order refund cancel shipping tracking complaint coupon promotion fraud"
-    )
+    result = guardrail.check("product order refund cancel shipping tracking complaint coupon promotion fraud")
     assert result.is_allowed is True
     assert result.confidence == 1.0
 

@@ -10,12 +10,6 @@ from pydantic import BaseModel, Field
 
 from api.security import require_api_key
 from domain.operational_intelligence import AmazonOperationalSignal
-from infrastructure.repositories.operational_intelligence import (
-    AdvertisingRepository,
-    AmazonOperationalSignalRepository,
-    VoCRepository,
-)
-
 
 router = APIRouter(prefix="/api", tags=["operational-intelligence"], dependencies=[Depends(require_api_key)])
 
@@ -133,9 +127,13 @@ class VOCSummaryRequest(BaseModel):
 
 
 @router.get("/amazon/signals")
-async def list_amazon_signals(request: Request, signal_type: str | None = None, severity: str | None = None) -> dict[str, Any]:
+async def list_amazon_signals(
+    request: Request, signal_type: str | None = None, severity: str | None = None
+) -> dict[str, Any]:
     _require_read(request)
-    items = request.app.state.amazon_signal_repository.list(tenant_id=request.state.principal.tenant_id, signal_type=signal_type, severity=severity)
+    items = request.app.state.amazon_signal_repository.list(
+        tenant_id=request.state.principal.tenant_id, signal_type=signal_type, severity=severity
+    )
     return {"total": len(items), "items": _safe(items), "generated_at": datetime.now(UTC)}
 
 
@@ -151,7 +149,11 @@ async def create_amazon_signal(payload: AmazonSignalRequest, request: Request) -
             detail={"error": "invalid_amazon_signal", "message": str(exc)},
         ) from exc
     saved = request.app.state.amazon_signal_repository.upsert(signal)
-    _audit(request, "amazon_operational_signal_ingested", {"tenant_id": principal.tenant_id, "signal_type": signal.signal_type, "resource_id": signal.resource_id})
+    _audit(
+        request,
+        "amazon_operational_signal_ingested",
+        {"tenant_id": principal.tenant_id, "signal_type": signal.signal_type, "resource_id": signal.resource_id},
+    )
     return {"signal": _safe(saved)}
 
 
@@ -183,23 +185,39 @@ async def list_advertising_diagnostics(
 @router.get("/advertising/snapshots")
 async def list_advertising_snapshots(request: Request, seller_sku: str | None = None) -> dict[str, Any]:
     _require_read(request)
-    items = request.app.state.advertising_repository.list_snapshots(tenant_id=request.state.principal.tenant_id, seller_sku=seller_sku)
+    items = request.app.state.advertising_repository.list_snapshots(
+        tenant_id=request.state.principal.tenant_id, seller_sku=seller_sku
+    )
     return {"total": len(items), "items": _safe(items)}
 
 
 @router.post("/advertising/snapshots")
 async def create_advertising_snapshot(payload: AdvertisingSnapshotRequest, request: Request) -> dict[str, Any]:
     _require_write(request)
-    snapshot = request.app.state.advertising_repository.save_daily_snapshot(tenant_id=request.state.principal.tenant_id, payload=payload.model_dump())
-    diagnostics = request.app.state.advertising_repository.diagnose_daily_snapshot(tenant_id=request.state.principal.tenant_id, snapshot_id=snapshot["id"])
-    _audit(request, "advertising_snapshot_diagnosed", {"tenant_id": request.state.principal.tenant_id, "snapshot_id": snapshot["id"], "diagnostic_count": len(diagnostics)})
+    snapshot = request.app.state.advertising_repository.save_daily_snapshot(
+        tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()
+    )
+    diagnostics = request.app.state.advertising_repository.diagnose_daily_snapshot(
+        tenant_id=request.state.principal.tenant_id, snapshot_id=snapshot["id"]
+    )
+    _audit(
+        request,
+        "advertising_snapshot_diagnosed",
+        {
+            "tenant_id": request.state.principal.tenant_id,
+            "snapshot_id": snapshot["id"],
+            "diagnostic_count": len(diagnostics),
+        },
+    )
     return {"snapshot": _safe(snapshot), "diagnostics": _safe(diagnostics)}
 
 
 @router.post("/advertising/snapshots/{snapshot_id}/diagnose")
 async def diagnose_advertising_snapshot(snapshot_id: str, request: Request) -> dict[str, Any]:
     _require_write(request)
-    diagnostics = request.app.state.advertising_repository.diagnose_daily_snapshot(tenant_id=request.state.principal.tenant_id, snapshot_id=snapshot_id)
+    diagnostics = request.app.state.advertising_repository.diagnose_daily_snapshot(
+        tenant_id=request.state.principal.tenant_id, snapshot_id=snapshot_id
+    )
     return {"total": len(diagnostics), "items": _safe(diagnostics)}
 
 
@@ -241,44 +259,74 @@ async def create_search_term(payload: SearchTermRequest, request: Request) -> di
             status_code=422,
             detail={"error": "invalid_search_term_snapshot", "message": str(exc)},
         ) from exc
-    _audit(request, "advertising_search_term_ingested", {
-        "tenant_id": request.state.principal.tenant_id,
-        "search_term_snapshot_id": saved["id"],
-        "seller_sku": saved["seller_sku"],
-    })
+    _audit(
+        request,
+        "advertising_search_term_ingested",
+        {
+            "tenant_id": request.state.principal.tenant_id,
+            "search_term_snapshot_id": saved["id"],
+            "seller_sku": saved["seller_sku"],
+        },
+    )
     return {"search_term": _safe(saved)}
 
 
 @router.post("/voc/returns")
 async def ingest_return(payload: ReturnRequest, request: Request) -> dict[str, Any]:
     _require_write(request)
-    return {"event": _safe(request.app.state.voc_repository.save_return(tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()))}
+    return {
+        "event": _safe(
+            request.app.state.voc_repository.save_return(
+                tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()
+            )
+        )
+    }
 
 
 @router.post("/voc/reviews")
 async def ingest_review(payload: ReviewRequest, request: Request) -> dict[str, Any]:
     _require_write(request)
-    return {"event": _safe(request.app.state.voc_repository.save_review(tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()))}
+    return {
+        "event": _safe(
+            request.app.state.voc_repository.save_review(
+                tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()
+            )
+        )
+    }
 
 
 @router.post("/voc/message-tags")
 async def ingest_message_tag(payload: MessageTagRequest, request: Request) -> dict[str, Any]:
     _require_write(request)
-    return {"event": _safe(request.app.state.voc_repository.save_message_tag(tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()))}
+    return {
+        "event": _safe(
+            request.app.state.voc_repository.save_message_tag(
+                tenant_id=request.state.principal.tenant_id, payload=payload.model_dump()
+            )
+        )
+    }
 
 
 @router.post("/voc/summaries")
 async def create_voc_summary(payload: VOCSummaryRequest, request: Request) -> dict[str, Any]:
     _require_write(request)
-    summary = request.app.state.voc_repository.summarize(tenant_id=request.state.principal.tenant_id, **payload.model_dump())
-    _audit(request, "sku_voc_summary_calculated", {"tenant_id": request.state.principal.tenant_id, "seller_sku": payload.seller_sku, "status": summary["status"]})
+    summary = request.app.state.voc_repository.summarize(
+        tenant_id=request.state.principal.tenant_id, **payload.model_dump()
+    )
+    _audit(
+        request,
+        "sku_voc_summary_calculated",
+        {"tenant_id": request.state.principal.tenant_id, "seller_sku": payload.seller_sku, "status": summary["status"]},
+    )
     return {"summary": _safe(summary)}
 
 
 @router.get("/voc/summaries")
 async def list_voc_summaries(request: Request, seller_sku: str | None = None) -> dict[str, Any]:
     _require_read(request)
-    items = request.app.state.voc_repository.list_summaries(tenant_id=request.state.principal.tenant_id, seller_sku=seller_sku)
+    items = request.app.state.voc_repository.list_summaries(
+        tenant_id=request.state.principal.tenant_id, seller_sku=seller_sku
+    )
     return {"total": len(items), "items": _safe(items)}
 
 
@@ -290,12 +338,18 @@ def _require_read(request: Request) -> None:
 
 def _require_write(request: Request) -> None:
     principal = request.state.principal
-    if principal.role not in {"owner", "admin", "operator"} or ("write" not in principal.scopes and "admin" not in principal.scopes):
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "operator write scope is required."})
+    if principal.role not in {"owner", "admin", "operator"} or (
+        "write" not in principal.scopes and "admin" not in principal.scopes
+    ):
+        raise HTTPException(
+            status_code=403, detail={"error": "forbidden", "message": "operator write scope is required."}
+        )
 
 
 def _audit(request: Request, action: str, details: dict[str, Any]) -> None:
-    request.app.state.audit_logger.log_operation(action=action, status="success", details=details, actor=request.state.principal.user_id, risk_level="medium")
+    request.app.state.audit_logger.log_operation(
+        action=action, status="success", details=details, actor=request.state.principal.user_id, risk_level="medium"
+    )
 
 
 def _safe(value: Any) -> Any:

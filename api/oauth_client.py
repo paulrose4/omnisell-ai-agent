@@ -62,7 +62,9 @@ class OAuthClient:
                 follow_redirects=False,
             )
             if authorize_response.status_code not in {302, 303, 307, 308}:
-                raise RuntimeError(f"OAuth authorize failed: {authorize_response.status_code} {authorize_response.text}")
+                raise RuntimeError(
+                    f"OAuth authorize failed: {authorize_response.status_code} {authorize_response.text}"
+                )
 
             location = authorize_response.headers.get("location", "")
             query = parse_qs(urlparse(location).query)
@@ -113,7 +115,9 @@ class OAuthClient:
             access_token=str(payload["access_token"]),
             refresh_token=payload.get("refresh_token"),
             expires_at=now + int(payload.get("expires_in", 0)),
-            refresh_expires_at=now + int(payload.get("refresh_expires_in", 0)) if payload.get("refresh_expires_in") else None,
+            refresh_expires_at=now + int(payload.get("refresh_expires_in", 0))
+            if payload.get("refresh_expires_in")
+            else None,
             scope=str(payload.get("scope", "")),
         )
 

@@ -3,9 +3,6 @@ from __future__ import annotations
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, status
-from fastapi.responses import RedirectResponse
-
 from config import (
     ACCESS_TOKEN_TTL_SECONDS,
     OAUTH_CLIENTS,
@@ -13,6 +10,8 @@ from config import (
     get_default_redirect_uri,
     is_redirect_uri_allowed,
 )
+from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import RedirectResponse
 from oauth_server import (
     consume_authorization_code,
     create_access_token,
@@ -27,7 +26,6 @@ from oauth_server import (
     token_expiry_iso,
     validate_client_secret,
 )
-
 
 router = APIRouter(tags=["oauth"])
 
@@ -57,7 +55,9 @@ def authorize(
         return _oauth_redirect(redirect_uri, "invalid_client", "Unknown client_id.", state)
 
     if response_type != "code":
-        return _oauth_redirect(redirect_uri, "unsupported_response_type", "Only response_type=code is supported.", state)
+        return _oauth_redirect(
+            redirect_uri, "unsupported_response_type", "Only response_type=code is supported.", state
+        )
 
     if not is_redirect_uri_allowed(client_id, redirect_uri):
         fallback_redirect_uri = get_default_redirect_uri(client_id) or redirect_uri
@@ -83,7 +83,9 @@ async def token(request: Request) -> dict[str, object]:
     redirect_uri = form.get("redirect_uri", "")
 
     if grant_type != "authorization_code":
-        oauth_http_error(status.HTTP_400_BAD_REQUEST, "unsupported_grant_type", "grant_type must be authorization_code.")
+        oauth_http_error(
+            status.HTTP_400_BAD_REQUEST, "unsupported_grant_type", "grant_type must be authorization_code."
+        )
 
     missing = [
         name
@@ -96,7 +98,9 @@ async def token(request: Request) -> dict[str, object]:
         if not value
     ]
     if missing:
-        oauth_http_error(status.HTTP_400_BAD_REQUEST, "invalid_request", f"Missing required form fields: {', '.join(missing)}.")
+        oauth_http_error(
+            status.HTTP_400_BAD_REQUEST, "invalid_request", f"Missing required form fields: {', '.join(missing)}."
+        )
 
     validate_client_secret(client_id, client_secret)
     code_info = consume_authorization_code(code, client_id, redirect_uri)

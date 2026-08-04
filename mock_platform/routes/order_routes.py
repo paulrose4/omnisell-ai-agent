@@ -3,11 +3,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-
 from config import DATA_LOCK, DATA_STORE, save_collection, utc_now_iso
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from oauth_server import require_bearer_token
-
 
 router = APIRouter(prefix="/api/v2/order", tags=["orders"])
 

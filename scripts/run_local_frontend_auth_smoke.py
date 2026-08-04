@@ -9,7 +9,9 @@ import httpx
 
 def require_status(response: httpx.Response, expected: int) -> httpx.Response:
     if response.status_code != expected:
-        raise RuntimeError(f"{response.request.method} {response.request.url} -> {response.status_code}: {response.text}")
+        raise RuntimeError(
+            f"{response.request.method} {response.request.url} -> {response.status_code}: {response.text}"
+        )
     return response
 
 

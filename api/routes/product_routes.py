@@ -9,7 +9,6 @@ from agents.tools import platform_api
 from agents.tools.translator import translate_text
 from api.security import require_api_key
 
-
 SYNC_SERVICE_NAME = "AmazonSyncService"
 
 
@@ -59,7 +58,10 @@ async def sync_product(payload: SyncProductRequest, request: Request) -> SyncPro
     if settings.environment.lower() == "production":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "legacy_route_disabled", "message": "Legacy Mock Platform product synchronization is disabled in production."},
+            detail={
+                "error": "legacy_route_disabled",
+                "message": "Legacy Mock Platform product synchronization is disabled in production.",
+            },
         )
     requires_confirmation = payload.dry_run or not payload.confirm
     if not requires_confirmation:
@@ -67,7 +69,10 @@ async def sync_product(payload: SyncProductRequest, request: Request) -> SyncPro
         if "write" not in scopes and "admin" not in scopes:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail={"error": "forbidden", "message": "Write scope is required to apply legacy product synchronization."},
+                detail={
+                    "error": "forbidden",
+                    "message": "Write scope is required to apply legacy product synchronization.",
+                },
             )
     try:
         token = await request.app.state.oauth_client.get_token()
@@ -80,7 +85,9 @@ async def sync_product(payload: SyncProductRequest, request: Request) -> SyncPro
 
     product = detail.get("product", detail)
     title = str(product.get("title") or product.get("title_en") or product.get("title_zh") or "")
-    description = str(product.get("description") or product.get("description_en") or product.get("description_zh") or "")
+    description = str(
+        product.get("description") or product.get("description_en") or product.get("description_zh") or ""
+    )
     category = str(product.get("category", ""))
 
     translations: dict[str, dict[str, str]] = {}

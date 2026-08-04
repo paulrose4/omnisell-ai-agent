@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextvars import Token
 from dataclasses import dataclass
-from collections.abc import AsyncIterator
 from typing import Annotated, Any
 
 import jwt
 from fastapi import Header, HTTPException, Request, status
 from jwt import PyJWKClient
 
-from safety.tool_auth import ToolCallerContext, reset_tool_caller_context, set_tool_caller_context
 from infrastructure.database.session import bind_tenant_context, reset_tenant_context
+from safety.tool_auth import ToolCallerContext, reset_tool_caller_context, set_tool_caller_context
 
 from .config import Settings, get_settings
 
@@ -69,8 +69,11 @@ def _principal_from_claims(claims: dict[str, Any]) -> AuthenticatedPrincipal:
     if isinstance(raw_scopes, str):
         raw_scopes = raw_scopes.replace(",", " ").split()
     return AuthenticatedPrincipal(
-        user_id=str(claims["sub"]), tenant_id=tenant_id, role=role,
-        scopes=frozenset(str(scope).lower() for scope in raw_scopes), claims=claims,
+        user_id=str(claims["sub"]),
+        tenant_id=tenant_id,
+        role=role,
+        scopes=frozenset(str(scope).lower() for scope in raw_scopes),
+        claims=claims,
     )
 
 
@@ -90,7 +93,13 @@ async def authenticate_request(
             amr_ok = any(item in amr for item in settings.oidc_mfa_amr_list)
             acr_ok = bool(settings.oidc_required_acr and acr == settings.oidc_required_acr)
             if not amr_ok and not acr_ok:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "mfa_required", "message": "Production access requires multi-factor authentication."})
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "error": "mfa_required",
+                        "message": "Production access requires multi-factor authentication.",
+                    },
+                )
         if settings.environment.lower() == "production":
             repository = getattr(request.app.state, "tenant_repository", None)
             if repository is None:
@@ -100,7 +109,10 @@ async def authenticate_request(
                 raise _unauthorized("Operator account has not been provisioned.")
             membership = repository.find_membership(tenant_id=principal.tenant_id, user_id=user.id)
             if membership is None:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"error": "membership_required", "message": "User is not a member of this tenant."})
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={"error": "membership_required", "message": "User is not a member of this tenant."},
+                )
             principal = AuthenticatedPrincipal(
                 user_id=user.id,
                 tenant_id=principal.tenant_id,
@@ -166,13 +178,17 @@ def build_tool_caller_context(request: Request) -> ToolCallerContext:
             user_id=request.headers.get("X-User-ID", "api"),
             role=request.headers.get("X-User-Role", "agent").lower(),
             tenant_id=request.headers.get("X-Tenant-ID", "default"),
-            scopes=None if "X-Permission-Scopes" not in request.headers else frozenset(
+            scopes=None
+            if "X-Permission-Scopes" not in request.headers
+            else frozenset(
                 scope.strip().lower()
                 for scope in request.headers.get("X-Permission-Scopes", "").replace(",", " ").split()
                 if scope.strip()
             ),
         )
-    return ToolCallerContext(user_id=principal.user_id, role=principal.role, tenant_id=principal.tenant_id, scopes=principal.scopes)
+    return ToolCallerContext(
+        user_id=principal.user_id, role=principal.role, tenant_id=principal.tenant_id, scopes=principal.scopes
+    )
 
 
 def bind_tool_caller_context(request: Request) -> Token[ToolCallerContext | None]:

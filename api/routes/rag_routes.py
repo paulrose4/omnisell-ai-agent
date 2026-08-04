@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from api.security import require_api_key
 
-
 router = APIRouter(prefix="/api/rag", tags=["rag"], dependencies=[Depends(require_api_key)])
 
 

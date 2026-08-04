@@ -3,14 +3,12 @@ from __future__ import annotations
 import base64
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
-from fastapi import File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from agents.tools.rag_tool import answer_customer_question
 from agents.tools.vision_tool import answer_visual_customer_question
 from api.security import require_api_key
-
 
 CUSTOMER_ADVISOR_NAME = "CustomerCaseAdvisor"
 
@@ -43,7 +41,6 @@ class CustomerImageAskResponse(CustomerAskResponse):
     vision: dict[str, Any]
 
 
-
 def _enqueue_action(request: Request, *, queue_name: str, action: str, payload: dict[str, Any]):
     queue = request.app.state.task_queue
     if hasattr(queue, "enqueue_action"):
@@ -61,10 +58,18 @@ def _enqueue_action(request: Request, *, queue_name: str, action: str, payload: 
             idempotency_key=request.headers.get("Idempotency-Key"),
         )
     if action == "customer.ask":
-        handler = lambda: answer_customer_question(**payload)
+
+        def handler():
+            return answer_customer_question(**payload)
     else:
-        handler = lambda: answer_visual_customer_question(**payload)
-    return queue.enqueue(queue_name=queue_name, action=action, request_id=getattr(request.state, "request_id", None), handler=handler)
+
+        def handler():
+            return answer_visual_customer_question(**payload)
+
+    return queue.enqueue(
+        queue_name=queue_name, action=action, request_id=getattr(request.state, "request_id", None), handler=handler
+    )
+
 
 class AsyncTaskSubmitResponse(BaseModel):
     task_id: str
@@ -182,7 +187,19 @@ async def ask_customer_image_upload_async(
     """Queue an uploaded image customer question and return a task id immediately."""
     image_bytes = await image.read()
     image_base64 = base64.b64encode(image_bytes).decode("ascii")
-    record = _enqueue_action(request, queue_name="vision", action="customer.ask_image_upload", payload={"question": question, "image_base64": image_base64, "target_language": target_language, "category_filter": category_filter, "top_k": top_k, "task_hint": task_hint})
+    record = _enqueue_action(
+        request,
+        queue_name="vision",
+        action="customer.ask_image_upload",
+        payload={
+            "question": question,
+            "image_base64": image_base64,
+            "target_language": target_language,
+            "category_filter": category_filter,
+            "top_k": top_k,
+            "task_hint": task_hint,
+        },
+    )
     return AsyncTaskSubmitResponse(
         task_id=record.task_id,
         queue_name=record.queue_name,

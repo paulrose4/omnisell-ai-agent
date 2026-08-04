@@ -6,10 +6,10 @@ from typing import Any
 
 import pytest
 
-from agents.base import safe_tool_execution
 from agents.tools.platform_api import get_product_detail, get_product_list, update_product
 from agents.tools.price_scraper import fetch_competitor_prices, generate_price_recommendation
 from agents.tools.vision_tool import analyze_customer_image
+from legacy.autogen_demo.base import safe_tool_execution
 from safety.audit import AuditLogger
 from safety.circuit_breaker import CircuitBreaker
 from safety.hitl import HITLManager
@@ -94,7 +94,10 @@ def test_params_exactly_one_image_source_required(tmp_path: Path) -> None:
         validator.validate("analyze_customer_image", {"question": "what is this?"}, _caller("agent"))
 
     assert exc.value.status_code == 422
-    assert {"field": "image_base64,image_path", "message": "Provide exactly one field from this group."} in exc.value.details
+    assert {
+        "field": "image_base64,image_path",
+        "message": "Provide exactly one field from this group.",
+    } in exc.value.details
     _assert_permission_audit(logger, "analyze_customer_image")
 
 
@@ -109,7 +112,10 @@ def test_params_exactly_one_image_source_rejects_both(tmp_path: Path) -> None:
         )
 
     assert exc.value.status_code == 422
-    assert {"field": "image_base64,image_path", "message": "Provide exactly one field from this group."} in exc.value.details
+    assert {
+        "field": "image_base64,image_path",
+        "message": "Provide exactly one field from this group.",
+    } in exc.value.details
     _assert_permission_audit(logger, "analyze_customer_image")
 
 
@@ -136,7 +142,9 @@ def test_caller_explicit_scope_can_reduce_access(tmp_path: Path) -> None:
     validator, logger = _validator(tmp_path, update_product)
 
     with pytest.raises(PermissionDeniedError) as exc:
-        validator.validate("update_product", {"product_id": "P1001", "price": 12.5}, _caller("operator", scopes={"read"}))
+        validator.validate(
+            "update_product", {"product_id": "P1001", "price": 12.5}, _caller("operator", scopes={"read"})
+        )
 
     assert exc.value.status_code == 403
     _assert_permission_audit(logger, "update_product")
@@ -239,9 +247,8 @@ def test_safe_tool_execution_blocks_before_tool_body(tmp_path: Path) -> None:
         called = True
         return {"product_id": product_id, "price": price}
 
-    with tool_caller_context(_caller("viewer")):
-        with pytest.raises(PermissionDeniedError):
-            update_product(product_id="P1001", price=12.5)
+    with tool_caller_context(_caller("viewer")), pytest.raises(PermissionDeniedError):
+        update_product(product_id="P1001", price=12.5)
 
     assert called is False
     _assert_permission_audit(logger, "update_product")
@@ -251,7 +258,9 @@ def test_safe_tool_execution_blocks_before_tool_body(tmp_path: Path) -> None:
 def test_acl_env_json_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(
         "OMNISELL_TOOL_ACL_JSON",
-        json.dumps({"update_product": {"required_roles": ["viewer"], "required_scope": "read", "tenant_isolation": "tenant"}}),
+        json.dumps(
+            {"update_product": {"required_roles": ["viewer"], "required_scope": "read", "tenant_isolation": "tenant"}}
+        ),
     )
 
     acls = load_tool_acls()
@@ -264,7 +273,9 @@ def test_acl_file_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.delenv("OMNISELL_TOOL_ACL_JSON", raising=False)
     config_path = tmp_path / "tool-acl.json"
     config_path.write_text(
-        json.dumps({"custom_tool": {"required_roles": ["admin"], "required_scope": "admin", "tenant_isolation": "none"}}),
+        json.dumps(
+            {"custom_tool": {"required_roles": ["admin"], "required_scope": "admin", "tenant_isolation": "none"}}
+        ),
         encoding="utf-8",
     )
 

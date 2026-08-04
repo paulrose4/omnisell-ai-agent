@@ -44,11 +44,26 @@ class CeleryTaskQueue:
     async def shutdown(self) -> None:
         return None
 
-    def enqueue_action(self, *, tenant_id: str, actor_id: str, queue_name: str, action: str, payload: dict[str, Any], request_id: str | None, idempotency_key: str | None = None) -> DurableTaskRecord:
+    def enqueue_action(
+        self,
+        *,
+        tenant_id: str,
+        actor_id: str,
+        queue_name: str,
+        action: str,
+        payload: dict[str, Any],
+        request_id: str | None,
+        idempotency_key: str | None = None,
+    ) -> DurableTaskRecord:
         correlation_id = request_id or str(uuid4())
         row = self.repository.create(
-            tenant_id=tenant_id, actor_id=actor_id, queue_name=queue_name, action=action,
-            payload=payload, idempotency_key=idempotency_key or str(uuid4()), correlation_id=correlation_id,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            queue_name=queue_name,
+            action=action,
+            payload=payload,
+            idempotency_key=idempotency_key or str(uuid4()),
+            correlation_id=correlation_id,
         )
         if row.status == "pending":
             execute_action_task.apply_async(args=[row.id, tenant_id, action, payload], queue=queue_name, task_id=row.id)
@@ -61,7 +76,9 @@ class CeleryTaskQueue:
         row = self.repository.get(tenant_id=tenant_id, task_id=task_id)
         return None if row is None else self._to_record(row)
 
-    def list_tasks(self, *, tenant_id: str = "default", limit: int = 50, status: Any | None = None) -> list[DurableTaskRecord]:
+    def list_tasks(
+        self, *, tenant_id: str = "default", limit: int = 50, status: Any | None = None
+    ) -> list[DurableTaskRecord]:
         records = [self._to_record(row) for row in self.repository.list(tenant_id=tenant_id, limit=limit)]
         if status is not None:
             expected = getattr(status, "value", status)
@@ -77,10 +94,19 @@ class CeleryTaskQueue:
 
     def _to_record(self, row: Any) -> DurableTaskRecord:
         return DurableTaskRecord(
-            task_id=row.id, queue_name=row.queue_name, action=row.action, status=row.status,
-            created_at=self._timestamp(row.created_at) or time.time(), updated_at=self._timestamp(row.updated_at) or time.time(),
-            request_id=row.correlation_id, result=row.result, error=row.error_message,
-            attempts=row.attempts, max_attempts=row.max_attempts,
-            replayed_from_task_id=row.replayed_from_task_id, replayed_to_task_id=row.replayed_to_task_id,
-            closed_by=row.closed_by, close_reason=row.close_reason,
+            task_id=row.id,
+            queue_name=row.queue_name,
+            action=row.action,
+            status=row.status,
+            created_at=self._timestamp(row.created_at) or time.time(),
+            updated_at=self._timestamp(row.updated_at) or time.time(),
+            request_id=row.correlation_id,
+            result=row.result,
+            error=row.error_message,
+            attempts=row.attempts,
+            max_attempts=row.max_attempts,
+            replayed_from_task_id=row.replayed_from_task_id,
+            replayed_to_task_id=row.replayed_to_task_id,
+            closed_by=row.closed_by,
+            close_reason=row.close_reason,
         )

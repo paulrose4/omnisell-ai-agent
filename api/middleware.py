@@ -3,15 +3,16 @@ from __future__ import annotations
 import time
 import uuid
 from collections import defaultdict, deque
-from collections.abc import Callable
-from typing import Awaitable
+from collections.abc import Awaitable, Callable
 
 from fastapi import Request
 from redis.asyncio import Redis
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
-from .security import bind_tool_caller_context, unbind_tool_caller_context
+
 from infrastructure.database.session import tenant_context
+
+from .security import bind_tool_caller_context, unbind_tool_caller_context
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
@@ -28,7 +29,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         client_host = request.client.host if request.client else "unknown"
         allowed = await self._allow_redis(client_host) if self.redis is not None else self._allow_memory(client_host)
         if not allowed:
-            return JSONResponse(status_code=429, content={"error": "rate_limited", "message": "Request rate limit exceeded."})
+            return JSONResponse(
+                status_code=429, content={"error": "rate_limited", "message": "Request rate limit exceeded."}
+            )
         return await call_next(request)
 
     def _allow_memory(self, key: str) -> bool:
@@ -89,10 +92,14 @@ class RequestTelemetryMiddleware(BaseHTTPMiddleware):
                             action="api_request",
                             status="success" if status_code < 500 else "failure",
                             details={
-                                "request_id": request_id, "tenant_id": tenant_id,
-                                "method": request.method, "path": request.url.path,
-                                "status_code": status_code, "latency_ms": latency_ms,
+                                "request_id": request_id,
+                                "tenant_id": tenant_id,
+                                "method": request.method,
+                                "path": request.url.path,
+                                "status_code": status_code,
+                                "latency_ms": latency_ms,
                             },
-                            actor=getattr(caller, "user_id", "api"), risk_level="low",
+                            actor=getattr(caller, "user_id", "api"),
+                            risk_level="low",
                         )
             unbind_tool_caller_context(tool_context_token)

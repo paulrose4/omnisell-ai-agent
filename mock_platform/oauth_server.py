@@ -10,8 +10,6 @@ from datetime import UTC, datetime
 from typing import Annotated, Any
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
-from fastapi import Header, HTTPException, Request, status
-
 from config import (
     ACCESS_TOKEN_TTL_SECONDS,
     AUTHORIZATION_CODE_TTL_SECONDS,
@@ -22,7 +20,7 @@ from config import (
     REFRESH_TOKEN_TTL_SECONDS,
     get_default_seller_id,
 )
-
+from fastapi import Header, HTTPException, Request, status
 
 AUTHORIZATION_CODES: dict[str, dict[str, Any]] = {}
 REFRESH_TOKENS: dict[str, dict[str, Any]] = {}

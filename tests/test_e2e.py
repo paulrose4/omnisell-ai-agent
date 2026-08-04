@@ -28,7 +28,8 @@ async def _run_e2e_flow(monkeypatch: Any, tmp_path: Path) -> None:
         audit_log_path=str(tmp_path / "audit.jsonl"),
         rate_limit_per_minute=1000,
         mock_platform_url="http://mock-platform.test",
-        database_url=f"sqlite:///{tmp_path / 'gateway.sqlite'}", auto_create_schema=True,
+        database_url=f"sqlite:///{tmp_path / 'gateway.sqlite'}",
+        auto_create_schema=True,
     )
     app = create_app(settings)
 
@@ -73,7 +74,9 @@ async def _run_e2e_flow(monkeypatch: Any, tmp_path: Path) -> None:
                 "target_language": "th",
                 "normalized_query": "运费如何计算",
                 "answer": "ค่าจัดส่งจะคำนวณตามพื้นที่ น้ำหนัก และโปรโมชั่น",
-                "context_used": [{"text": "运费会根据地区、重量和促销计算", "metadata": {"category": "物流"}, "score": 0.9}],
+                "context_used": [
+                    {"text": "运费会根据地区、重量和促销计算", "metadata": {"category": "物流"}, "score": 0.9}
+                ],
                 "grounded": True,
             }
         return {
@@ -94,8 +97,22 @@ async def _run_e2e_flow(monkeypatch: Any, tmp_path: Path) -> None:
         competitors: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         return [
-            {"product_id": product_id, "competitor": "A", "market": market, "price": 70.0, "currency": currency, "url": "https://example.com/a"},
-            {"product_id": product_id, "competitor": "B", "market": market, "price": 72.0, "currency": currency, "url": "https://example.com/b"},
+            {
+                "product_id": product_id,
+                "competitor": "A",
+                "market": market,
+                "price": 70.0,
+                "currency": currency,
+                "url": "https://example.com/a",
+            },
+            {
+                "product_id": product_id,
+                "competitor": "B",
+                "market": market,
+                "price": 72.0,
+                "currency": currency,
+                "url": "https://example.com/b",
+            },
         ]
 
     monkeypatch.setattr(product_routes.platform_api, "get_product_detail", fake_get_product_detail)
