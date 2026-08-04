@@ -113,3 +113,12 @@ Revision 0017 must remain after 0016 in Git history because its Alembic `down_re
 Do not defer all tests to a final commit; every implementation commit should remain reviewable and green.
 
 Do not stage the entire working tree with git add -A until this ownership decision is recorded.
+
+## Upstream safety baseline reconciliation
+
+The 2026-08-04 merge of `origin/main` commit `822d6e0` preserves upstream ancestry but keeps the current fail-closed safety implementation where the two lines diverged.
+
+- `refund_gate.py` and `hitl.py` permanently reject refunds, payment reversals and autonomous cancellations before an approval request can be created. The older `refund_constraint.py` expected refund execution to enter HITL and failed four tests against the current permanent-prohibition policy.
+- `tool_acl.py` and `tool_auth.py` require registered, tenant-bound caller context. The older `tool_permissions.py` allowed unregistered tools to pass through, which conflicts with the repository security rules.
+- Current read-only Price and Sync Agent boundaries, async-safe tool wrapping and `domain_guardrail.py` remain authoritative.
+- The upstream static screenshots, binary test reports, stale 88-test summary and architecture notes tied to the retired modules are excluded from the review tree. Current reproducible tests, evals and runbooks are the evidence source instead.
