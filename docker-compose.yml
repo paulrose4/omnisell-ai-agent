@@ -1,56 +1,96 @@
-﻿services:
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: omnisell-chromadb
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
     environment:
-      ALLOW_RESET: "true"
-      IS_PERSISTENT: "true"
+      POSTGRES_DB: omnisell
+      POSTGRES_USER: omnisell
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     volumes:
-      - ./chroma_data:/chroma/chroma
-    ports:
-      - "8001:8000"
-    networks:
-      - omnisell-net
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnisell -d omnisell"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [omnisell-net]
 
-  mock-platform:
-    build:
-      context: ./mock_platform
-    container_name: omnisell-mock-platform
+  redis:
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}"]
     volumes:
-      - ./mock_platform/data:/app/data
-    ports:
-      - "8002:8000"
-    networks:
-      - omnisell-net
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [omnisell-net]
+
+  migrate:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    env_file: [.env]
+    command: ["/bin/sh", "-c", "alembic upgrade head && python scripts/configure_postgres_app_role.py"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [omnisell-net]
 
   api:
     build:
       context: .
       dockerfile: api/Dockerfile
-    container_name: omnisell-api
-    env_file:
-      - .env
-    environment:
-      VLLM_BASE_URL: http://host.docker.internal:11434/v1
-      VLLM_MODEL_NAME: qwen2.5:3b
-      VISION_BASE_URL: http://host.docker.internal:11434
-      VISION_MODEL_NAME: llava:7b
-      VISION_TIMEOUT_SECONDS: "180"
-      VISION_MAX_IMAGE_BYTES: "8388608"
-      CHROMA_HOST: chromadb
-      CHROMA_PORT: "8000"
-      MOCK_PLATFORM_URL: http://mock-platform:8000
-      TEXT_QUEUE_WORKERS: "2"
-      VISION_QUEUE_WORKERS: "1"
-    ports:
-      - "8080:8000"
+    env_file: [.env]
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--proxy-headers"]
+    ports: ["8080:8000"]
     depends_on:
-      - chromadb
-      - mock-platform
-    networks:
-      - omnisell-net
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/admin/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks: [omnisell-net]
+
+  worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    env_file: [.env]
+    command: ["celery", "-A", "application.celery_app:celery_app", "worker", "--loglevel=INFO", "--queues=text,vision,sync,operations", "--concurrency=4"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [omnisell-net]
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    env_file: [.env]
+    command: ["celery", "-A", "application.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [omnisell-net]
+
+volumes:
+  postgres-data:
+  redis-data:
 
 networks:
   omnisell-net:
-    name: omnisell-net
     driver: bridge

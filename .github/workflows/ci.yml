@@ -1,0 +1,212 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: backend-${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: unit-contract
+            marker: unit or contract
+            workers: -n auto
+            require_postgres: "false"
+            database_url: sqlite:////tmp/omnisell-unit-contract.sqlite
+            postgres_rls_url: ""
+          - suite: sqlite-integration-a
+            marker: sqlite_integration and ci_shard_a
+            workers: ""
+            require_postgres: "false"
+            database_url: sqlite:////tmp/omnisell-integration-a.sqlite
+            postgres_rls_url: ""
+          - suite: sqlite-integration-b
+            marker: sqlite_integration and ci_shard_b
+            workers: ""
+            require_postgres: "false"
+            database_url: sqlite:////tmp/omnisell-integration-b.sqlite
+            postgres_rls_url: ""
+          - suite: postgres-integration
+            marker: postgres_integration
+            workers: ""
+            require_postgres: "true"
+            database_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+            postgres_rls_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+          - suite: e2e
+            marker: e2e
+            workers: ""
+            require_postgres: "false"
+            database_url: sqlite:////tmp/omnisell-e2e.sqlite
+            postgres_rls_url: ""
+          - suite: security
+            marker: security
+            workers: ""
+            require_postgres: "false"
+            database_url: sqlite:////tmp/omnisell-security.sqlite
+            postgres_rls_url: ""
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: omnisell
+          POSTGRES_USER: omnisell
+          POSTGRES_PASSWORD: omnisell
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U omnisell -d omnisell"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: ${{ matrix.database_url }}
+      POSTGRES_RLS_URL: ${{ matrix.postgres_rls_url }}
+      OMNISELL_REQUIRE_POSTGRES_TESTS: ${{ matrix.require_postgres }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Apply PostgreSQL migrations
+        if: matrix.require_postgres == 'true'
+        run: alembic upgrade head
+      - name: Run bounded test suite
+        run: >-
+          pytest -m "${{ matrix.marker }}" ${{ matrix.workers }}
+          --junitxml="test-results/${{ matrix.suite }}.xml"
+          --durations=50
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.suite }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  backend-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: omnisell
+          POSTGRES_USER: omnisell
+          POSTGRES_PASSWORD: omnisell
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U omnisell -d omnisell"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m compileall api application commerce domain infrastructure model_gateway workflows safety agents rag scripts
+      - run: alembic upgrade head
+      - run: alembic check
+      - run: pip install pip-audit==2.9.0
+      - run: pip-audit -r requirements.txt
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: api/Dockerfile
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.1"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm audit signatures
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run typecheck
+      - run: npm run build
+
+  container-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: api/Dockerfile
+          load: true
+          tags: omnisell-api:ci
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          load: true
+          tags: omnisell-frontend:ci
+      - name: Generate API SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: omnisell-api:ci
+          format: spdx-json
+          output-file: sbom-api.spdx.json
+      - name: Generate frontend SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: omnisell-frontend:ci
+          format: spdx-json
+          output-file: sbom-frontend.spdx.json
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: omnisell-api:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: omnisell-frontend:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Upload SBOM evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-sboms
+          path: sbom-*.spdx.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2

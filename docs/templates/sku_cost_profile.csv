@@ -1,0 +1,2 @@
+seller_sku,marketplace_id,currency,product_cost,domestic_shipping_cost,international_freight_cost,duty_cost,prep_cost,packaging_cost,estimated_referral_fee_rate,estimated_fulfillment_fee,estimated_storage_cost,estimated_return_loss_rate,exchange_rate_buffer_rate,target_margin_rate,minimum_margin_rate,effective_from,effective_to,source
+EXAMPLE-SKU,ATVPDKIKX0DER,USD,10.00,1.00,2.00,0.50,0.50,0.50,0.15,4.00,0.25,0.02,0.01,0.20,0.10,2026-01-01T00:00:00Z,,csv_import

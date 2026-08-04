@@ -1,0 +1,37 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ENVIRONMENT: "local"
+        NEXT_PUBLIC_MOCK_DRILL_ENABLED: "true"
+        NEXT_PUBLIC_SELLER_CENTRAL_URL: http://localhost:${E2E_MOCK_CLOUD_PORT:-9000}
+        NEXT_PUBLIC_REFRESH_INTERVAL_MS: "5000"
+    environment:
+      OMNISELL_ENVIRONMENT: local
+      AUTH_SECRET: ${LOCAL_AUTH_SECRET:-local-omnisell-auth-secret-change-before-shared-use}
+      AUTH_URL: http://localhost:${LOCAL_FRONTEND_PORT:-3000}
+      AUTH_TRUST_HOST: "true"
+      AUTH_OIDC_ISSUER: http://localhost:${E2E_MOCK_CLOUD_PORT:-9000}
+      AUTH_OIDC_WELL_KNOWN_URL: http://mock-cloud:9000/.well-known/openid-configuration
+      AUTH_OIDC_INTERNAL_BASE_URL: http://mock-cloud:9000
+      AUTH_OIDC_CLIENT_ID: omnisell-ops
+      AUTH_OIDC_CLIENT_SECRET: ${LOCAL_OIDC_CLIENT_SECRET:-local-oidc-client-secret}
+      BACKEND_API_URL: http://api:8000
+      NEXT_PUBLIC_ENVIRONMENT: local
+      NEXT_PUBLIC_MOCK_DRILL_ENABLED: "true"
+      NEXT_PUBLIC_SELLER_CENTRAL_URL: http://localhost:${E2E_MOCK_CLOUD_PORT:-9000}
+      NEXT_PUBLIC_REFRESH_INTERVAL_MS: "5000"
+    ports: ["${LOCAL_FRONTEND_PORT:-3000}:3000"]
+    depends_on:
+      api:
+        condition: service_healthy
+      mock-cloud:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [e2e-net]
+
+networks:
+  e2e-net:
+    driver: bridge

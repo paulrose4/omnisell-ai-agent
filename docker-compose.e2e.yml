@@ -1,0 +1,173 @@
+x-runtime-env: &runtime-env
+  APP_NAME: OmniSell Local E2E
+  ENVIRONMENT: local
+  AUTH_MODE: oidc
+  API_KEY: ""
+  ALLOWED_ORIGINS: http://localhost:${LOCAL_FRONTEND_PORT:-3000},http://localhost:8080
+  OIDC_ISSUER: http://localhost:9000
+  OIDC_AUDIENCE: omnisell-api
+  OIDC_JWKS_URL: http://mock-cloud:9000/.well-known/jwks.json
+  OIDC_ALGORITHMS: RS256
+  OIDC_REQUIRE_MFA: "true"
+  OIDC_MFA_AMR_VALUES: mfa,otp
+  DATABASE_URL: postgresql+psycopg://omnisell_app:${E2E_DATABASE_APP_PASSWORD:-local-app-password}@postgres:5432/omnisell
+  AUTO_CREATE_SCHEMA: "false"
+  REDIS_URL: redis://:${E2E_REDIS_PASSWORD:-local-redis-password}@redis:6379/0
+  TASK_BACKEND: celery
+  CELERY_TASK_ALWAYS_EAGER: "false"
+  CHROMA_HOST: 127.0.0.1
+  CHROMA_PORT: "8000"
+  MOCK_PLATFORM_URL: http://mock-platform:8000
+  VLLM_BASE_URL: ${LOCAL_VLLM_BASE_URL:-http://host.docker.internal:11434/v1}
+  VLLM_MODEL_NAME: ${LOCAL_VLLM_MODEL_NAME:-qwen2.5:3b}
+  VLLM_API_KEY: ${LOCAL_VLLM_API_KEY:-not-needed}
+  MODEL_FALLBACK_ENABLED: ${LOCAL_MODEL_FALLBACK_ENABLED:-false}
+  MODEL_FALLBACK_BASE_URL: ${LOCAL_MODEL_FALLBACK_BASE_URL:-https://api.wenrugouai.com/v1}
+  MODEL_FALLBACK_MODEL_NAME: ${LOCAL_MODEL_FALLBACK_MODEL_NAME:-}
+  MODEL_FALLBACK_API_KEY: ${LOCAL_MODEL_FALLBACK_API_KEY:-}
+  MODEL_FALLBACK_PROVIDER: ${LOCAL_MODEL_FALLBACK_PROVIDER:-wenrugouai_openai_compatible}
+  MODEL_FALLBACK_TIMEOUT_SECONDS: ${LOCAL_MODEL_FALLBACK_TIMEOUT_SECONDS:-240}
+  MODEL_FALLBACK_INPUT_COST_PER_MILLION: ${LOCAL_MODEL_FALLBACK_INPUT_COST_PER_MILLION:-0}
+  MODEL_FALLBACK_OUTPUT_COST_PER_MILLION: ${LOCAL_MODEL_FALLBACK_OUTPUT_COST_PER_MILLION:-0}
+  MODEL_MAX_TOKENS_PER_TASK: ${LOCAL_MODEL_MAX_TOKENS_PER_TASK:-36000}
+  MODEL_TIMEOUT_SECONDS: ${LOCAL_MODEL_TIMEOUT_SECONDS:-240}
+  MODEL_INPUT_COST_PER_MILLION: ${LOCAL_MODEL_INPUT_COST_PER_MILLION:-2.5}
+  MODEL_OUTPUT_COST_PER_MILLION: ${LOCAL_MODEL_OUTPUT_COST_PER_MILLION:-15}
+  AGENT_TENANT_QUOTA_PER_MINUTE: ${LOCAL_AGENT_TENANT_QUOTA_PER_MINUTE:-10}
+  AGENT_TENANT_QUOTA_PER_DAY: ${LOCAL_AGENT_TENANT_QUOTA_PER_DAY:-100}
+  AGENT_BUDGET_PROFILES: >-
+    {"operations_brief_analysis":{"max_prompt_tokens":9000,"max_completion_tokens":5000,"max_estimated_cost":"0.25","max_evidence_items":14,"max_evidence_chars":6000,"max_total_evidence_chars":24000,"max_request_bytes":64000,"timeout_seconds":240},"customer_case_analysis":{"max_prompt_tokens":7000,"max_completion_tokens":5000,"max_estimated_cost":"0.21","max_evidence_items":80,"max_evidence_chars":6000,"max_total_evidence_chars":18000,"max_request_bytes":56000,"timeout_seconds":180},"listing_optimization_analysis":{"max_prompt_tokens":6000,"max_completion_tokens":4000,"max_estimated_cost":"0.17","max_evidence_items":100,"max_evidence_chars":8000,"max_total_evidence_chars":20000,"max_request_bytes":48000,"timeout_seconds":120},"reconciliation_investigation":{"max_prompt_tokens":8000,"max_completion_tokens":5000,"max_estimated_cost":"0.22","max_evidence_items":150,"max_evidence_chars":6000,"max_total_evidence_chars":26000,"max_request_bytes":64000,"timeout_seconds":240}}
+  VISION_BASE_URL: http://host.docker.internal:11434
+  VISION_MODEL_NAME: llava:7b
+  AMAZON_LWA_CLIENT_ID: local-lwa-client
+  AMAZON_LWA_CLIENT_SECRET: local-lwa-secret
+  AMAZON_LWA_TOKEN_URL: http://mock-cloud:9000/auth/o2/token
+  AMAZON_LWA_REVOKE_URL: http://mock-cloud:9000/auth/o2/token/revoke
+  AMAZON_APPLICATION_ID: local-amazon-application
+  AMAZON_REDIRECT_URI: http://localhost:8080/api/channels/amazon/callback
+  AMAZON_SP_API_ENDPOINT: http://mock-cloud:9000
+  AMAZON_SELLER_CENTRAL_URL: http://localhost:9000
+  AMAZON_REGION: na
+  AMAZON_MARKETPLACE_IDS: ATVPDKIKX0DER
+  AMAZON_WRITES_ENABLED: "false"
+  AMAZON_PILOT_READ_ONLY: "true"
+  MOCK_DRILL_ENABLED: "true"
+  MOCK_AMAZON_RATE_LIMIT_MULTIPLIER: ${E2E_MOCK_AMAZON_RATE_LIMIT_MULTIPLIER:-100000}
+  AMAZON_NOTIFICATION_TOKEN: ${E2E_NOTIFICATION_TOKEN:-local-notification-token-change-for-shared-machines}
+  SECRET_ENCRYPTION_KEY: bIb6OP1M1JTj3Znr39vYHRVhVfIYr3BegKc_lHpVyCE=
+  RATE_LIMIT_PER_MINUTE: "600"
+
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:16-bookworm
+    environment:
+      POSTGRES_DB: omnisell
+      POSTGRES_USER: omnisell
+      POSTGRES_PASSWORD: ${E2E_POSTGRES_PASSWORD:-local-postgres-password}
+    ports: ["${E2E_POSTGRES_PORT:-55432}:5432"]
+    volumes: ["e2e-postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnisell -d omnisell"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [e2e-net]
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7.4.2-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${E2E_REDIS_PASSWORD:-local-redis-password}"]
+    ports: ["${E2E_REDIS_PORT:-6379}:6379"]
+    volumes: ["e2e-redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${E2E_REDIS_PASSWORD:-local-redis-password}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [e2e-net]
+
+  mock-platform:
+    build: {context: ./mock_platform}
+    ports: ["${E2E_MOCK_PLATFORM_PORT:-8002}:8000"]
+    volumes: ["./mock_platform/data:/app/data"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [e2e-net]
+
+  mock-cloud:
+    build: {context: ., dockerfile: local_e2e_mock/Dockerfile}
+    environment:
+      MOCK_OIDC_REDIRECT_ORIGIN: http://localhost:${LOCAL_FRONTEND_PORT:-3000}
+      MOCK_OIDC_ISSUER: http://localhost:9000
+      MOCK_OIDC_INTERNAL_BASE_URL: http://mock-cloud:9000
+      MOCK_OIDC_AUDIENCE: omnisell-api
+      AMAZON_CALLBACK_URL: http://localhost:8080/api/channels/amazon/callback
+      MOCK_SELLING_PARTNER_ID: A1LOCALMOCKSELLER
+    ports: ["${E2E_MOCK_CLOUD_PORT:-9000}:9000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [e2e-net]
+
+  migrate:
+    build: {context: ., dockerfile: api/Dockerfile}
+    environment:
+      <<: *runtime-env
+      DATABASE_URL: postgresql+psycopg://omnisell:${E2E_POSTGRES_PASSWORD:-local-postgres-password}@postgres:5432/omnisell
+      MIGRATION_DATABASE_URL: postgresql+psycopg://omnisell:${E2E_POSTGRES_PASSWORD:-local-postgres-password}@postgres:5432/omnisell
+      DATABASE_APP_USER: omnisell_app
+      DATABASE_APP_PASSWORD: ${E2E_DATABASE_APP_PASSWORD:-local-app-password}
+    command: ["/bin/sh", "-c", "alembic upgrade head && PYTHONPATH=/app python scripts/configure_postgres_app_role.py && PYTHONPATH=/app python local_e2e_mock/bootstrap_tenant.py && PYTHONPATH=/app python scripts/seed_golden_mock_tenant.py"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      mock-cloud: {condition: service_healthy}
+    networks: [e2e-net]
+
+  api:
+    build: {context: ., dockerfile: api/Dockerfile}
+    environment: *runtime-env
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers"]
+    ports: ["${E2E_API_PORT:-8080}:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      mock-platform: {condition: service_healthy}
+      mock-cloud: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/admin/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [e2e-net]
+
+  worker:
+    build: {context: ., dockerfile: api/Dockerfile}
+    environment:
+      <<: *runtime-env
+    command: ["celery", "-A", "application.celery_app:celery_app", "worker", "--loglevel=INFO", "--queues=text,vision,sync,operations", "--concurrency=2"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    networks: [e2e-net]
+
+  scheduler:
+    build: {context: ., dockerfile: api/Dockerfile}
+    environment:
+      <<: *runtime-env
+    command: ["celery", "-A", "application.celery_app:celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    networks: [e2e-net]
+
+volumes:
+  e2e-postgres-data:
+  e2e-redis-data:
+
+networks:
+  e2e-net:
+    driver: bridge

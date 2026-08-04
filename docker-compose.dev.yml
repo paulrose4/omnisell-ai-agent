@@ -1,0 +1,23 @@
+services:
+  chromadb:
+    image: chromadb/chroma:1.5.7
+    volumes: ["./chroma_data:/chroma/chroma"]
+    ports: ["8001:8000"]
+
+  mock-platform:
+    build: {context: ./mock_platform}
+    volumes: ["./mock_platform/data:/app/data"]
+    ports: ["8002:8000"]
+
+  api:
+    build: {context: ., dockerfile: api/Dockerfile}
+    env_file: [.env]
+    environment:
+      DATABASE_URL: sqlite:///./tmp/omnisell.db
+      TASK_BACKEND: memory
+      AUTH_MODE: api_key
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      MOCK_PLATFORM_URL: http://mock-platform:8000
+    ports: ["8080:8000"]
+    depends_on: [chromadb, mock-platform]
