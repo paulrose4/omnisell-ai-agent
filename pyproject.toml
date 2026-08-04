@@ -1,0 +1,66 @@
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+asyncio_mode = "auto"
+timeout = 60
+markers = [
+  "unit: isolated domain and deterministic logic tests",
+  "contract: API, agent, adapter, and schema contract tests",
+  "sqlite_integration: fast application and repository integration tests on SQLite",
+  "postgres_integration: PostgreSQL migration, RLS, transaction, and concurrency tests",
+  "e2e: end-to-end workflows across application boundaries",
+  "security: authorization, isolation, PII, approval, and dependency boundary tests",
+  "ci_shard_a: stable first CI shard for a primary test suite",
+  "ci_shard_b: stable second CI shard for a primary test suite",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = ["legacy"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501", "UP040", "UP042", "UP047"]
+
+[tool.ruff.lint.per-file-ignores]
+"domain/__init__.py" = ["F403"]
+# Package facade intentionally re-exports the normalized commerce API.
+"commerce/__init__.py" = ["F403"]
+# FastAPI dependency declarations are evaluated in signatures by design.
+"api/routes/customer_routes.py" = ["B008"]
+"api/routes/profitability_routes.py" = ["B008"]
+# Standalone operator scripts bootstrap the repository root before local imports.
+# Owner: Platform Engineering. Review by 2026-11-01.
+"scripts/*.py" = ["E402"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+include = [
+  "agents/contracts.py",
+  "agents/validators/evidence.py",
+  "model_gateway/contracts.py",
+  "model_gateway/gateway.py",
+  "safety/hitl.py",
+  "safety/policy_engine.py",
+  "safety/refund_gate.py",
+  "safety/tool_auth.py",
+  "workflows/engine.py",
+]
+exclude = ["legacy"]
+# Owner: Agent Runtime. Pydantic narrows mutable discriminators in subclasses;
+# review after the contract hierarchy becomes generic, no later than 2026-11-01.
+reportIncompatibleVariableOverride = "none"
+
+[tool.coverage.run]
+branch = true
+source = ["agents", "api", "application", "commerce", "domain", "infrastructure", "model_gateway", "safety", "workflows"]
+omit = ["legacy/*", "tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+precision = 2
+fail_under = 70

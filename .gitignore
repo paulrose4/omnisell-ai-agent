@@ -11,6 +11,8 @@ htmlcov/
 # Virtual environments
 .venv/*
 !.venv/.gitkeep
+.venv-*/
+.venv_*/
 venv/
 env/
 

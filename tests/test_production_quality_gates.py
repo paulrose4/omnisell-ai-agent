@@ -5,7 +5,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -14,10 +13,14 @@ def test_pytest_runtime_has_bounded_parallel_gate_plugins() -> None:
 
     assert "pytest-timeout==2.4.0" in requirements
     assert "pytest-xdist==3.8.0" in requirements
+    assert "pytest-cov==7.1.0" in requirements
+    assert "pyright==1.1.411" in requirements
+    assert "ruff==0.16.1" in requirements
+    assert "diff-cover==10.4.1" in requirements
 
 
 def test_pytest_configuration_declares_strict_primary_suites() -> None:
-    config = (ROOT / "pytest.ini").read_text(encoding="utf-8")
+    config = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
     assert "--strict-markers" in config
     assert "timeout = 60" in config
@@ -30,6 +33,19 @@ def test_pytest_configuration_declares_strict_primary_suites() -> None:
         "security",
     ):
         assert f"{marker}:" in config
+
+
+def test_python_quality_configuration_is_risk_scoped() -> None:
+    config = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert "[tool.ruff.lint]" in config
+    assert 'select = ["E", "F", "I", "UP", "B", "SIM"]' in config
+    assert "[tool.pyright]" in config
+    assert '"agents/contracts.py"' in config
+    assert '"safety/policy_engine.py"' in config
+    assert '"workflows/engine.py"' in config
+    assert "[tool.coverage.run]" in config
+    assert "branch = true" in config
 
 
 def test_collection_hook_assigns_primary_suites_and_requires_postgres() -> None:
@@ -61,12 +77,27 @@ def test_ci_partitions_backend_and_publishes_test_evidence() -> None:
     assert suites["postgres-integration"]["require_postgres"] == "true"
     assert backend["timeout-minutes"] <= 15
 
+    coverage = jobs["backend-coverage"]
+    assert coverage["timeout-minutes"] <= 25
+    coverage_steps = "\n".join(str(step) for step in coverage["steps"])
+    assert "--cov-branch" in coverage_steps
+    assert "test-results/coverage.json" in coverage_steps
+    assert "test-results/coverage.xml" in coverage_steps
+    assert "test-results/coverage-junit.xml" in coverage_steps
+    assert "scripts/check_critical_coverage.py" in coverage_steps
+    assert "coverage-evidence" in coverage_steps
+
     rendered = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "--junitxml" in rendered
     assert "--durations=50" in rendered
     assert "actions/upload-artifact@v4" in rendered
     assert "if: always()" in rendered
     assert "npm audit --omit=dev --audit-level=high" in rendered
+    assert "python -m ruff check ." in rendered
+    assert "python -m ruff format --check ." in rendered
+    assert "python -m pyright" in rendered
+    assert "python scripts/measure_agent_contract_schemas.py --check" in rendered
+    assert "python scripts/run_agent_quality_eval.py --check" in rendered
 
 
 def test_frontend_dependencies_and_unused_image_optimizer_are_hardened() -> None:
@@ -85,15 +116,23 @@ def test_runtime_images_pin_current_bases_and_remove_unused_vulnerable_tooling()
     api_dockerfile = (ROOT / "api" / "Dockerfile").read_text(encoding="utf-8")
     frontend_dockerfile = (ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "python:3.12.13-slim-trixie@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de" in api_dockerfile
+    assert (
+        "python:3.12.13-slim-trixie@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de"
+        in api_dockerfile
+    )
     assert "--allow-remove-essential perl-base" in api_dockerfile
-    assert "node:22.23.1-alpine3.23@sha256:8516dce0483394d5708d4b2ee6cacb79fb1d617ea4e2787c2120bcca92ce372e" in frontend_dockerfile
+    assert (
+        "node:22.23.1-alpine3.23@sha256:8516dce0483394d5708d4b2ee6cacb79fb1d617ea4e2787c2120bcca92ce372e"
+        in frontend_dockerfile
+    )
     assert "/usr/local/lib/node_modules/npm" in frontend_dockerfile
     assert "/usr/local/lib/node_modules/corepack" in frontend_dockerfile
 
 
 def test_advertising_diagnostics_ui_has_bounded_pagination() -> None:
-    workbench = (ROOT / "frontend" / "components" / "operations" / "operational-intelligence-workbench.tsx").read_text(encoding="utf-8")
+    workbench = (ROOT / "frontend" / "components" / "operations" / "operational-intelligence-workbench.tsx").read_text(
+        encoding="utf-8"
+    )
 
     assert "diagnosticPage" in workbench
     assert "diagnosticPageSize = 50" in workbench

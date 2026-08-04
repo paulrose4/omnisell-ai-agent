@@ -6,8 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN useradd --create-home --uid 10001 omnisell
 WORKDIR /app
-COPY requirements.runtime.txt .
-RUN pip install --requirement requirements.runtime.txt
+COPY requirements.runtime.lock.txt .
+RUN pip install --require-hashes --requirement requirements.runtime.lock.txt
 # Perl is not an application runtime dependency and currently carries an unfixed Critical CVE.
 RUN apt-get purge --yes --allow-remove-essential perl-base \
     && rm -rf /var/lib/apt/lists/*

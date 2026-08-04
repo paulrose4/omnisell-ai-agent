@@ -109,7 +109,7 @@ Common failures:
 - `invalid_oauth_state`: OAuth state is single-use. Start authorization again instead of reloading the callback URL.
 - Port conflict: edit `.env.e2e`, then pass it with `--env-file` to every Compose command.
 - Stale schema or encrypted secrets: run `docker compose --env-file .env.e2e -f docker-compose.e2e.yml down -v` and restart.
-- Ollama unavailable: Amazon/OIDC smoke remains usable. LLM-dependent customer and Agent routes require a local OpenAI-compatible endpoint at the configured `VLLM_BASE_URL`.
+- Local model endpoint unavailable: Amazon/OIDC smoke remains usable. LLM-dependent customer and Agent routes require an OpenAI-compatible endpoint at the configured `MODEL_BASE_URL`.
 
 ### Stop the stack
 

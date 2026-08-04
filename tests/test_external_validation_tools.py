@@ -1,18 +1,24 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
-from commerce.adapters.amazon.adapter import AmazonSPAPIAdapter, AmazonSPAPIConfig
-from commerce.adapters.amazon.secrets import InMemorySecretStore
 from agents.validators.evidence import EvidenceValidationError
 from api.config import Settings
+from commerce.adapters.amazon.adapter import AmazonSPAPIAdapter, AmazonSPAPIConfig
+from commerce.adapters.amazon.secrets import InMemorySecretStore
 from model_gateway.errors import ModelBudgetExceeded, ModelSchemaError
 from safety.amazon_write_gate import AmazonWriteGate
-from scripts.run_real_model_staging_smoke import SMOKE_CASES, _bundle, _case_error, _context, _safe_error, _selected_cases
+from scripts.run_real_model_staging_smoke import (
+    SMOKE_CASES,
+    _bundle,
+    _case_error,
+    _context,
+    _safe_error,
+    _selected_cases,
+)
 
 
 class _DiagnosticOutput(BaseModel):
@@ -40,21 +46,37 @@ def _adapter() -> AmazonSPAPIAdapter:
 
 def test_real_amazon_adapter_adds_truthful_provenance_and_observed_times() -> None:
     adapter = _adapter()
-    order = adapter._map_order({
-        "AmazonOrderId": "ORDER-1",
-        "MarketplaceId": "ATVPDKIKX0DER",
-        "OrderStatus": "Shipped",
-        "PurchaseDate": "2026-07-18T01:00:00Z",
-        "LastUpdateDate": "2026-07-18T02:00:00Z",
-    })
-    inventory = adapter._map_inventory({
-        "sellerSku": "SKU-1",
-        "lastUpdatedTime": "2026-07-18T03:00:00Z",
-        "inventoryDetails": {"fulfillableQuantity": 4},
-    }, "ATVPDKIKX0DER")
-    listing = adapter._map_listing({
-        "summaries": [{"asin": "B000000001", "itemName": "Item", "status": "BUYABLE", "lastUpdatedDate": "2026-07-18T04:00:00Z"}],
-    }, seller_sku="SKU-1", marketplace_id="ATVPDKIKX0DER")
+    order = adapter._map_order(
+        {
+            "AmazonOrderId": "ORDER-1",
+            "MarketplaceId": "ATVPDKIKX0DER",
+            "OrderStatus": "Shipped",
+            "PurchaseDate": "2026-07-18T01:00:00Z",
+            "LastUpdateDate": "2026-07-18T02:00:00Z",
+        }
+    )
+    inventory = adapter._map_inventory(
+        {
+            "sellerSku": "SKU-1",
+            "lastUpdatedTime": "2026-07-18T03:00:00Z",
+            "inventoryDetails": {"fulfillableQuantity": 4},
+        },
+        "ATVPDKIKX0DER",
+    )
+    listing = adapter._map_listing(
+        {
+            "summaries": [
+                {
+                    "asin": "B000000001",
+                    "itemName": "Item",
+                    "status": "BUYABLE",
+                    "lastUpdatedDate": "2026-07-18T04:00:00Z",
+                }
+            ],
+        },
+        seller_sku="SKU-1",
+        marketplace_id="ATVPDKIKX0DER",
+    )
 
     for item in (order, inventory, listing):
         assert item.platform_extensions["data_source"] == "amazon_api"
@@ -67,29 +89,40 @@ def test_real_amazon_adapter_adds_truthful_provenance_and_observed_times() -> No
 
 
 def test_missing_listing_observed_time_remains_unknown() -> None:
-    listing = _adapter()._map_listing({"summaries": [{"asin": "B000000001", "itemName": "Item"}]}, seller_sku="SKU-1", marketplace_id="ATVPDKIKX0DER")
+    listing = _adapter()._map_listing(
+        {"summaries": [{"asin": "B000000001", "itemName": "Item"}]}, seller_sku="SKU-1", marketplace_id="ATVPDKIKX0DER"
+    )
     assert listing.platform_extensions["observed_at"] is None
 
 
 def test_listing_status_array_is_normalized_to_single_status() -> None:
-    listing = _adapter()._map_listing({
-        "summaries": [{
-            "asin": "B000000001",
-            "itemName": "Item",
-            "status": ["BUYABLE", "DISCOVERABLE"],
-            "lastUpdatedDate": "2026-07-18T04:00:00Z",
-        }],
-    }, seller_sku="SKU-1", marketplace_id="ATVPDKIKX0DER")
+    listing = _adapter()._map_listing(
+        {
+            "summaries": [
+                {
+                    "asin": "B000000001",
+                    "itemName": "Item",
+                    "status": ["BUYABLE", "DISCOVERABLE"],
+                    "lastUpdatedDate": "2026-07-18T04:00:00Z",
+                }
+            ],
+        },
+        seller_sku="SKU-1",
+        marketplace_id="ATVPDKIKX0DER",
+    )
 
     assert listing.status == "buyable"
 
 
 def test_mock_metadata_cannot_become_verified_amazon_data() -> None:
-    inventory = _adapter()._map_inventory({
-        "sellerSku": "MOCK-SKU",
-        "inventoryDetails": {"fulfillableQuantity": 1},
-        "OmniSellMockMetadata": {"data_source": "mock_amazon", "verified_amazon_data": False},
-    }, "ATVPDKIKX0DER")
+    inventory = _adapter()._map_inventory(
+        {
+            "sellerSku": "MOCK-SKU",
+            "inventoryDetails": {"fulfillableQuantity": 1},
+            "OmniSellMockMetadata": {"data_source": "mock_amazon", "verified_amazon_data": False},
+        },
+        "ATVPDKIKX0DER",
+    )
     assert inventory.platform_extensions["data_source"] == "mock_amazon"
     assert inventory.platform_extensions["verified_amazon_data"] is False
 
@@ -98,9 +131,11 @@ def test_external_smoke_tools_are_explicitly_opt_in_and_documented() -> None:
     root = Path(__file__).resolve().parents[1]
     model_script = (root / "scripts" / "run_real_model_staging_smoke.py").read_text(encoding="utf-8")
     amazon_script = (root / "scripts" / "run_amazon_readonly_smoke.py").read_text(encoding="utf-8")
+    batch_eval_script = (root / "scripts" / "run_real_model_batch_eval.py").read_text(encoding="utf-8")
     runbook = (root / "docs" / "EXTERNAL_STAGING_VERIFICATION_RUNBOOK.md").read_text(encoding="utf-8")
-    assert 'REAL_MODEL_SMOKE' in model_script and 'ENVIRONMENT", "development"' in model_script
-    assert 'AMAZON_READONLY_SMOKE' in amazon_script and 'AMAZON_WRITES_ENABLED' in amazon_script
+    assert "REAL_MODEL_SMOKE" in model_script and 'ENVIRONMENT", "development"' in model_script
+    assert "AMAZON_READONLY_SMOKE" in amazon_script and "AMAZON_WRITES_ENABLED" in amazon_script
+    assert "REAL_MODEL_BATCH_EVAL" in batch_eval_script and "ENVIRONMENT=production" in batch_eval_script
     assert "response_format.type=json_schema" in runbook
     assert "operator comparison sheet" in runbook
 

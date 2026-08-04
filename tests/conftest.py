@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -24,6 +23,7 @@ PRIMARY_TEST_MARKERS = (
 POSTGRES_TEST_MODULES = {"test_postgres_rls.py"}
 E2E_TEST_MODULES = {
     "test_e2e.py",
+    "test_golden_stockout_acceptance.py",
     "test_golden_mock_tenant.py",
     "test_local_e2e_mock.py",
     "test_local_oidc_amazon_e2e.py",

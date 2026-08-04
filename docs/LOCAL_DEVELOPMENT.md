@@ -2,9 +2,23 @@
 
 本地运行不需要域名、DNS、TLS、公司 OIDC 或真实 Amazon 凭证。它使用与未来云端相同的应用镜像、PostgreSQL、Redis、Celery、Alembic、租户 RLS 和权限链，只替换边缘入口和外部服务适配器。
 
+## 首次环境准备
+
+OmniSell 的本地 Python 基线是 3.12。首次 clone 或依赖变化后运行：
+
+```powershell
+./scripts/bootstrap_dev.ps1
+```
+
+该脚本创建隔离虚拟环境，并执行锁定依赖安装、`pip check`、`pip-audit`、`compileall`、Alembic 快速检查和关键安全 smoke。已有虚拟环境不会被静默覆盖；需要重建时显式使用 `-Recreate`。
+
+当前活动迁移历史已经冻结为单一 `0023` 基线。任何曾运行旧 `0001`-`0023` 原型迁移链的本地 SQLite 或 Compose PostgreSQL 数据都不兼容，必须使用 `./scripts/stop_local.ps1 -ResetData` 后重新创建。冻结决策和证据边界见 `docs/adr/ADR-001-freeze-alembic-baseline-before-default-branch-merge.md`。
+
+Bootstrap 会校验版本化的 SQLite schema fingerprint，并完成 `upgrade -> downgrade base -> re-upgrade`。该结果只证明 DDL 可移植性，不证明 PostgreSQL RLS；权威 RLS 证据由 CI 的 PostgreSQL 非 owner 测试和 `postgres-schema-fingerprint.json` 产物提供。
+
 ## 一键启动
 
-前提：Docker Desktop 已启动，Python 依赖已安装。
+前提：Docker Desktop 已启动，并已完成上述 bootstrap。
 
 ```powershell
 ./scripts/start_local.ps1
@@ -69,7 +83,7 @@
 
 ## 外部 OpenAI-compatible 模型
 
-本地控制面默认尝试连接宿主机 Ollama。要使用外部 OpenAI-compatible staging 模型，在 `.env.local` 填写 `LOCAL_VLLM_BASE_URL`、`LOCAL_VLLM_MODEL_NAME` 和 `LOCAL_VLLM_API_KEY`。地址必须包含供应商要求的 `/v1` 或 compatible-mode 路径，Key 只保存在被 Git 忽略的 `.env.local`，不得写入 Compose、文档或提交记录。
+本地控制面默认尝试连接宿主机 OpenAI-compatible 模型端点。要使用外部 staging 模型，在 `.env.local` 填写 `LOCAL_MODEL_BASE_URL`、`LOCAL_MODEL_NAME` 和 `LOCAL_MODEL_API_KEY`。地址必须包含供应商要求的 `/v1` 或 compatible-mode 路径，Key 只保存在被 Git 忽略的 `.env.local`，不得写入 Compose、文档或提交记录。
 
 如需启用备用中转站，额外填写 `LOCAL_MODEL_FALLBACK_ENABLED=true`、`LOCAL_MODEL_FALLBACK_BASE_URL=https://api.wenrugouai.com/v1`、`LOCAL_MODEL_FALLBACK_MODEL_NAME` 和 `LOCAL_MODEL_FALLBACK_API_KEY`。备用模型只在主模型超时、连接失败、限流或可重试的 5xx 错误时使用一次；安全拒绝、Schema 错误和预算错误不会切换。
 

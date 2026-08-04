@@ -35,19 +35,36 @@ def main() -> None:
     if not app_password:
         raise ValueError("DATABASE_APP_PASSWORD is required")
 
-    with psycopg.connect(_psycopg_url(admin_url), autocommit=True) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (app_user,))
-            if cursor.fetchone() is None:
-                cursor.execute(_role_password_statement("CREATE", app_user, app_password))
-            else:
-                cursor.execute(_role_password_statement("ALTER", app_user, app_password))
-            cursor.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(sql.Identifier(connection.info.dbname), sql.Identifier(app_user)))
-            cursor.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(sql.Identifier(app_user)))
-            cursor.execute(sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(sql.Identifier(app_user)))
-            cursor.execute(sql.SQL("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {}").format(sql.Identifier(app_user)))
-            cursor.execute(sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}").format(sql.Identifier(app_user)))
-            cursor.execute(sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO {}").format(sql.Identifier(app_user)))
+    with psycopg.connect(_psycopg_url(admin_url), autocommit=True) as connection, connection.cursor() as cursor:
+        cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (app_user,))
+        if cursor.fetchone() is None:
+            cursor.execute(_role_password_statement("CREATE", app_user, app_password))
+        else:
+            cursor.execute(_role_password_statement("ALTER", app_user, app_password))
+        cursor.execute(
+            sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
+                sql.Identifier(connection.info.dbname), sql.Identifier(app_user)
+            )
+        )
+        cursor.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(sql.Identifier(app_user)))
+        cursor.execute(
+            sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
+                sql.Identifier(app_user)
+            )
+        )
+        cursor.execute(
+            sql.SQL("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {}").format(sql.Identifier(app_user))
+        )
+        cursor.execute(
+            sql.SQL(
+                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}"
+            ).format(sql.Identifier(app_user))
+        )
+        cursor.execute(
+            sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO {}").format(
+                sql.Identifier(app_user)
+            )
+        )
 
     print(f"configured PostgreSQL RLS application role: {app_user}")
 

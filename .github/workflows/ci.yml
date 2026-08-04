@@ -73,7 +73,8 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: python -m pip install --require-hashes -r requirements.lock.txt
+      - run: python -m pip check
       - name: Apply PostgreSQL migrations
         if: matrix.require_postgres == 'true'
         run: alembic upgrade head
@@ -91,6 +92,40 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  backend-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: sqlite:////tmp/omnisell-coverage.sqlite
+      POSTGRES_RLS_URL: ""
+      OMNISELL_REQUIRE_POSTGRES_TESTS: "false"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --require-hashes -r requirements.lock.txt
+      - run: python -m pip check
+      - name: Run full branch coverage suite
+        run: >-
+          pytest --cov --cov-branch
+          --cov-report=json:test-results/coverage.json
+          --cov-report=xml:test-results/coverage.xml
+          --junitxml=test-results/coverage-junit.xml
+          --durations=50
+      - name: Enforce critical module coverage
+        run: python scripts/check_critical_coverage.py --coverage-json test-results/coverage.json
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-evidence
+          path: test-results/
+          if-no-files-found: error
+          retention-days: 30
+
   backend-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -107,24 +142,47 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: python -m pip install uv==0.12.1
+      - run: python scripts/check_dependency_locks.py
+      - run: python -m pip install --require-hashes -r requirements.lock.txt
+      - run: python -m pip check
+      - name: Enforce Python lint and formatting
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - run: python -m pyright
+      - name: Verify versioned Agent quality evidence
+        run: |
+          python scripts/measure_agent_contract_schemas.py --check
+          python scripts/run_agent_quality_eval.py --check
       - run: python -m compileall api application commerce domain infrastructure model_gateway workflows safety agents rag scripts
       - run: alembic upgrade head
       - run: alembic check
-      - run: pip install pip-audit==2.9.0
-      - run: pip-audit -r requirements.txt
+      - name: Capture PostgreSQL schema and RLS evidence
+        run: python scripts/capture_schema_fingerprint.py --database-url "$DATABASE_URL" --output test-results/postgres-schema-fingerprint.json
+      - run: pip-audit -r requirements.runtime.lock.txt
+      - run: pip-audit -r requirements.lock.txt
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: api/Dockerfile
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: frontend/Dockerfile
+      - name: Upload migration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-schema-fingerprint
+          path: test-results/postgres-schema-fingerprint.json
+          if-no-files-found: error
+          retention-days: 30
 
   frontend:
     runs-on: ubuntu-latest
