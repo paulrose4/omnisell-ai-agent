@@ -18,6 +18,9 @@ env/
 .env
 .env.*
 !.env.example
+!.env.e2e.example
+!.env.local.example
+!.env.production.example
 
 # Runtime data
 logs/*
@@ -26,6 +29,9 @@ logs/*
 chroma_data/*
 !chroma_data/.gitkeep
 .chroma_smoke/
+/outputs/
+/test-results/
+/*.xml
 
 # Large model files
 models/*
@@ -46,3 +52,14 @@ Thumbs.db
 # Docker/local temp
 tmp/
 temp/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+artifacts/
+frontend/.env*
+!frontend/.env.example
+!frontend/.env.production.example
+
+# Local prompt backups
+/提示词.txt
