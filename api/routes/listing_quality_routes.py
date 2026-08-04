@@ -13,7 +13,6 @@ from application.listing_quality import ListingQualityNotFound
 from domain.listing_quality import ListingQualityInput
 from safety.hitl import ApprovalStatus, RiskLevel
 
-
 router = APIRouter(
     prefix="/api/listing-quality",
     tags=["listing-quality"],
@@ -138,15 +137,24 @@ async def calculate_listing_quality(payload: ListingQualityCalculationRequest, r
                 units_ordered=payload.units_ordered,
                 conversion_rate=payload.conversion_rate,
                 return_rate=payload.return_rate,
-                ad_spend=payload.ad_spend, ad_traffic_share=payload.ad_traffic_share, cpc=payload.cpc,
-                price=payload.price, discount_rate=payload.discount_rate, buy_box_share=payload.buy_box_share,
-                sellable_units=payload.sellable_units, out_of_stock_hours=payload.out_of_stock_hours,
-                natural_rank=payload.natural_rank, promotion_active=payload.promotion_active,
-                seasonality_key=payload.seasonality_key, competitor_change=payload.competitor_change,
+                ad_spend=payload.ad_spend,
+                ad_traffic_share=payload.ad_traffic_share,
+                cpc=payload.cpc,
+                price=payload.price,
+                discount_rate=payload.discount_rate,
+                buy_box_share=payload.buy_box_share,
+                sellable_units=payload.sellable_units,
+                out_of_stock_hours=payload.out_of_stock_hours,
+                natural_rank=payload.natural_rank,
+                promotion_active=payload.promotion_active,
+                seasonality_key=payload.seasonality_key,
+                competitor_change=payload.competitor_change,
             )
         )
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail={"error": "invalid_listing_quality_input", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=422, detail={"error": "invalid_listing_quality_input", "message": str(exc)}
+        ) from exc
     request.app.state.audit_logger.log_operation(
         action="calculate_listing_quality",
         status="success",
@@ -183,7 +191,13 @@ async def calculate_listing_quality_from_synced_listing(
     )
     listing = next((item for item in listings if item.seller_sku == payload.seller_sku), None)
     if listing is None:
-        raise HTTPException(status_code=404, detail={"error": "listing_not_found", "message": "Synchronized Listing was not found for this tenant and marketplace."})
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": "listing_not_found",
+                "message": "Synchronized Listing was not found for this tenant and marketplace.",
+            },
+        )
     metadata = listing.platform_extensions or {}
     source = "mock" if metadata.get("data_source") == "mock_amazon" else "amazon_api"
     observed_at = _parse_datetime(metadata.get("observed_at") or metadata.get("source_observed_at"))
@@ -211,7 +225,9 @@ async def calculate_listing_quality_from_synced_listing(
                 ad_spend=_optional_decimal(metadata.get("ad_spend")),
                 ad_traffic_share=_optional_decimal(metadata.get("ad_traffic_share")),
                 cpc=_optional_decimal(metadata.get("cpc")),
-                price=_optional_decimal(metadata.get("price")) if metadata.get("price") is not None else (listing.price.amount if listing.price else None),
+                price=_optional_decimal(metadata.get("price"))
+                if metadata.get("price") is not None
+                else (listing.price.amount if listing.price else None),
                 discount_rate=_optional_decimal(metadata.get("discount_rate")),
                 buy_box_share=_optional_decimal(metadata.get("buy_box_share")),
                 sellable_units=_optional_int(metadata.get("sellable_units")),
@@ -223,15 +239,26 @@ async def calculate_listing_quality_from_synced_listing(
             )
         )
     except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail={"error": "invalid_synced_listing_metadata", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=422, detail={"error": "invalid_synced_listing_metadata", "message": str(exc)}
+        ) from exc
     request.app.state.audit_logger.log_operation(
         action="calculate_listing_quality_from_synced_listing",
         status="success",
-        details={"tenant_id": principal.tenant_id, "listing_id": snapshot.listing_id, "snapshot_id": snapshot.id, "source": source},
+        details={
+            "tenant_id": principal.tenant_id,
+            "listing_id": snapshot.listing_id,
+            "snapshot_id": snapshot.id,
+            "source": source,
+        },
         actor=principal.user_id,
         risk_level="low",
     )
-    return {"snapshot": _serialize(snapshot), "operational_issue": _serialize(issue) if issue else None, "recommended_action": _serialize(action) if action else None}
+    return {
+        "snapshot": _serialize(snapshot),
+        "operational_issue": _serialize(issue) if issue else None,
+        "recommended_action": _serialize(action) if action else None,
+    }
 
 
 @router.get("/snapshots")
@@ -268,9 +295,15 @@ async def create_listing_experiment(
     except ListingQualityNotFound as exc:
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(exc)}) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail={"error": "invalid_listing_experiment", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=422, detail={"error": "invalid_listing_experiment", "message": str(exc)}
+        ) from exc
 
-    approval = request.app.state.hitl_manager.get_request(payload.approval_request_id, tenant_id=principal.tenant_id) if payload.approval_request_id else None
+    approval = (
+        request.app.state.hitl_manager.get_request(payload.approval_request_id, tenant_id=principal.tenant_id)
+        if payload.approval_request_id
+        else None
+    )
     approval_valid = (
         approval is not None
         and approval.status == ApprovalStatus.APPROVED
@@ -280,7 +313,10 @@ async def create_listing_experiment(
     if payload.approval_request_id and not approval_valid:
         raise HTTPException(
             status_code=409,
-            detail={"error": "approval_mismatch", "message": "Approval is missing, unapproved or does not match this exact Listing action."},
+            detail={
+                "error": "approval_mismatch",
+                "message": "Approval is missing, unapproved or does not match this exact Listing action.",
+            },
         )
 
     if approval_valid:
@@ -362,18 +398,39 @@ async def record_listing_experiment_execution(
     _require_scope(request, "write")
     principal = request.state.principal
     experiment = request.app.state.listing_experiment_repository.get(
-        tenant_id=principal.tenant_id, experiment_id=experiment_id,
+        tenant_id=principal.tenant_id,
+        experiment_id=experiment_id,
     )
     if experiment is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Listing optimization experiment not found."})
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Listing optimization experiment not found."}
+        )
     if payload.action_hash != experiment.action_hash:
-        raise HTTPException(status_code=409, detail={"error": "action_hash_mismatch", "message": "Manual execution does not match the approved Listing action."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "action_hash_mismatch",
+                "message": "Manual execution does not match the approved Listing action.",
+            },
+        )
     if experiment.execution_status in {"executed", "verified"}:
         return {"experiment": _serialize(experiment), "platform_write_executed": False, "replayed": True}
     if experiment.status != "approved":
-        raise HTTPException(status_code=409, detail={"error": "approval_required", "message": "The exact Listing experiment must be approved before manual execution."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "approval_required",
+                "message": "The exact Listing experiment must be approved before manual execution.",
+            },
+        )
     if payload.execution_evidence.get("platform_write_executed") is True:
-        raise HTTPException(status_code=409, detail={"error": "platform_write_disabled", "message": "This workflow records manual execution only; the API never writes Listing data."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "platform_write_disabled",
+                "message": "This workflow records manual execution only; the API never writes Listing data.",
+            },
+        )
     now = datetime.now(UTC)
     experiment.execution_status = "executed"
     experiment.actual_changes = payload.actual_changes
@@ -388,8 +445,10 @@ async def record_listing_experiment_execution(
         action="record_listing_experiment_manual_execution",
         status="success",
         details={
-            "tenant_id": principal.tenant_id, "experiment_id": saved.id,
-            "action_hash": saved.action_hash, "executed_by": principal.user_id,
+            "tenant_id": principal.tenant_id,
+            "experiment_id": saved.id,
+            "action_hash": saved.action_hash,
+            "executed_by": principal.user_id,
             "platform_write_executed": False,
         },
         actor=principal.user_id,
@@ -408,12 +467,21 @@ async def decide_listing_experiment(
     _require_decision_role(request)
     principal = request.state.principal
     experiment = request.app.state.listing_experiment_repository.get(
-        tenant_id=principal.tenant_id, experiment_id=experiment_id,
+        tenant_id=principal.tenant_id,
+        experiment_id=experiment_id,
     )
     if experiment is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Listing optimization experiment not found."})
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Listing optimization experiment not found."}
+        )
     if experiment.execution_status != "verified":
-        raise HTTPException(status_code=409, detail={"error": "evaluation_required", "message": "A verified after-snapshot is required before deciding to keep or rollback."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "evaluation_required",
+                "message": "A verified after-snapshot is required before deciding to keep or rollback.",
+            },
+        )
     if experiment.decision is not None:
         return {"experiment": _serialize(experiment), "platform_write_executed": False, "replayed": True}
     now = datetime.now(UTC)
@@ -428,8 +496,10 @@ async def decide_listing_experiment(
         action="decide_listing_experiment",
         status="success",
         details={
-            "tenant_id": principal.tenant_id, "experiment_id": saved.id,
-            "decision": payload.decision, "reason": payload.reason,
+            "tenant_id": principal.tenant_id,
+            "experiment_id": saved.id,
+            "decision": payload.decision,
+            "reason": payload.reason,
             "platform_write_executed": False,
         },
         actor=principal.user_id,
@@ -447,12 +517,21 @@ async def evaluate_listing_experiment(
     _require_scope(request, "write")
     principal = request.state.principal
     existing = request.app.state.listing_experiment_repository.get(
-        tenant_id=principal.tenant_id, experiment_id=experiment_id,
+        tenant_id=principal.tenant_id,
+        experiment_id=experiment_id,
     )
     if existing is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Listing optimization experiment not found."})
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": "Listing optimization experiment not found."}
+        )
     if existing.execution_status != "executed":
-        raise HTTPException(status_code=409, detail={"error": "manual_execution_required", "message": "Record the approved manual Listing execution before evaluating outcomes."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "manual_execution_required",
+                "message": "Record the approved manual Listing execution before evaluating outcomes.",
+            },
+        )
     try:
         experiment = request.app.state.listing_quality_service.evaluate_experiment(
             tenant_id=principal.tenant_id,
@@ -492,7 +571,13 @@ def _require_scope(request: Request, scope: str) -> None:
 def _require_decision_role(request: Request) -> None:
     principal = request.state.principal
     if principal.role not in {"owner", "admin", "approver"}:
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "An owner, admin or approver must decide Listing experiment outcomes."})
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "forbidden",
+                "message": "An owner, admin or approver must decide Listing experiment outcomes.",
+            },
+        )
 
 
 def _serialize(value: Any) -> Any:

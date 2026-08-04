@@ -1,15 +1,62 @@
 from __future__ import annotations
-from datetime import UTC, datetime, timedelta
+
 import os
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
 
+from infrastructure.database.models import OperationalIssueRow, OperationalWorkItemRow, RecommendedActionRow
 from infrastructure.database.session import create_session_factory, tenant_context
 from infrastructure.repositories.audit import SQLAuditLogger
-from infrastructure.database.models import OperationalIssueRow, OperationalWorkItemRow, RecommendedActionRow, TenantRow
+
+
+@pytest.mark.skipif(not os.getenv("POSTGRES_RLS_URL"), reason="real PostgreSQL RLS URL not configured")
+def test_all_tenant_tables_have_postgresql_rls_and_isolation_policy() -> None:
+    from commerce.adapters.amazon.secrets import SecretRow  # noqa: F401
+    from infrastructure.database import models  # noqa: F401
+    from infrastructure.database.session import Base
+
+    expected_tables = {table.name for table in Base.metadata.sorted_tables if "tenant_id" in table.columns}
+    engine = create_engine(os.environ["POSTGRES_RLS_URL"])
+    try:
+        with engine.connect() as connection:
+            rls_rows = connection.execute(
+                text("""
+                SELECT c.relname AS table_name, c.relrowsecurity AS rls_enabled
+                  FROM pg_class AS c
+                  JOIN pg_namespace AS n ON n.oid = c.relnamespace
+                 WHERE n.nspname = current_schema()
+                   AND c.relkind = 'r'
+                   AND c.relname = ANY(:table_names)
+            """),
+                {"table_names": sorted(expected_tables)},
+            ).mappings()
+            policy_rows = connection.execute(
+                text("""
+                SELECT tablename AS table_name, policyname AS policy_name, qual, with_check
+                  FROM pg_policies
+                 WHERE schemaname = current_schema()
+                   AND tablename = ANY(:table_names)
+            """),
+                {"table_names": sorted(expected_tables)},
+            ).mappings()
+            rls_by_table = {row["table_name"]: bool(row["rls_enabled"]) for row in rls_rows}
+            policies_by_table = {row["table_name"]: row for row in policy_rows}
+
+        assert set(rls_by_table) == expected_tables
+        assert all(rls_by_table.values())
+        assert set(policies_by_table) == expected_tables
+        for table_name, policy in policies_by_table.items():
+            assert policy["policy_name"] == f"{table_name}_tenant_isolation"
+            assert "app.current_tenant_id" in str(policy["qual"])
+            assert "app.current_tenant_id" in str(policy["with_check"])
+    finally:
+        engine.dispose()
+
 
 @pytest.mark.skipif(not os.getenv("POSTGRES_RLS_URL"), reason="real PostgreSQL RLS URL not configured")
 def test_postgresql_rls_blocks_cross_tenant_reads_and_writes() -> None:
@@ -21,8 +68,17 @@ def test_postgresql_rls_blocks_cross_tenant_reads_and_writes() -> None:
     with admin.begin() as connection:
         connection.execute(text("DELETE FROM audit_events WHERE tenant_id IN ('rls-a','rls-b')"))
         connection.execute(text("DELETE FROM tenants WHERE id IN ('rls-a','rls-b')"))
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES ('rls-a','RLS A','rls-a',false),('rls-b','RLS B','rls-b',false) ON CONFLICT DO NOTHING"))
-        connection.execute(text("INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) VALUES (:a,'rls-a','test','qa','read','low','success','{}'),(:b,'rls-b','test','qa','read','low','success','{}')"), {"a": str(uuid4()), "b": str(uuid4())})
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES ('rls-a','RLS A','rls-a',false),('rls-b','RLS B','rls-b',false) ON CONFLICT DO NOTHING"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) VALUES (:a,'rls-a','test','qa','read','low','success','{}'),(:b,'rls-b','test','qa','read','low','success','{}')"
+            ),
+            {"a": str(uuid4()), "b": str(uuid4())},
+        )
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
         connection.execute(text(f"GRANT USAGE ON SCHEMA public TO {role}"))
         connection.execute(text(f"GRANT SELECT, INSERT ON audit_events TO {role}"))
@@ -33,10 +89,14 @@ def test_postgresql_rls_blocks_cross_tenant_reads_and_writes() -> None:
             connection.execute(text("SELECT set_config('app.current_tenant_id','rls-a',true)"))
             assert connection.scalar(text("SELECT count(*) FROM audit_events WHERE tenant_id='rls-a'")) >= 1
             assert connection.scalar(text("SELECT count(*) FROM audit_events WHERE tenant_id='rls-b'")) == 0
-        with pytest.raises(DBAPIError):
-            with app.begin() as connection:
-                connection.execute(text("SELECT set_config('app.current_tenant_id','rls-a',true)"))
-                connection.execute(text("INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) VALUES (:id,'rls-b','test','qa','write','low','success','{}')"), {"id": str(uuid4())})
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id','rls-a',true)"))
+            connection.execute(
+                text(
+                    "INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) VALUES (:id,'rls-b','test','qa','write','low','success','{}')"
+                ),
+                {"id": str(uuid4())},
+            )
     finally:
         app.dispose()
         with admin.begin() as connection:
@@ -57,8 +117,17 @@ def test_repository_sessions_apply_postgresql_tenant_context() -> None:
     with admin.begin() as connection:
         connection.execute(text("DELETE FROM audit_events WHERE tenant_id IN ('repo-a','repo-b')"))
         connection.execute(text("DELETE FROM tenants WHERE id IN ('repo-a','repo-b')"))
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES ('repo-a','Repo A','repo-a',false),('repo-b','Repo B','repo-b',false) ON CONFLICT DO NOTHING"))
-        connection.execute(text("INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) VALUES (:a,'repo-a','test','qa','read','low','success','{}'),(:b,'repo-b','test','qa','read','low','success','{}')"), {"a": str(uuid4()), "b": str(uuid4())})
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES ('repo-a','Repo A','repo-a',false),('repo-b','Repo B','repo-b',false) ON CONFLICT DO NOTHING"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) VALUES (:a,'repo-a','test','qa','read','low','success','{}'),(:b,'repo-b','test','qa','read','low','success','{}')"
+            ),
+            {"a": str(uuid4()), "b": str(uuid4())},
+        )
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
         connection.execute(text(f"GRANT USAGE ON SCHEMA public TO {role}"))
         connection.execute(text(f"GRANT SELECT, INSERT ON audit_events TO {role}"))
@@ -100,7 +169,12 @@ def test_customer_case_cluster_rls_blocks_cross_tenant_reads_and_writes() -> Non
         )
     """)
     with admin.begin() as connection:
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Cluster A',:a,false),(:b,'Cluster B',:b,false)"), {"a": tenant_a, "b": tenant_b})
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Cluster A',:a,false),(:b,'Cluster B',:b,false)"
+            ),
+            {"a": tenant_a, "b": tenant_b},
+        )
         connection.execute(insert_cluster, {"id": str(uuid4()), "tenant": tenant_a, "sku": "SKU-A", "dedupe": "a" * 64})
         connection.execute(insert_cluster, {"id": str(uuid4()), "tenant": tenant_b, "sku": "SKU-B", "dedupe": "b" * 64})
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
@@ -111,16 +185,29 @@ def test_customer_case_cluster_rls_blocks_cross_tenant_reads_and_writes() -> Non
     try:
         with app.begin() as connection:
             connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-            assert connection.scalar(text("SELECT count(*) FROM customer_case_clusters WHERE tenant_id=:tenant"), {"tenant": tenant_a}) == 1
-            assert connection.scalar(text("SELECT count(*) FROM customer_case_clusters WHERE tenant_id=:tenant"), {"tenant": tenant_b}) == 0
-        with pytest.raises(DBAPIError):
-            with app.begin() as connection:
-                connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-                connection.execute(insert_cluster, {"id": str(uuid4()), "tenant": tenant_b, "sku": "SKU-CROSS", "dedupe": "c" * 64})
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM customer_case_clusters WHERE tenant_id=:tenant"), {"tenant": tenant_a}
+                )
+                == 1
+            )
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM customer_case_clusters WHERE tenant_id=:tenant"), {"tenant": tenant_b}
+                )
+                == 0
+            )
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            connection.execute(
+                insert_cluster, {"id": str(uuid4()), "tenant": tenant_b, "sku": "SKU-CROSS", "dedupe": "c" * 64}
+            )
     finally:
         app.dispose()
         with admin.begin() as connection:
-            connection.execute(text("DELETE FROM customer_case_clusters WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
+            connection.execute(
+                text("DELETE FROM customer_case_clusters WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
             connection.execute(text("DELETE FROM tenants WHERE id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
             connection.execute(text(f"DROP OWNED BY {role}"))
             connection.execute(text(f"DROP ROLE IF EXISTS {role}"))
@@ -149,15 +236,32 @@ def test_agent_runs_rls_and_idempotency_constraint() -> None:
         )
     """)
     with admin.begin() as connection:
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Agent A',:a,false),(:b,'Agent B',:b,false)"), {"a": tenant_a, "b": tenant_b})
-        connection.execute(insert_run, {
-            "id": str(uuid4()), "tenant_id": tenant_a, "workflow_type": workflow,
-            "correlation_id": f"corr-a-{suffix}", "idempotency_key": idempotency_key,
-        })
-        connection.execute(insert_run, {
-            "id": str(uuid4()), "tenant_id": tenant_b, "workflow_type": workflow,
-            "correlation_id": f"corr-b-{suffix}", "idempotency_key": idempotency_key,
-        })
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Agent A',:a,false),(:b,'Agent B',:b,false)"
+            ),
+            {"a": tenant_a, "b": tenant_b},
+        )
+        connection.execute(
+            insert_run,
+            {
+                "id": str(uuid4()),
+                "tenant_id": tenant_a,
+                "workflow_type": workflow,
+                "correlation_id": f"corr-a-{suffix}",
+                "idempotency_key": idempotency_key,
+            },
+        )
+        connection.execute(
+            insert_run,
+            {
+                "id": str(uuid4()),
+                "tenant_id": tenant_b,
+                "workflow_type": workflow,
+                "correlation_id": f"corr-b-{suffix}",
+                "idempotency_key": idempotency_key,
+            },
+        )
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
         connection.execute(text(f"GRANT USAGE ON SCHEMA public TO {role}"))
         connection.execute(text(f"GRANT SELECT, INSERT, UPDATE ON agent_runs TO {role}"))
@@ -167,34 +271,58 @@ def test_agent_runs_rls_and_idempotency_constraint() -> None:
     try:
         with app.begin() as connection:
             connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-            assert connection.scalar(text("SELECT count(*) FROM agent_runs WHERE tenant_id=:tenant"), {"tenant": tenant_a}) == 1
-            assert connection.scalar(text("SELECT count(*) FROM agent_runs WHERE tenant_id=:tenant"), {"tenant": tenant_b}) == 0
+            assert (
+                connection.scalar(text("SELECT count(*) FROM agent_runs WHERE tenant_id=:tenant"), {"tenant": tenant_a})
+                == 1
+            )
+            assert (
+                connection.scalar(text("SELECT count(*) FROM agent_runs WHERE tenant_id=:tenant"), {"tenant": tenant_b})
+                == 0
+            )
             updated = connection.execute(
                 text("UPDATE agent_runs SET status='failed' WHERE tenant_id=:tenant"), {"tenant": tenant_b}
             )
             assert updated.rowcount == 0
-        with pytest.raises(DBAPIError):
-            with app.begin() as connection:
-                connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-                connection.execute(insert_run, {
-                    "id": str(uuid4()), "tenant_id": tenant_b, "workflow_type": "customer_case_analysis",
-                    "correlation_id": f"cross-{suffix}", "idempotency_key": f"cross-{suffix}",
-                })
-        with pytest.raises(DBAPIError):
-            with admin.begin() as connection:
-                connection.execute(insert_run, {
-                    "id": str(uuid4()), "tenant_id": tenant_a, "workflow_type": workflow,
-                    "correlation_id": f"duplicate-{suffix}", "idempotency_key": idempotency_key,
-                })
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            connection.execute(
+                insert_run,
+                {
+                    "id": str(uuid4()),
+                    "tenant_id": tenant_b,
+                    "workflow_type": "customer_case_analysis",
+                    "correlation_id": f"cross-{suffix}",
+                    "idempotency_key": f"cross-{suffix}",
+                },
+            )
+        with pytest.raises(DBAPIError), admin.begin() as connection:
+            connection.execute(
+                insert_run,
+                {
+                    "id": str(uuid4()),
+                    "tenant_id": tenant_a,
+                    "workflow_type": workflow,
+                    "correlation_id": f"duplicate-{suffix}",
+                    "idempotency_key": idempotency_key,
+                },
+            )
         with admin.begin() as connection:
-            connection.execute(insert_run, {
-                "id": str(uuid4()), "tenant_id": tenant_a, "workflow_type": "customer_case_analysis",
-                "correlation_id": f"other-workflow-{suffix}", "idempotency_key": idempotency_key,
-            })
+            connection.execute(
+                insert_run,
+                {
+                    "id": str(uuid4()),
+                    "tenant_id": tenant_a,
+                    "workflow_type": "customer_case_analysis",
+                    "correlation_id": f"other-workflow-{suffix}",
+                    "idempotency_key": idempotency_key,
+                },
+            )
     finally:
         app.dispose()
         with admin.begin() as connection:
-            connection.execute(text("DELETE FROM agent_runs WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
+            connection.execute(
+                text("DELETE FROM agent_runs WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
             connection.execute(text("DELETE FROM tenants WHERE id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
             connection.execute(text(f"DROP OWNED BY {role}"))
             connection.execute(text(f"DROP ROLE IF EXISTS {role}"))
@@ -214,9 +342,12 @@ def test_approval_decisions_rls_and_sequence_constraint() -> None:
     request_b = str(uuid4())
     insert_request = text("""
         INSERT INTO approval_requests(
-            id,tenant_id,actor_id,action,action_hash,risk_level,before_snapshot,
-            proposed_changes,status,created_at
-        ) VALUES (:id,:tenant,'requester','delete_listing',:hash,'critical','{}','{}','pending',now())
+            id,tenant_id,actor_id,action,action_hash,policy_decision,policy_version,
+            policy_reason,required_approval_count,risk_level,before_snapshot,proposed_changes,status,created_at
+        ) VALUES (
+            :id,:tenant,'requester','delete_listing',:hash,'require_approval','policy-engine-v1',
+            'Critical commerce write requires explicit approval.',2,'critical','{}','{}','pending',now()
+        )
     """)
     insert_decision = text("""
         INSERT INTO approval_decisions(
@@ -224,11 +355,20 @@ def test_approval_decisions_rls_and_sequence_constraint() -> None:
         ) VALUES (:id,:tenant,:request_id,:sequence,'first_approval','approved','approver','reviewed',now())
     """)
     with admin.begin() as connection:
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Approval A',:a,false),(:b,'Approval B',:b,false)"), {"a": tenant_a, "b": tenant_b})
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Approval A',:a,false),(:b,'Approval B',:b,false)"
+            ),
+            {"a": tenant_a, "b": tenant_b},
+        )
         connection.execute(insert_request, {"id": request_a, "tenant": tenant_a, "hash": "a" * 64})
         connection.execute(insert_request, {"id": request_b, "tenant": tenant_b, "hash": "b" * 64})
-        connection.execute(insert_decision, {"id": str(uuid4()), "tenant": tenant_a, "request_id": request_a, "sequence": 1})
-        connection.execute(insert_decision, {"id": str(uuid4()), "tenant": tenant_b, "request_id": request_b, "sequence": 1})
+        connection.execute(
+            insert_decision, {"id": str(uuid4()), "tenant": tenant_a, "request_id": request_a, "sequence": 1}
+        )
+        connection.execute(
+            insert_decision, {"id": str(uuid4()), "tenant": tenant_b, "request_id": request_b, "sequence": 1}
+        )
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
         connection.execute(text(f"GRANT USAGE ON SCHEMA public TO {role}"))
         connection.execute(text(f"GRANT SELECT, INSERT ON approval_requests, approval_decisions TO {role}"))
@@ -238,20 +378,36 @@ def test_approval_decisions_rls_and_sequence_constraint() -> None:
     try:
         with app.begin() as connection:
             connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-            assert connection.scalar(text("SELECT count(*) FROM approval_decisions WHERE tenant_id=:tenant"), {"tenant": tenant_a}) == 1
-            assert connection.scalar(text("SELECT count(*) FROM approval_decisions WHERE tenant_id=:tenant"), {"tenant": tenant_b}) == 0
-        with pytest.raises(DBAPIError):
-            with app.begin() as connection:
-                connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-                connection.execute(insert_decision, {"id": str(uuid4()), "tenant": tenant_b, "request_id": request_b, "sequence": 2})
-        with pytest.raises(DBAPIError):
-            with admin.begin() as connection:
-                connection.execute(insert_decision, {"id": str(uuid4()), "tenant": tenant_a, "request_id": request_a, "sequence": 1})
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM approval_decisions WHERE tenant_id=:tenant"), {"tenant": tenant_a}
+                )
+                == 1
+            )
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM approval_decisions WHERE tenant_id=:tenant"), {"tenant": tenant_b}
+                )
+                == 0
+            )
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            connection.execute(
+                insert_decision, {"id": str(uuid4()), "tenant": tenant_b, "request_id": request_b, "sequence": 2}
+            )
+        with pytest.raises(DBAPIError), admin.begin() as connection:
+            connection.execute(
+                insert_decision, {"id": str(uuid4()), "tenant": tenant_a, "request_id": request_a, "sequence": 1}
+            )
     finally:
         app.dispose()
         with admin.begin() as connection:
-            connection.execute(text("DELETE FROM approval_decisions WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
-            connection.execute(text("DELETE FROM approval_requests WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
+            connection.execute(
+                text("DELETE FROM approval_decisions WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
+            connection.execute(
+                text("DELETE FROM approval_requests WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
             connection.execute(text("DELETE FROM tenants WHERE id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
             connection.execute(text(f"DROP OWNED BY {role}"))
             connection.execute(text(f"DROP ROLE IF EXISTS {role}"))
@@ -284,34 +440,99 @@ def test_operational_work_items_rls_blocks_cross_tenant_access_and_preserves_uni
         ) VALUES (:id,:tenant,:source_type,:source_id,:issue_id,:action_id,'inventory','supply_chain',:sku,'ATVPDKIKX0DER','high',10,'Task','Review','open',:due_at,'ops-sla-v1',0,'Verify','{}','{}','pending',0,'[]',:hash,:now,:now)
     """)
     with admin.begin() as connection:
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Work A',:a,false),(:b,'Work B',:b,false)"), {"a": tenant_a, "b": tenant_b})
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Work A',:a,false),(:b,'Work B',:b,false)"
+            ),
+            {"a": tenant_a, "b": tenant_b},
+        )
     admin_factory = create_session_factory(admin_url)
     with admin_factory.begin() as session:
-        for tenant_id, issue_id, action_id, work_id, sku in ((tenant_a, issue_a, action_a, work_a, "SKU-A"), (tenant_b, issue_b, action_b, f"work-b-{suffix}", "SKU-B")):
-            session.add(OperationalIssueRow(
-                id=issue_id, tenant_id=tenant_id, seller_sku=sku, marketplace_id="ATVPDKIKX0DER",
-                issue_type="inventory_stockout_risk", severity="high", title="Issue", summary="Review",
-                status="open", dedupe_key=f"dedupe-{tenant_id}", confidence=Decimal("0.9"), data_freshness_at=now,
-                evidence=[], missing_data=[], occurrence_count=1, detected_at=now, last_detected_at=now,
-                created_at=now, updated_at=now, priority_score=Decimal("10"),
-            ))
-            session.add(RecommendedActionRow(
-                id=action_id, tenant_id=tenant_id, issue_id=issue_id, action_type="review_inventory",
-                title="Review", description="Review", execution_mode="single_approval", risk_level="high", status="proposed",
-                parameters={}, evidence=[], expected_outcome="Verify", confidence=Decimal("0.9"), automation_eligible=False,
-                dedupe_key=f"action-{tenant_id}", created_at=now, updated_at=now,
-            ))
+        for tenant_id, issue_id, action_id, _work_id, sku in (
+            (tenant_a, issue_a, action_a, work_a, "SKU-A"),
+            (tenant_b, issue_b, action_b, f"work-b-{suffix}", "SKU-B"),
+        ):
+            session.add(
+                OperationalIssueRow(
+                    id=issue_id,
+                    tenant_id=tenant_id,
+                    seller_sku=sku,
+                    marketplace_id="ATVPDKIKX0DER",
+                    issue_type="inventory_stockout_risk",
+                    severity="high",
+                    title="Issue",
+                    summary="Review",
+                    status="open",
+                    dedupe_key=f"dedupe-{tenant_id}",
+                    confidence=Decimal("0.9"),
+                    data_freshness_at=now,
+                    evidence=[],
+                    missing_data=[],
+                    occurrence_count=1,
+                    detected_at=now,
+                    last_detected_at=now,
+                    created_at=now,
+                    updated_at=now,
+                    priority_score=Decimal("10"),
+                )
+            )
+            session.add(
+                RecommendedActionRow(
+                    id=action_id,
+                    tenant_id=tenant_id,
+                    issue_id=issue_id,
+                    action_type="review_inventory",
+                    title="Review",
+                    description="Review",
+                    execution_mode="single_approval",
+                    risk_level="high",
+                    status="proposed",
+                    parameters={},
+                    evidence=[],
+                    expected_outcome="Verify",
+                    confidence=Decimal("0.9"),
+                    automation_eligible=False,
+                    dedupe_key=f"action-{tenant_id}",
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
         session.flush()
-        for tenant_id, issue_id, action_id, work_id, sku in ((tenant_a, issue_a, action_a, work_a, "SKU-A"), (tenant_b, issue_b, action_b, f"work-b-{suffix}", "SKU-B")):
-            session.add(OperationalWorkItemRow(
-                id=work_id, tenant_id=tenant_id, source_type="recommended_action", source_id=action_id,
-                operational_issue_id=issue_id, recommended_action_id=action_id, domain="inventory", team="supply_chain",
-                seller_sku=sku, marketplace_id="ATVPDKIKX0DER", severity="high", priority_score=Decimal("10"),
-                title="Task", description="Review", status="open", due_at=now, sla_policy_version="ops-sla-v1",
-                escalation_level=0, expected_outcome="Verify", baseline_metrics={}, result_metrics={},
-                verification_status="pending", verification_attempts=0, evidence_manifest=[], action_hash="a" * 64,
-                created_at=now, updated_at=now,
-            ))
+        for tenant_id, issue_id, action_id, work_id, sku in (
+            (tenant_a, issue_a, action_a, work_a, "SKU-A"),
+            (tenant_b, issue_b, action_b, f"work-b-{suffix}", "SKU-B"),
+        ):
+            session.add(
+                OperationalWorkItemRow(
+                    id=work_id,
+                    tenant_id=tenant_id,
+                    source_type="recommended_action",
+                    source_id=action_id,
+                    operational_issue_id=issue_id,
+                    recommended_action_id=action_id,
+                    domain="inventory",
+                    team="supply_chain",
+                    seller_sku=sku,
+                    marketplace_id="ATVPDKIKX0DER",
+                    severity="high",
+                    priority_score=Decimal("10"),
+                    title="Task",
+                    description="Review",
+                    status="open",
+                    due_at=now,
+                    sla_policy_version="ops-sla-v1",
+                    escalation_level=0,
+                    expected_outcome="Verify",
+                    baseline_metrics={},
+                    result_metrics={},
+                    verification_status="pending",
+                    verification_attempts=0,
+                    evidence_manifest=[],
+                    action_hash="a" * 64,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
     with admin.begin() as connection:
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
         connection.execute(text(f"GRANT USAGE ON SCHEMA public TO {role}"))
@@ -323,22 +544,70 @@ def test_operational_work_items_rls_blocks_cross_tenant_access_and_preserves_uni
     try:
         with app.begin() as connection:
             connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-            assert connection.scalar(text("SELECT count(*) FROM operational_work_items WHERE tenant_id=:tenant"), {"tenant": tenant_a}) == 1
-            assert connection.scalar(text("SELECT count(*) FROM operational_work_items WHERE tenant_id=:tenant"), {"tenant": tenant_b}) == 0
-            assert connection.execute(text("UPDATE operational_work_items SET status='in_progress' WHERE tenant_id=:tenant"), {"tenant": tenant_b}).rowcount == 0
-        with pytest.raises(DBAPIError):
-            with app.begin() as connection:
-                connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-                connection.execute(insert_work_item, {"id": str(uuid4()), "tenant": tenant_b, "source_type": "recommended_action", "source_id": f"cross-{suffix}", "issue_id": issue_b, "action_id": action_b, "sku": "SKU-B", "due_at": now, "hash": "b" * 64, "now": now})
-        with pytest.raises(DBAPIError):
-            with admin.begin() as connection:
-                connection.execute(insert_work_item, {"id": str(uuid4()), "tenant": tenant_a, "source_type": "recommended_action", "source_id": action_a, "issue_id": issue_a, "action_id": action_a, "sku": "SKU-A", "due_at": now, "hash": "c" * 64, "now": now})
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM operational_work_items WHERE tenant_id=:tenant"), {"tenant": tenant_a}
+                )
+                == 1
+            )
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM operational_work_items WHERE tenant_id=:tenant"), {"tenant": tenant_b}
+                )
+                == 0
+            )
+            assert (
+                connection.execute(
+                    text("UPDATE operational_work_items SET status='in_progress' WHERE tenant_id=:tenant"),
+                    {"tenant": tenant_b},
+                ).rowcount
+                == 0
+            )
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            connection.execute(
+                insert_work_item,
+                {
+                    "id": str(uuid4()),
+                    "tenant": tenant_b,
+                    "source_type": "recommended_action",
+                    "source_id": f"cross-{suffix}",
+                    "issue_id": issue_b,
+                    "action_id": action_b,
+                    "sku": "SKU-B",
+                    "due_at": now,
+                    "hash": "b" * 64,
+                    "now": now,
+                },
+            )
+        with pytest.raises(DBAPIError), admin.begin() as connection:
+            connection.execute(
+                insert_work_item,
+                {
+                    "id": str(uuid4()),
+                    "tenant": tenant_a,
+                    "source_type": "recommended_action",
+                    "source_id": action_a,
+                    "issue_id": issue_a,
+                    "action_id": action_a,
+                    "sku": "SKU-A",
+                    "due_at": now,
+                    "hash": "c" * 64,
+                    "now": now,
+                },
+            )
     finally:
         app.dispose()
         with admin.begin() as connection:
-            connection.execute(text("DELETE FROM operational_work_items WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
-            connection.execute(text("DELETE FROM recommended_actions WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
-            connection.execute(text("DELETE FROM operational_issues WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
+            connection.execute(
+                text("DELETE FROM operational_work_items WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
+            connection.execute(
+                text("DELETE FROM recommended_actions WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
+            connection.execute(
+                text("DELETE FROM operational_issues WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
             connection.execute(text("DELETE FROM tenants WHERE id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
             connection.execute(text(f"DROP OWNED BY {role}"))
             connection.execute(text(f"DROP ROLE IF EXISTS {role}"))
@@ -356,14 +625,28 @@ def test_operations_learning_business_context_rls_blocks_cross_tenant_access() -
     tenant_b = f"learn-b-{suffix}"
     now = datetime.now(UTC)
     with admin.begin() as connection:
-        connection.execute(text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Learn A',:a,false),(:b,'Learn B',:b,false)"), {"a": tenant_a, "b": tenant_b})
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:a,'Learn A',:a,false),(:b,'Learn B',:b,false)"
+            ),
+            {"a": tenant_a, "b": tenant_b},
+        )
         for tenant_id in (tenant_a, tenant_b):
-            connection.execute(text("""
+            connection.execute(
+                text("""
                 INSERT INTO business_context_events(
                     id,tenant_id,marketplace_id,seller_sku,context_type,starts_at,ends_at,details,
                     source,verified_amazon_data,dedupe_key,created_at
                 ) VALUES (:id,:tenant,'ATVPDKIKX0DER','SKU-1','planned_promotion',:start,:end,'{}','manual',false,:dedupe,:start)
-            """), {"id": str(uuid4()), "tenant": tenant_id, "start": now, "end": now + timedelta(days=1), "dedupe": uuid4().hex})
+            """),
+                {
+                    "id": str(uuid4()),
+                    "tenant": tenant_id,
+                    "start": now,
+                    "end": now + timedelta(days=1),
+                    "dedupe": uuid4().hex,
+                },
+            )
         connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
         connection.execute(text(f"GRANT USAGE ON SCHEMA public TO {role}"))
         connection.execute(text(f"GRANT SELECT, INSERT ON business_context_events TO {role}"))
@@ -372,21 +655,41 @@ def test_operations_learning_business_context_rls_blocks_cross_tenant_access() -
     try:
         with app.begin() as connection:
             connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-            assert connection.scalar(text("SELECT count(*) FROM business_context_events WHERE tenant_id=:tenant"), {"tenant": tenant_a}) == 1
-            assert connection.scalar(text("SELECT count(*) FROM business_context_events WHERE tenant_id=:tenant"), {"tenant": tenant_b}) == 0
-        with pytest.raises(DBAPIError):
-            with app.begin() as connection:
-                connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
-                connection.execute(text("""
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM business_context_events WHERE tenant_id=:tenant"), {"tenant": tenant_a}
+                )
+                == 1
+            )
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM business_context_events WHERE tenant_id=:tenant"), {"tenant": tenant_b}
+                )
+                == 0
+            )
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            connection.execute(
+                text("""
                     INSERT INTO business_context_events(
                         id,tenant_id,marketplace_id,context_type,starts_at,ends_at,details,source,
                         verified_amazon_data,dedupe_key,created_at
                     ) VALUES (:id,:tenant,'ATVPDKIKX0DER','seasonality',:start,:end,'{}','manual',false,:dedupe,:start)
-                """), {"id": str(uuid4()), "tenant": tenant_b, "start": now, "end": now + timedelta(days=1), "dedupe": uuid4().hex})
+                """),
+                {
+                    "id": str(uuid4()),
+                    "tenant": tenant_b,
+                    "start": now,
+                    "end": now + timedelta(days=1),
+                    "dedupe": uuid4().hex,
+                },
+            )
     finally:
         app.dispose()
         with admin.begin() as connection:
-            connection.execute(text("DELETE FROM business_context_events WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
+            connection.execute(
+                text("DELETE FROM business_context_events WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
             connection.execute(text("DELETE FROM tenants WHERE id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
             connection.execute(text(f"DROP OWNED BY {role}"))
             connection.execute(text(f"DROP ROLE IF EXISTS {role}"))

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from api.config import get_settings
 from domain.models import Membership, Role, Tenant, User
 from infrastructure.database.session import create_session_factory
 from infrastructure.repositories.tenants import TenantRepository
-from api.config import get_settings
-
 
 PERSONAS = (
     ("local-owner", "owner@local.omnisell.test", "Local Owner", Role.OWNER),

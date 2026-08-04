@@ -80,20 +80,20 @@ class OperationalIssueService:
         resolved_issue_ids: tuple[str, ...] = ()
         if complete_scan:
             complete_scopes = {
-                (snapshot.marketplace_id, snapshot.seller_sku, "inventory")
-                for snapshot in inventory_snapshots
-            } | {
-                (snapshot.marketplace_id, snapshot.seller_sku, "profit")
-                for snapshot in profit_snapshots
-            }
-            resolved_issue_ids = tuple(self.issue_repository.resolve_complete_scan_absent(
-                tenant_id=tenant_id,
-                complete_scopes=complete_scopes,
-                active_dedupe_keys={issue.dedupe_key for issue in saved_issues},
-                resolved_at=effective_detected_at,
-            ))
+                (snapshot.marketplace_id, snapshot.seller_sku, "inventory") for snapshot in inventory_snapshots
+            } | {(snapshot.marketplace_id, snapshot.seller_sku, "profit") for snapshot in profit_snapshots}
+            resolved_issue_ids = tuple(
+                self.issue_repository.resolve_complete_scan_absent(
+                    tenant_id=tenant_id,
+                    complete_scopes=complete_scopes,
+                    active_dedupe_keys={issue.dedupe_key for issue in saved_issues},
+                    resolved_at=effective_detected_at,
+                )
+            )
         return PersistedDetectionResult(
-            issues=tuple(saved_issues), actions=tuple(saved_actions), resolved_issue_ids=resolved_issue_ids,
+            issues=tuple(saved_issues),
+            actions=tuple(saved_actions),
+            resolved_issue_ids=resolved_issue_ids,
         )
 
     @staticmethod

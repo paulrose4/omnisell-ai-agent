@@ -9,68 +9,96 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.config import Settings, get_settings
-from api.amazon_factory import create_secret_store
-from api.oauth_state import OAuthStateManager
-from api.middleware import RateLimiterMiddleware, RequestTelemetryMiddleware
-from api.oauth_client import OAuthClient
-from api.rag_service import RAGService
-from api.routes import admin_routes, agent_run_routes, amazon_routes, briefing_routes, customer_case_routes, customer_routes, intelligence_routes, inventory_routes, learning_routes, listing_quality_routes, mock_scenario_routes, operations_routes, price_routes, product_routes, profitability_routes, rag_routes, reconciliation_routes, sync_routes, task_routes, work_item_routes
-from api.task_queue import InMemoryTaskQueue, MetricsRegistry
-from agents.advisors.operations_brief import create_operations_brief_advisor
 from agents.advisors.customer_case import create_customer_case_advisor
 from agents.advisors.listing_optimization import create_listing_optimization_advisor
+from agents.advisors.operations_brief import create_operations_brief_advisor
 from agents.advisors.reconciliation import create_reconciliation_investigator
 from agents.quota import InMemoryAgentQuotaLimiter
 from agents.registry import AdvisorRegistry
-from infrastructure.agent_quota import RedisAgentQuotaLimiter
-from infrastructure.database.bootstrap import initialize_database
-from infrastructure.database.session import create_session_factory
-from infrastructure.repositories.tasks import DurableTaskRepository, EventRepository
-from infrastructure.repositories.audit import SQLAuditLogger
-from infrastructure.repositories.briefing import DailyOperationsBriefRepository, ListingBasicSignalRepository
-from infrastructure.repositories.commerce_sync import CommerceSyncRepository, SyncCursorRepository
-from infrastructure.repositories.customer_service import CustomerCaseRepository, SOPPlaybookRepository
-from infrastructure.repositories.customer_case_operations import CustomerCaseOperationsBridge
-from infrastructure.repositories.hitl import SQLHITLManager
-from infrastructure.repositories.inventory import InventoryHealthSnapshotRepository, InventoryPolicyRepository
-from infrastructure.repositories.listing_quality import ListingExperimentRepository, ListingQualitySnapshotRepository
-from infrastructure.repositories.operational_intelligence import AdvertisingRepository, AmazonOperationalSignalRepository, VoCRepository
-from infrastructure.repositories.operations_learning import OperationsLearningRepository
-from infrastructure.repositories.manual_execution import ManualExecutionRepository
-from infrastructure.repositories.operations import OperationalIssueRepository, RecommendedActionRepository
-from infrastructure.repositories.pricing import PriceRecommendationRepository
-from infrastructure.repositories.profitability import SKUCostProfileRepository, SKUProfitSnapshotRepository
-from infrastructure.repositories.reconciliation import ReconciliationRepository
-from infrastructure.repositories.tenants import TenantRepository
-from infrastructure.repositories.workflows import SQLWorkflowStore
-from infrastructure.repositories.work_items import OperationalWorkItemRepository
-from application.agent_services import AgentRunService
+from api.amazon_factory import create_secret_store
+from api.config import Settings, get_settings
+from api.middleware import RateLimiterMiddleware, RequestTelemetryMiddleware
+from api.oauth_client import OAuthClient
+from api.oauth_state import OAuthStateManager
+from api.rag_service import RAGService
+from api.routes import (
+    admin_routes,
+    agent_run_routes,
+    amazon_routes,
+    briefing_routes,
+    customer_case_routes,
+    customer_routes,
+    intelligence_routes,
+    inventory_routes,
+    learning_routes,
+    listing_quality_routes,
+    mock_scenario_routes,
+    operations_routes,
+    price_routes,
+    product_routes,
+    profitability_routes,
+    rag_routes,
+    reconciliation_routes,
+    sync_routes,
+    task_routes,
+    work_item_routes,
+)
+from api.task_queue import InMemoryTaskQueue, MetricsRegistry
 from application.agent_dispatch import QueuedAgentWorkflow
-from application.operations_agent import OperationsAgentService, OperationsRecommendationPlanner, ReadOnlyOperationsToolExecutor
-from application.operations_brief_agent import OperationsBriefAgentService, OperationsBriefEvidenceCollector
+from application.agent_services import AgentRunService
 from application.briefing import DailyOperationsBriefService
-from application.customer_service import CustomerServiceWorkflow
 from application.customer_case_agent import CustomerCaseAgentService, CustomerCaseEvidenceCollector
-from application.listing_quality import ListingQualityService
-from application.listing_optimization_agent import ListingOptimizationAgentService, ListingOptimizationEvidenceCollector
-from application.operations import OperationalIssueService
+from application.customer_service import CustomerServiceWorkflow
 from application.intelligence_ingestion import OperationsIntelligenceIngestionService
+from application.listing_optimization_agent import ListingOptimizationAgentService, ListingOptimizationEvidenceCollector
+from application.listing_quality import ListingQualityService
+from application.operations import OperationalIssueService
+from application.operations_agent import (
+    OperationsAgentService,
+    OperationsRecommendationPlanner,
+    ReadOnlyOperationsToolExecutor,
+)
+from application.operations_brief_agent import OperationsBriefAgentService, OperationsBriefEvidenceCollector
 from application.operations_runtime import build_operations_refresh_service
 from application.pricing import PriceRecommendationService
 from application.reconciliation_agent import ReconciliationAgentService, ReconciliationEvidenceCollector
-from safety.audit import AuditLogger
-from safety.hitl import HITLManager
-from safety.tool_auth import PermissionDeniedError
-from observability.telemetry import configure_telemetry
-from model_gateway.factory import create_configured_gateway
-from workflows.engine import PersistentAgentWorkflow
 from commerce.customer_messaging import MockBuyerMessagingAdapter
+from infrastructure.agent_quota import RedisAgentQuotaLimiter
+from infrastructure.database.bootstrap import initialize_database
+from infrastructure.database.session import create_session_factory
+from infrastructure.repositories.audit import SQLAuditLogger
+from infrastructure.repositories.briefing import DailyOperationsBriefRepository, ListingBasicSignalRepository
+from infrastructure.repositories.commerce_sync import CommerceSyncRepository, SyncCursorRepository
+from infrastructure.repositories.customer_case_operations import CustomerCaseOperationsBridge
+from infrastructure.repositories.customer_service import CustomerCaseRepository, SOPPlaybookRepository
+from infrastructure.repositories.hitl import SQLHITLManager
+from infrastructure.repositories.inventory import InventoryHealthSnapshotRepository, InventoryPolicyRepository
+from infrastructure.repositories.listing_quality import ListingExperimentRepository, ListingQualitySnapshotRepository
+from infrastructure.repositories.manual_execution import ManualExecutionRepository
+from infrastructure.repositories.operational_intelligence import (
+    AdvertisingRepository,
+    AmazonOperationalSignalRepository,
+    VoCRepository,
+)
+from infrastructure.repositories.operations import OperationalIssueRepository, RecommendedActionRepository
+from infrastructure.repositories.operations_learning import OperationsLearningRepository
+from infrastructure.repositories.pricing import PriceRecommendationRepository
+from infrastructure.repositories.profitability import SKUCostProfileRepository, SKUProfitSnapshotRepository
+from infrastructure.repositories.reconciliation import ReconciliationRepository
+from infrastructure.repositories.tasks import DurableTaskRepository, EventRepository
+from infrastructure.repositories.tenants import TenantRepository
+from infrastructure.repositories.work_items import OperationalWorkItemRepository
+from infrastructure.repositories.workflows import SQLWorkflowStore
+from model_gateway.factory import create_configured_gateway
+from observability.telemetry import configure_telemetry
+from safety.tool_auth import PermissionDeniedError
+from workflows.engine import PersistentAgentWorkflow
 
 
 def _create_task_queue(settings: Settings, metrics: MetricsRegistry, task_repository: DurableTaskRepository):
     if settings.task_backend == "celery":
         from api.durable_task_queue import CeleryTaskQueue
+
         return CeleryTaskQueue(task_repository)
     return InMemoryTaskQueue(
         metrics=metrics,
@@ -168,7 +196,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.workflow_store = SQLWorkflowStore(session_factory)
     app.state.secret_store = create_secret_store(resolved_settings, session_factory)
-    state_secret = resolved_settings.secret_encryption_key or resolved_settings.api_key or "development-only-state-secret"
+    state_secret = (
+        resolved_settings.secret_encryption_key or resolved_settings.api_key or "development-only-state-secret"
+    )
     app.state.amazon_oauth_state = OAuthStateManager(
         state_secret,
         redis_url=resolved_settings.redis_url if resolved_settings.task_backend == "celery" else None,
@@ -180,9 +210,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=resolved_settings.cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-API-Key", "X-Request-ID", "X-Tenant-ID", "X-User-ID", "X-User-Role", "X-Permission-Scopes"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-API-Key",
+            "X-Request-ID",
+            "X-Tenant-ID",
+            "X-User-ID",
+            "X-User-Role",
+            "X-Permission-Scopes",
+        ],
     )
-    app.add_middleware(RateLimiterMiddleware, requests_per_minute=resolved_settings.rate_limit_per_minute, redis_url=resolved_settings.redis_url if resolved_settings.task_backend == "celery" else None)
+    app.add_middleware(
+        RateLimiterMiddleware,
+        requests_per_minute=resolved_settings.rate_limit_per_minute,
+        redis_url=resolved_settings.redis_url if resolved_settings.task_backend == "celery" else None,
+    )
     app.add_middleware(RequestTelemetryMiddleware)
 
     async def startup() -> None:
@@ -214,23 +258,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         app.state.model_gateway = create_configured_gateway(resolved_settings)
         operations_brief_advisor = create_operations_brief_advisor(
-            gateway=app.state.model_gateway, model=resolved_settings.vllm_model_name
+            gateway=app.state.model_gateway, model=resolved_settings.model_name
         )
         customer_case_advisor = create_customer_case_advisor(
-            gateway=app.state.model_gateway, model=resolved_settings.vllm_model_name
+            gateway=app.state.model_gateway, model=resolved_settings.model_name
         )
         listing_optimization_advisor = create_listing_optimization_advisor(
-            gateway=app.state.model_gateway, model=resolved_settings.vllm_model_name
+            gateway=app.state.model_gateway, model=resolved_settings.model_name
         )
         reconciliation_investigator = create_reconciliation_investigator(
-            gateway=app.state.model_gateway, model=resolved_settings.vllm_model_name
+            gateway=app.state.model_gateway, model=resolved_settings.model_name
         )
-        app.state.advisor_registry = AdvisorRegistry({
-            OperationsBriefAgentService.WORKFLOW_TYPE: operations_brief_advisor,
-            CustomerCaseAgentService.WORKFLOW_TYPE: customer_case_advisor,
-            ListingOptimizationAgentService.WORKFLOW_TYPE: listing_optimization_advisor,
-            ReconciliationAgentService.WORKFLOW_TYPE: reconciliation_investigator,
-        })
+        app.state.advisor_registry = AdvisorRegistry(
+            {
+                OperationsBriefAgentService.WORKFLOW_TYPE: operations_brief_advisor,
+                CustomerCaseAgentService.WORKFLOW_TYPE: customer_case_advisor,
+                ListingOptimizationAgentService.WORKFLOW_TYPE: listing_optimization_advisor,
+                ReconciliationAgentService.WORKFLOW_TYPE: reconciliation_investigator,
+            }
+        )
         app.state.agent_execution_workflow = PersistentAgentWorkflow(
             store=app.state.workflow_store,
             approval_manager=hitl_manager,
@@ -367,13 +413,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         correlation_id = getattr(request.state, "request_id", None)
         if audit_logger is not None:
             audit_logger.log_operation(
-                action="unhandled_exception", status="failure",
+                action="unhandled_exception",
+                status="failure",
                 details={"correlation_id": correlation_id, "exception_type": type(exc).__name__},
-                actor="api", risk_level="high",
+                actor="api",
+                risk_level="high",
             )
         return JSONResponse(
             status_code=500,
-            content={"error": "internal_server_error", "message": "An unexpected error occurred.", "path": request.url.path, "correlation_id": correlation_id},
+            content={
+                "error": "internal_server_error",
+                "message": "An unexpected error occurred.",
+                "path": request.url.path,
+                "correlation_id": correlation_id,
+            },
         )
 
     app.include_router(admin_routes.router)
@@ -413,4 +466,5 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterator, get_type_hints
+from typing import Any, NoReturn, get_type_hints
 
 from pydantic import ConfigDict, TypeAdapter, ValidationError
 
 from .audit import AuditLogger
 from .tool_acl import ToolACL, load_tool_acls
-
 
 ROLE_IMPLIED_SCOPES: dict[str, frozenset[str]] = {
     "admin": frozenset({"read", "write", "admin"}),
@@ -153,7 +153,7 @@ def normalize_caller_context(caller_context: Any | None = None) -> ToolCallerCon
     return ToolCallerContext(
         user_id=str(getattr(caller_context, "user_id", getattr(caller_context, "actor", "unknown"))),
         role=str(getattr(caller_context, "role", "viewer")).lower(),
-        tenant_id=str(getattr(caller_context, "tenant_id")) if getattr(caller_context, "tenant_id", None) is not None else None,
+        tenant_id=str(caller_context.tenant_id) if getattr(caller_context, "tenant_id", None) is not None else None,
         scopes=_normalize_scopes(getattr(caller_context, "scopes", getattr(caller_context, "permissions", None))),
         is_system=bool(getattr(caller_context, "is_system", False)),
     )
@@ -329,7 +329,9 @@ class ToolPermissionValidator:
             if annotation is inspect.Parameter.empty or annotation is Any:
                 continue
             try:
-                TypeAdapter(annotation, config=ConfigDict(strict=True, arbitrary_types_allowed=True)).validate_python(value)
+                TypeAdapter(annotation, config=ConfigDict(strict=True, arbitrary_types_allowed=True)).validate_python(
+                    value
+                )
             except (ValidationError, TypeError, ValueError):
                 errors.append({"field": name, "message": "Invalid type."})
 
@@ -379,7 +381,7 @@ class ToolPermissionValidator:
         public_message: str,
         public_details: Any | None = None,
         audit_details: dict[str, Any] | None = None,
-    ) -> None:
+    ) -> NoReturn:
         self.audit_logger.log(
             event_type="permission_denied",
             action=tool_name,

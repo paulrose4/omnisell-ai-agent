@@ -10,7 +10,14 @@ class MockSellerCentralPort(Protocol):
     async def reset(self) -> dict[str, Any]: ...
     async def trigger(self, scenario_id: str) -> dict[str, Any]: ...
     async def load_high_fidelity(self, payload: dict[str, Any]) -> dict[str, Any]: ...
-    async def execute(self, *, seller_sku: str, action_type: str, changes: dict[str, Any]) -> dict[str, Any]: ...
+    async def execute(
+        self,
+        *,
+        seller_sku: str,
+        action_type: str,
+        changes: dict[str, Any],
+        idempotency_key: str,
+    ) -> dict[str, Any]: ...
 
 
 class HttpMockSellerCentralAdapter:
@@ -30,15 +37,31 @@ class HttpMockSellerCentralAdapter:
     async def load_high_fidelity(self, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/mock/high-fidelity/load", json=payload)
 
-    async def execute(self, *, seller_sku: str, action_type: str, changes: dict[str, Any]) -> dict[str, Any]:
+    async def execute(
+        self,
+        *,
+        seller_sku: str,
+        action_type: str,
+        changes: dict[str, Any],
+        idempotency_key: str,
+    ) -> dict[str, Any]:
         return await self._request(
-            "POST", "/mock/seller-central/actions",
+            "POST",
+            "/mock/seller-central/actions",
             json={"seller_sku": seller_sku, "action_type": action_type, "changes": changes},
+            headers={"Idempotency-Key": idempotency_key},
         )
 
-    async def _request(self, method: str, path: str, *, json: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=self.timeout_seconds, trust_env=False) as client:
-            response = await client.request(method, f"{self.base_url}{path}", json=json)
+            response = await client.request(method, f"{self.base_url}{path}", json=json, headers=headers)
         response.raise_for_status()
         payload = response.json()
         if not isinstance(payload, dict):

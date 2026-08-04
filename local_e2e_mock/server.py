@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import time
@@ -13,7 +14,7 @@ from urllib.parse import urlencode
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi import FastAPI, Form, HTTPException, Query, Request
+from fastapi import FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -22,7 +23,6 @@ from application.high_fidelity_mock import (
     HighFidelityStoreDataset,
     generate_high_fidelity_store,
 )
-
 
 ISSUER = os.getenv("MOCK_OIDC_ISSUER", "http://mock-cloud:9000")
 INTERNAL_BASE_URL = os.getenv("MOCK_OIDC_INTERNAL_BASE_URL", ISSUER).rstrip("/")
@@ -94,7 +94,9 @@ def _scenario_defaults() -> dict[str, dict[str, Any]]:
             "title": title,
             "listing_status": "BUYABLE",
             "asin": f"B0{index:08d}",
-            "last_updated_time": (datetime.now(UTC) - (timedelta(hours=12) if scenario_id == "stale_inventory" else timedelta(minutes=5))).isoformat(),
+            "last_updated_time": (
+                datetime.now(UTC) - (timedelta(hours=12) if scenario_id == "stale_inventory" else timedelta(minutes=5))
+            ).isoformat(),
             "data_source": "mock_amazon",
             "verified_amazon_data": False,
         }
@@ -104,6 +106,7 @@ def _scenario_defaults() -> dict[str, dict[str, Any]]:
 
 MOCK_SCENARIOS = _scenario_defaults()
 MOCK_FAILURES = {"rate_limited": False, "authorization_revoked": False}
+MANUAL_ACTION_RESULTS: dict[str, tuple[str, dict[str, Any]]] = {}
 HIGH_FIDELITY_DATASET: HighFidelityStoreDataset | None = None
 
 
@@ -136,7 +139,13 @@ def _scenario_metadata(item: dict[str, Any]) -> dict[str, Any]:
         ],
         "description": "Mock Amazon product detail content used only for a repeatable Listing operations drill. " * 8,
         "image_count": 7,
-        "search_terms": ["insulated bottle", "stainless steel bottle", "travel water bottle", "24 oz bottle", "reusable flask"],
+        "search_terms": [
+            "insulated bottle",
+            "stainless steel bottle",
+            "travel water bottle",
+            "24 oz bottle",
+            "reusable flask",
+        ],
         "sessions": 500,
         "units_ordered": 50,
         "conversion_rate": "0.10",
@@ -257,7 +266,18 @@ def oidc_configuration() -> dict[str, Any]:
 
 @app.get("/.well-known/jwks.json")
 def jwks() -> dict[str, Any]:
-    return {"keys": [{"kty": "RSA", "kid": KEY_ID, "use": "sig", "alg": "RS256", "n": _b64(PUBLIC_NUMBERS.n), "e": _b64(PUBLIC_NUMBERS.e)}]}
+    return {
+        "keys": [
+            {
+                "kty": "RSA",
+                "kid": KEY_ID,
+                "use": "sig",
+                "alg": "RS256",
+                "n": _b64(PUBLIC_NUMBERS.n),
+                "e": _b64(PUBLIC_NUMBERS.e),
+            }
+        ]
+    }
 
 
 @app.get("/oidc/authorize")
@@ -277,9 +297,13 @@ def oidc_authorize(
     if not redirect_uri.startswith(f"{OIDC_REDIRECT_ORIGIN}/api/auth/callback/oidc"):
         raise HTTPException(status_code=400, detail={"error": "invalid_redirect_uri"})
     if code_challenge_method != "S256" or not code_challenge:
-        raise HTTPException(status_code=400, detail={"error": "invalid_request", "error_description": "PKCE S256 is required"})
+        raise HTTPException(
+            status_code=400, detail={"error": "invalid_request", "error_description": "PKCE S256 is required"}
+        )
     if login_hint not in PERSONAS:
-        raise HTTPException(status_code=400, detail={"error": "invalid_request", "error_description": "Unknown local persona"})
+        raise HTTPException(
+            status_code=400, detail={"error": "invalid_request", "error_description": "Unknown local persona"}
+        )
     code = secrets.token_urlsafe(32)
     AUTHORIZATION_CODES[code] = {
         "client_id": client_id,
@@ -310,8 +334,12 @@ def oidc_token(
             raise HTTPException(status_code=400, detail={"error": "invalid_grant"})
         if redirect_uri != authorization["redirect_uri"] or (client_id and client_id != authorization["client_id"]):
             raise HTTPException(status_code=400, detail={"error": "invalid_grant"})
-        if not code_verifier or not hmac.compare_digest(_pkce_challenge(code_verifier), authorization["code_challenge"]):
-            raise HTTPException(status_code=400, detail={"error": "invalid_grant", "error_description": "PKCE verification failed"})
+        if not code_verifier or not hmac.compare_digest(
+            _pkce_challenge(code_verifier), authorization["code_challenge"]
+        ):
+            raise HTTPException(
+                status_code=400, detail={"error": "invalid_grant", "error_description": "PKCE verification failed"}
+            )
         persona = PERSONAS[authorization["login_hint"]]
         access_token = _access_token("local-demo", persona["subject"], persona["role"], persona["scope"])
         return {
@@ -357,7 +385,9 @@ def oidc_userinfo(request: Request) -> dict[str, Any]:
 
 @app.get("/apps/authorize/consent")
 def seller_consent(state: str, application_id: str = "", version: str = "beta") -> RedirectResponse:
-    query = urlencode({"state": state, "spapi_oauth_code": "local-spapi-code", "selling_partner_id": SELLING_PARTNER_ID})
+    query = urlencode(
+        {"state": state, "spapi_oauth_code": "local-spapi-code", "selling_partner_id": SELLING_PARTNER_ID}
+    )
     return RedirectResponse(f"{AMAZON_CALLBACK_URL}?{query}", status_code=302)
 
 
@@ -373,7 +403,12 @@ def lwa_token(
     if grant_type == "authorization_code":
         if code != "local-spapi-code":
             raise HTTPException(status_code=400, detail={"error": "invalid_grant"})
-        return {"access_token": "local-lwa-access", "refresh_token": "local-lwa-refresh", "token_type": "bearer", "expires_in": 3600}
+        return {
+            "access_token": "local-lwa-access",
+            "refresh_token": "local-lwa-refresh",
+            "token_type": "bearer",
+            "expires_in": 3600,
+        }
     if grant_type == "refresh_token":
         if refresh_token != "local-lwa-refresh":
             raise HTTPException(status_code=400, detail={"error": "invalid_grant"})
@@ -388,18 +423,27 @@ def lwa_revoke(token: str = Form(...)) -> dict[str, bool]:
 
 def _authorize_spapi(request: Request) -> None:
     if MOCK_FAILURES["authorization_revoked"]:
-        raise HTTPException(status_code=401, detail={"errors": [{"code": "Unauthorized", "message": "Mock authorization revoked"}]})
+        raise HTTPException(
+            status_code=401, detail={"errors": [{"code": "Unauthorized", "message": "Mock authorization revoked"}]}
+        )
     if MOCK_FAILURES["rate_limited"]:
         MOCK_FAILURES["rate_limited"] = False
-        raise HTTPException(status_code=429, headers={"Retry-After": "1"}, detail={"errors": [{"code": "QuotaExceeded", "message": "Mock throttling scenario"}]})
+        raise HTTPException(
+            status_code=429,
+            headers={"Retry-After": "1"},
+            detail={"errors": [{"code": "QuotaExceeded", "message": "Mock throttling scenario"}]},
+        )
     if request.headers.get("x-amz-access-token") != "local-lwa-access":
-        raise HTTPException(status_code=401, detail={"errors": [{"code": "Unauthorized", "message": "Invalid access token"}]})
+        raise HTTPException(
+            status_code=401, detail={"errors": [{"code": "Unauthorized", "message": "Invalid access token"}]}
+        )
 
 
 @app.get("/mock/scenarios")
 def list_mock_scenarios() -> dict[str, Any]:
     return {
-        "items": list(MOCK_SCENARIOS.values()), "failures": MOCK_FAILURES,
+        "items": list(MOCK_SCENARIOS.values()),
+        "failures": MOCK_FAILURES,
         "high_fidelity": HIGH_FIDELITY_DATASET.manifest() if HIGH_FIDELITY_DATASET else None,
     }
 
@@ -414,9 +458,15 @@ def load_high_fidelity_store(payload: HighFidelityLoadRequest) -> dict[str, Any]
 
 @app.get("/mock/high-fidelity/status")
 def high_fidelity_status() -> dict[str, Any]:
-    return HIGH_FIDELITY_DATASET.manifest() if HIGH_FIDELITY_DATASET else {
-        "loaded": False, "source": "mock", "verified_amazon_data": False,
-    }
+    return (
+        HIGH_FIDELITY_DATASET.manifest()
+        if HIGH_FIDELITY_DATASET
+        else {
+            "loaded": False,
+            "source": "mock",
+            "verified_amazon_data": False,
+        }
+    )
 
 
 @app.get("/mock/high-fidelity/data-quality-events")
@@ -449,6 +499,7 @@ def reset_mock_scenarios() -> dict[str, Any]:
     MOCK_SCENARIOS.clear()
     MOCK_SCENARIOS.update(_scenario_defaults())
     MOCK_FAILURES.update({"rate_limited": False, "authorization_revoked": False})
+    MANUAL_ACTION_RESULTS.clear()
     HIGH_FIDELITY_DATASET = None
     return {"status": "reset", "items": list(MOCK_SCENARIOS.values())}
 
@@ -485,8 +536,20 @@ def trigger_mock_scenario(scenario_id: str) -> dict[str, Any]:
 
 
 @app.post("/mock/seller-central/actions")
-async def execute_mock_seller_central_action(request: Request) -> dict[str, Any]:
+async def execute_mock_seller_central_action(
+    request: Request,
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=1, max_length=255),
+) -> dict[str, Any]:
     payload = await request.json()
+    request_digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+    existing = MANUAL_ACTION_RESULTS.get(idempotency_key)
+    if existing is not None:
+        existing_digest, existing_result = existing
+        if existing_digest != request_digest:
+            raise HTTPException(status_code=409, detail={"error": "idempotency_conflict"})
+        return json.loads(json.dumps(existing_result))
     sku = str(payload.get("seller_sku") or "")
     item = next((value for value in MOCK_SCENARIOS.values() if value["seller_sku"] == sku), None)
     if item is None:
@@ -508,11 +571,18 @@ async def execute_mock_seller_central_action(request: Request) -> dict[str, Any]
     elif action != "mark_not_executed":
         raise HTTPException(status_code=422, detail={"error": "unsupported_mock_action"})
     item["last_updated_time"] = _now().isoformat()
-    return {"status": "recorded", "before": before, "after": item, "event": _mock_event(item, event_type)}
+    result = {"status": "recorded", "before": before, "after": dict(item), "event": _mock_event(item, event_type)}
+    MANUAL_ACTION_RESULTS[idempotency_key] = (request_digest, result)
+    return result
 
 
 @app.get("/orders/v0/orders")
-def list_orders(request: Request, MarketplaceIds: str | None = None, LastUpdatedAfter: str | None = None, NextToken: str | None = None) -> dict[str, Any]:
+def list_orders(
+    request: Request,
+    MarketplaceIds: str | None = None,
+    LastUpdatedAfter: str | None = None,
+    NextToken: str | None = None,
+) -> dict[str, Any]:
     _authorize_spapi(request)
     if HIGH_FIDELITY_DATASET is not None:
         orders = list(HIGH_FIDELITY_DATASET.orders)
@@ -522,27 +592,38 @@ def list_orders(request: Request, MarketplaceIds: str | None = None, LastUpdated
         for item in MOCK_SCENARIOS.values():
             for day in range(30):
                 purchased = now - timedelta(days=day, hours=1)
-                orders.append({
-                    "AmazonOrderId": f"MOCK-{item['seller_sku']}-{day:02d}",
-                    "MarketplaceId": MARKETPLACE_ID,
-                    "OrderStatus": "UnexpectedPlatformState" if item["scenario_id"] == "unknown_order_status" else "Shipped",
-                    "FulfillmentChannel": "AFN",
-                    "PurchaseDate": purchased.isoformat(),
-                    "LastUpdateDate": purchased.isoformat(),
-                    "OrderItems": [{
-                        "SellerSKU": item["seller_sku"],
-                        "QuantityOrdered": item["daily_sales"],
-                        "Title": item["title"] or item["seller_sku"],
-                        "OrderItemId": f"ITEM-{item['seller_sku']}-{day:02d}",
-                        "ItemPrice": {"Amount": str(Decimal(item["price"]) * item["daily_sales"]), "CurrencyCode": item["currency"]},
-                    }],
-                    "OmniSellMockMetadata": _scenario_metadata(item),
-                })
+                orders.append(
+                    {
+                        "AmazonOrderId": f"MOCK-{item['seller_sku']}-{day:02d}",
+                        "MarketplaceId": MARKETPLACE_ID,
+                        "OrderStatus": "UnexpectedPlatformState"
+                        if item["scenario_id"] == "unknown_order_status"
+                        else "Shipped",
+                        "FulfillmentChannel": "AFN",
+                        "PurchaseDate": purchased.isoformat(),
+                        "LastUpdateDate": purchased.isoformat(),
+                        "OrderItems": [
+                            {
+                                "SellerSKU": item["seller_sku"],
+                                "QuantityOrdered": item["daily_sales"],
+                                "Title": item["title"] or item["seller_sku"],
+                                "OrderItemId": f"ITEM-{item['seller_sku']}-{day:02d}",
+                                "ItemPrice": {
+                                    "Amount": str(Decimal(item["price"]) * item["daily_sales"]),
+                                    "CurrencyCode": item["currency"],
+                                },
+                            }
+                        ],
+                        "OmniSellMockMetadata": _scenario_metadata(item),
+                    }
+                )
     if LastUpdatedAfter:
         cutoff = datetime.fromisoformat(LastUpdatedAfter.replace("Z", "+00:00"))
-        orders = [item for item in orders if datetime.fromisoformat(item["LastUpdateDate"].replace("Z", "+00:00")) >= cutoff]
+        orders = [
+            item for item in orders if datetime.fromisoformat(item["LastUpdateDate"].replace("Z", "+00:00")) >= cutoff
+        ]
     offset = int(NextToken or 0)
-    page = orders[offset:offset + 50]
+    page = orders[offset : offset + 50]
     next_token = str(offset + 50) if offset + 50 < len(orders) else None
     return {"payload": {"Orders": page, **({"NextToken": next_token} if next_token else {})}}
 
@@ -553,26 +634,51 @@ def get_order(order_id: str, request: Request) -> dict[str, Any]:
     if HIGH_FIDELITY_DATASET is not None:
         order = next((item for item in HIGH_FIDELITY_DATASET.orders if item["AmazonOrderId"] == order_id), None)
         if order is None:
-            raise HTTPException(status_code=404, detail={"errors": [{"code": "NotFound", "message": "Mock order not found"}]})
+            raise HTTPException(
+                status_code=404, detail={"errors": [{"code": "NotFound", "message": "Mock order not found"}]}
+            )
         return {"payload": order}
-    return {"payload": {"AmazonOrderId": order_id, "MarketplaceId": MARKETPLACE_ID, "OrderStatus": "Shipped", "FulfillmentChannel": "AFN", "PurchaseDate": "2026-07-10T08:00:00Z", "LastUpdateDate": "2026-07-10T10:00:00Z"}}
+    return {
+        "payload": {
+            "AmazonOrderId": order_id,
+            "MarketplaceId": MARKETPLACE_ID,
+            "OrderStatus": "Shipped",
+            "FulfillmentChannel": "AFN",
+            "PurchaseDate": "2026-07-10T08:00:00Z",
+            "LastUpdateDate": "2026-07-10T10:00:00Z",
+        }
+    }
 
 
 @app.get("/listings/2021-08-01/items/{seller_id}/{seller_sku}")
-def get_listing(seller_id: str, seller_sku: str, request: Request, marketplaceIds: str, includedData: str = "") -> dict[str, Any]:
+def get_listing(
+    seller_id: str, seller_sku: str, request: Request, marketplaceIds: str, includedData: str = ""
+) -> dict[str, Any]:
     _authorize_spapi(request)
     if HIGH_FIDELITY_DATASET is not None:
         product = next((value for value in HIGH_FIDELITY_DATASET.catalog if value["seller_sku"] == seller_sku), None)
         if product is None:
-            raise HTTPException(status_code=404, detail={"errors": [{"code": "NotFound", "message": "Mock SKU not found"}]})
+            raise HTTPException(
+                status_code=404, detail={"errors": [{"code": "NotFound", "message": "Mock SKU not found"}]}
+            )
         return {
             "sku": seller_sku,
-            "summaries": [{
-                "marketplaceId": marketplaceIds, "asin": product["asin"],
-                "itemName": product["title"], "status": ["BUYABLE"],
-                "lastUpdatedDate": HIGH_FIDELITY_DATASET.reference_time.isoformat(),
-            }],
-            "offers": [{"marketplaceId": marketplaceIds, "offerType": "B2C", "price": {"amount": product["price"], "currencyCode": product["currency"]}}],
+            "summaries": [
+                {
+                    "marketplaceId": marketplaceIds,
+                    "asin": product["asin"],
+                    "itemName": product["title"],
+                    "status": ["BUYABLE"],
+                    "lastUpdatedDate": HIGH_FIDELITY_DATASET.reference_time.isoformat(),
+                }
+            ],
+            "offers": [
+                {
+                    "marketplaceId": marketplaceIds,
+                    "offerType": "B2C",
+                    "price": {"amount": product["price"], "currencyCode": product["currency"]},
+                }
+            ],
             "attributes": {"item_name": [{"value": product["title"], "marketplace_id": marketplaceIds}]},
             "issues": [],
             "OmniSellMockMetadata": _high_fidelity_metadata(product),
@@ -582,15 +688,25 @@ def get_listing(seller_id: str, seller_sku: str, request: Request, marketplaceId
         raise HTTPException(status_code=404, detail={"errors": [{"code": "NotFound", "message": "Mock SKU not found"}]})
     return {
         "sku": seller_sku,
-        "summaries": [{
-            "marketplaceId": marketplaceIds,
-            "asin": item["asin"],
-            "itemName": item["title"],
-            "status": [item["listing_status"]],
-            "lastUpdatedDate": item["last_updated_time"],
-        }],
-        "offers": [{"marketplaceId": marketplaceIds, "offerType": "B2C", "price": {"amount": item["price"], "currencyCode": item["currency"]}}],
-        "attributes": {"item_name": ([{"value": item["title"], "marketplace_id": marketplaceIds}] if item["title"] else [])},
+        "summaries": [
+            {
+                "marketplaceId": marketplaceIds,
+                "asin": item["asin"],
+                "itemName": item["title"],
+                "status": [item["listing_status"]],
+                "lastUpdatedDate": item["last_updated_time"],
+            }
+        ],
+        "offers": [
+            {
+                "marketplaceId": marketplaceIds,
+                "offerType": "B2C",
+                "price": {"amount": item["price"], "currencyCode": item["currency"]},
+            }
+        ],
+        "attributes": {
+            "item_name": ([{"value": item["title"], "marketplace_id": marketplaceIds}] if item["title"] else [])
+        },
         "issues": [],
         "OmniSellMockMetadata": _scenario_metadata(item),
     }
@@ -603,7 +719,14 @@ def patch_listing(seller_id: str, seller_sku: str, request: Request, marketplace
 
 
 @app.get("/fba/inventory/v1/summaries")
-def inventory(request: Request, granularityType: str, granularityId: str, marketplaceIds: str, details: str | None = None, nextToken: str | None = None) -> dict[str, Any]:
+def inventory(
+    request: Request,
+    granularityType: str,
+    granularityId: str,
+    marketplaceIds: str,
+    details: str | None = None,
+    nextToken: str | None = None,
+) -> dict[str, Any]:
     _authorize_spapi(request)
     if HIGH_FIDELITY_DATASET is not None:
         latest: dict[str, dict[str, Any]] = {}
@@ -611,52 +734,66 @@ def inventory(request: Request, granularityType: str, granularityId: str, market
             latest[snapshot["seller_sku"]] = snapshot
         products = HIGH_FIDELITY_DATASET.catalog
         offset = int(nextToken or 0)
-        page = products[offset:offset + 50]
+        page = products[offset : offset + 50]
         return {
             "payload": {
                 "granularity": {"granularityType": granularityType, "granularityId": granularityId},
-                "inventorySummaries": [{
-                    "asin": product["asin"], "fnSku": product["fnsku"],
-                    "sellerSku": product["seller_sku"], "condition": "NewItem",
-                    "totalQuantity": latest[product["seller_sku"]]["available"] + latest[product["seller_sku"]]["reserved"] + latest[product["seller_sku"]]["inbound"] + latest[product["seller_sku"]]["unsellable"],
-                    "inventoryDetails": {
-                        "fulfillableQuantity": latest[product["seller_sku"]]["available"],
-                        "inboundWorkingQuantity": latest[product["seller_sku"]]["inbound"],
-                        "inboundShippedQuantity": 0, "inboundReceivingQuantity": 0,
-                        "reservedQuantity": {"totalReservedQuantity": latest[product["seller_sku"]]["reserved"]},
-                        "unfulfillableQuantity": {"totalUnfulfillableQuantity": latest[product["seller_sku"]]["unsellable"]},
-                    },
-                    "lastUpdatedTime": latest[product["seller_sku"]]["observed_at"],
-                    "productName": product["title"],
-                    "OmniSellMockMetadata": _high_fidelity_metadata(product),
-                } for product in page],
+                "inventorySummaries": [
+                    {
+                        "asin": product["asin"],
+                        "fnSku": product["fnsku"],
+                        "sellerSku": product["seller_sku"],
+                        "condition": "NewItem",
+                        "totalQuantity": latest[product["seller_sku"]]["available"]
+                        + latest[product["seller_sku"]]["reserved"]
+                        + latest[product["seller_sku"]]["inbound"]
+                        + latest[product["seller_sku"]]["unsellable"],
+                        "inventoryDetails": {
+                            "fulfillableQuantity": latest[product["seller_sku"]]["available"],
+                            "inboundWorkingQuantity": latest[product["seller_sku"]]["inbound"],
+                            "inboundShippedQuantity": 0,
+                            "inboundReceivingQuantity": 0,
+                            "reservedQuantity": {"totalReservedQuantity": latest[product["seller_sku"]]["reserved"]},
+                            "unfulfillableQuantity": {
+                                "totalUnfulfillableQuantity": latest[product["seller_sku"]]["unsellable"]
+                            },
+                        },
+                        "lastUpdatedTime": latest[product["seller_sku"]]["observed_at"],
+                        "productName": product["title"],
+                        "OmniSellMockMetadata": _high_fidelity_metadata(product),
+                    }
+                    for product in page
+                ],
                 **({"pagination": {"nextToken": str(offset + 50)}} if offset + 50 < len(products) else {}),
             }
         }
     items = list(MOCK_SCENARIOS.values())
     offset = int(nextToken or 0)
-    page = items[offset:offset + 5]
+    page = items[offset : offset + 5]
     return {
         "payload": {
             "granularity": {"granularityType": granularityType, "granularityId": granularityId},
-            "inventorySummaries": [{
-                "asin": item["asin"],
-                "fnSku": f"FNSKU-{item['seller_sku']}",
-                "sellerSku": item["seller_sku"],
-                "condition": "NewItem",
-                "totalQuantity": item["available"] + item["reserved"] + item["inbound"] + item["unsellable"],
-                "inventoryDetails": {
-                    "fulfillableQuantity": item["available"],
-                    "inboundWorkingQuantity": item["inbound"],
-                    "inboundShippedQuantity": 0,
-                    "inboundReceivingQuantity": 0,
-                    "reservedQuantity": {"totalReservedQuantity": item["reserved"]},
-                    "unfulfillableQuantity": {"totalUnfulfillableQuantity": item["unsellable"]},
-                },
-                "lastUpdatedTime": item["last_updated_time"],
-                "productName": item["title"] or item["seller_sku"],
-                "OmniSellMockMetadata": _scenario_metadata(item),
-            } for item in page],
+            "inventorySummaries": [
+                {
+                    "asin": item["asin"],
+                    "fnSku": f"FNSKU-{item['seller_sku']}",
+                    "sellerSku": item["seller_sku"],
+                    "condition": "NewItem",
+                    "totalQuantity": item["available"] + item["reserved"] + item["inbound"] + item["unsellable"],
+                    "inventoryDetails": {
+                        "fulfillableQuantity": item["available"],
+                        "inboundWorkingQuantity": item["inbound"],
+                        "inboundShippedQuantity": 0,
+                        "inboundReceivingQuantity": 0,
+                        "reservedQuantity": {"totalReservedQuantity": item["reserved"]},
+                        "unfulfillableQuantity": {"totalUnfulfillableQuantity": item["unsellable"]},
+                    },
+                    "lastUpdatedTime": item["last_updated_time"],
+                    "productName": item["title"] or item["seller_sku"],
+                    "OmniSellMockMetadata": _scenario_metadata(item),
+                }
+                for item in page
+            ],
             **({"pagination": {"nextToken": str(offset + 5)}} if offset + 5 < len(items) else {}),
         }
     }

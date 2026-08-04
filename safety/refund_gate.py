@@ -5,7 +5,6 @@ from typing import Any
 
 from .audit import AuditLogger
 
-
 REFUND_KEYWORDS: tuple[str, ...] = (
     "refund",
     "退款",
@@ -20,7 +19,9 @@ REFUND_KEYWORDS: tuple[str, ...] = (
 )
 
 REFUND_BLOCK_MESSAGE = "Refund-related tool calls are blocked and require human support."
-REFUND_HANDOFF_REPLY = "退款请求已记录，将转交人工客服处理。Refund request logged and will be forwarded to human support."
+REFUND_HANDOFF_REPLY = (
+    "退款请求已记录，将转交人工客服处理。Refund request logged and will be forwarded to human support."
+)
 
 
 class RefundBlockedError(RuntimeError):

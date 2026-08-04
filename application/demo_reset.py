@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from application.golden_mock import seed_golden_mock_tenant
 from infrastructure.database.models import Base
 
-
 _PRESERVED_TABLES = {
     "tenants",
     "users",
@@ -22,7 +21,9 @@ _PRESERVED_TABLES = {
 
 
 def reset_mock_demo_tenant(
-    *, session_factory: sessionmaker[Session], tenant_id: str,
+    *,
+    session_factory: sessionmaker[Session],
+    tenant_id: str,
 ) -> dict[str, Any]:
     """Reset only tenant-scoped derived data for a local Mock demonstration.
 

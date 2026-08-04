@@ -170,19 +170,50 @@ DEFAULT_DOMAIN_TREE = _build_default_tree()
 
 # General business vocabulary used by the moderate strategy.
 GENERAL_BUSINESS_TERMS: list[str] = [
-    "business", "report", "analysis", "task", "data", "dashboard",
-    "kpi", "sales", "revenue", "forecast",
-    "业务", "报表", "分析", "任务", "数据", "看板", "销量", "营收", "预测", "运营",
+    "business",
+    "report",
+    "analysis",
+    "task",
+    "data",
+    "dashboard",
+    "kpi",
+    "sales",
+    "revenue",
+    "forecast",
+    "业务",
+    "报表",
+    "分析",
+    "任务",
+    "数据",
+    "看板",
+    "销量",
+    "营收",
+    "预测",
+    "运营",
 ]
 
 # Clearly harmful / out-of-scope patterns always blocked by permissive.
 HARMFUL_PATTERNS: list[str] = [
-    "ignore previous", "ignore above", "ignore all previous",
-    "disregard previous", "forget your instructions",
-    "system prompt", "reveal your instructions", "show me your prompt",
-    "jailbreak", "dan mode", "developer mode",
-    "you are now dan", "act as dan",
-    "vx:", "wechat:", "加微信", "加我微信", "代理赚钱", "兼职刷单", "刷单",
+    "ignore previous",
+    "ignore above",
+    "ignore all previous",
+    "disregard previous",
+    "forget your instructions",
+    "system prompt",
+    "reveal your instructions",
+    "show me your prompt",
+    "jailbreak",
+    "dan mode",
+    "developer mode",
+    "you are now dan",
+    "act as dan",
+    "vx:",
+    "wechat:",
+    "加微信",
+    "加我微信",
+    "代理赚钱",
+    "兼职刷单",
+    "刷单",
 ]
 
 
@@ -246,9 +277,7 @@ def preprocess(text: str) -> str:
         return ""
     normalized = unicodedata.normalize("NFC", text)
     # Convert full-width alphanumerics/punctuation to half-width.
-    normalized = normalized.translate(
-        str.maketrans({chr(i): chr(i - 0xFEE0) for i in range(0xFF01, 0xFF5F)})
-    )
+    normalized = normalized.translate(str.maketrans({chr(i): chr(i - 0xFEE0) for i in range(0xFF01, 0xFF5F)}))
     lower = normalized.lower()
     cleaned = _SPECIAL_CHAR_RE.sub(" ", lower)
     return re.sub(r"\s+", " ", cleaned).strip()

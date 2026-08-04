@@ -10,12 +10,16 @@ from typing import Any
 
 try:
     from .audit import AuditLogger
+    from .policy_engine import POLICY_RULESET_VERSION, PolicyDecision, permanently_prohibited_intent
     from .refund_gate import RefundGate
-    from .policy_engine import permanently_prohibited_intent
 except ImportError:
     from audit import AuditLogger  # type: ignore[no-redef]
+    from policy_engine import (  # type: ignore[no-redef]
+        POLICY_RULESET_VERSION,
+        PolicyDecision,
+        permanently_prohibited_intent,
+    )
     from refund_gate import RefundGate  # type: ignore[no-redef]
-    from policy_engine import permanently_prohibited_intent  # type: ignore[no-redef]
 
 
 class RiskLevel(str, Enum):
@@ -40,6 +44,9 @@ class ApprovalRequest:
     action: str
     risk_level: RiskLevel
     payload: dict[str, Any]
+    policy_decision: PolicyDecision = PolicyDecision.REQUIRE_APPROVAL
+    policy_version: str = POLICY_RULESET_VERSION
+    required_approval_count: int = 1
     requester: str = "agent"
     status: ApprovalStatus = ApprovalStatus.PENDING
     reason: str = ""
@@ -59,12 +66,25 @@ class ApprovalRequest:
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable approval request."""
         data = asdict(self)
+        data["policy_decision"] = self.policy_decision.value
         data["risk_level"] = self.risk_level.value
         data["status"] = self.status.value
+        data["policy_reason"] = self.reason
+        data["approved_count"] = self._approved_count()
         for key in ("created_at", "expires_at", "decided_at", "first_approved_at", "second_approved_at"):
             if data[key] is not None:
                 data[key] = data[key].isoformat().replace("+00:00", "Z")
         return data
+
+    def _approved_count(self) -> int:
+        if self.required_approval_count == 0:
+            return 0
+        if self.required_approval_count == 1:
+            return 1 if self.status == ApprovalStatus.APPROVED else 0
+        count = 1 if self.first_approver_id is not None else 0
+        if self.second_approver_id is not None:
+            count += 1
+        return count
 
 
 class ApprovalRequiredError(RuntimeError):
@@ -134,8 +154,10 @@ class HITLManager:
         requester: str = "agent",
         risk_level: RiskLevel | str | None = None,
         reason: str | None = None,
+        policy_decision: PolicyDecision | str = PolicyDecision.REQUIRE_APPROVAL,
+        policy_version: str = POLICY_RULESET_VERSION,
     ) -> ApprovalRequest:
-        """Submit an approval request and apply low/medium/high/critical policies."""
+        """Persist one policy-bound approval decision."""
         payload = payload or {}
         self._raise_if_permanently_prohibited(action, payload, actor=requester)
         if risk_level is None:
@@ -144,18 +166,43 @@ class HITLManager:
             assessed_level = RiskLevel(risk_level)
             assessed_reason = reason or f"Explicit risk_level={assessed_level.value}."
 
+        decision = policy_decision if isinstance(policy_decision, PolicyDecision) else PolicyDecision(policy_decision)
+        policy_version = policy_version.strip()
+        if not policy_version:
+            raise ValueError("policy_version must not be empty.")
+        if decision == PolicyDecision.BLOCK:
+            self.audit_logger.log_approval(
+                action,
+                "blocked",
+                {"policy_decision": decision.value, "reason": reason or assessed_reason},
+                actor=requester,
+                risk_level=assessed_level.value,
+            )
+            raise ApprovalRejectedError("Blocked policy decisions cannot create approvable requests.")
+        if decision == PolicyDecision.ALLOW and assessed_level != RiskLevel.LOW:
+            raise ValueError("Only explicit low-risk ALLOW decisions may be auto-approved.")
+
         created_at = datetime.now(UTC)
         timeout_hours = 48 if assessed_level == RiskLevel.CRITICAL else 24
-        status = ApprovalStatus.PENDING
+        status = ApprovalStatus.AUTO_APPROVED if decision == PolicyDecision.ALLOW else ApprovalStatus.PENDING
         requires_second_verification = assessed_level == RiskLevel.CRITICAL
-        if assessed_level in {RiskLevel.LOW, RiskLevel.MEDIUM}:
-            status = ApprovalStatus.AUTO_APPROVED
+        required_approval_count = 0 if decision == PolicyDecision.ALLOW else (2 if requires_second_verification else 1)
+        request_payload = {
+            **payload,
+            "policy_decision": decision.value,
+            "policy_version": policy_version,
+            "policy_reason": reason or assessed_reason,
+            "required_approval_count": required_approval_count,
+        }
 
         request = ApprovalRequest(
             request_id=f"APR-{uuid.uuid4().hex[:12].upper()}",
             action=action,
             risk_level=assessed_level,
-            payload=payload,
+            payload=request_payload,
+            policy_decision=decision,
+            policy_version=policy_version,
+            required_approval_count=required_approval_count,
             requester=requester,
             status=status,
             reason=reason or assessed_reason,
@@ -167,12 +214,7 @@ class HITLManager:
         with self._lock:
             self._requests[request.request_id] = request
 
-        if assessed_level == RiskLevel.LOW:
-            audit_status = "auto_approved"
-        elif assessed_level == RiskLevel.MEDIUM:
-            audit_status = "auto_approved_notified"
-        else:
-            audit_status = "pending"
+        audit_status = "auto_approved" if status == ApprovalStatus.AUTO_APPROVED else "pending"
 
         self.audit_logger.log_approval(
             action=action,
@@ -223,10 +265,14 @@ class HITLManager:
                         request.second_approval_reason = reason
 
         if blocked_intent is not None:
-            self._log_permanently_prohibited(request.action, request.payload, actor=approver, blocked_intent=blocked_intent)
+            self._log_permanently_prohibited(
+                request.action, request.payload, actor=approver, blocked_intent=blocked_intent
+            )
             raise ApprovalRejectedError("permanently prohibited action cannot be approved.")
 
-        self.audit_logger.log_approval(request.action, audit_status, request.to_dict(), actor=approver, risk_level=request.risk_level.value)
+        self.audit_logger.log_approval(
+            request.action, audit_status, request.to_dict(), actor=approver, risk_level=request.risk_level.value
+        )
         return request
 
     def reject(self, request_id: str, approver: str, reason: str = "") -> ApprovalRequest:
@@ -238,7 +284,9 @@ class HITLManager:
             request.decided_by = approver
             request.decision_reason = reason
 
-        self.audit_logger.log_approval(request.action, "rejected", request.to_dict(), actor=approver, risk_level=request.risk_level.value)
+        self.audit_logger.log_approval(
+            request.action, "rejected", request.to_dict(), actor=approver, risk_level=request.risk_level.value
+        )
         return request
 
     def get_pending(self) -> list[ApprovalRequest]:
@@ -246,7 +294,8 @@ class HITLManager:
         self.expire_overdue()
         with self._lock:
             return [
-                request for request in self._requests.values()
+                request
+                for request in self._requests.values()
                 if request.status in {ApprovalStatus.PENDING, ApprovalStatus.AWAITING_SECOND_APPROVAL}
             ]
 
@@ -262,14 +311,19 @@ class HITLManager:
         expired: list[ApprovalRequest] = []
         with self._lock:
             for request in self._requests.values():
-                if request.status in {ApprovalStatus.PENDING, ApprovalStatus.AWAITING_SECOND_APPROVAL} and now >= request.expires_at:
+                if (
+                    request.status in {ApprovalStatus.PENDING, ApprovalStatus.AWAITING_SECOND_APPROVAL}
+                    and now >= request.expires_at
+                ):
                     request.status = ApprovalStatus.EXPIRED
                     request.decided_at = now
                     request.decision_reason = "Approval timed out."
                     expired.append(request)
 
         for request in expired:
-            self.audit_logger.log_approval(request.action, "expired", request.to_dict(), actor="hitl", risk_level=request.risk_level.value)
+            self.audit_logger.log_approval(
+                request.action, "expired", request.to_dict(), actor="hitl", risk_level=request.risk_level.value
+            )
 
     def _get_pending_request(self, request_id: str) -> ApprovalRequest:
         self.expire_overdue()

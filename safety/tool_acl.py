@@ -6,7 +6,6 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
-
 ToolRole = Literal["admin", "operator", "agent", "viewer"]
 ToolScope = Literal["read", "write", "admin"]
 TenantIsolation = Literal["none", "shared", "tenant"]
@@ -29,7 +28,7 @@ class ToolACL:
     tenant_isolation: TenantIsolation
 
     @classmethod
-    def from_mapping(cls, name: str, data: dict[str, Any]) -> "ToolACL":
+    def from_mapping(cls, name: str, data: dict[str, Any]) -> ToolACL:
         roles = data.get("required_roles", data.get("roles", ()))
         if isinstance(roles, str):
             roles = [roles]
@@ -55,7 +54,7 @@ class ToolACL:
             tenant_isolation=tenant_isolation,  # type: ignore[arg-type]
         )
 
-    def apply_override(self, data: dict[str, Any]) -> "ToolACL":
+    def apply_override(self, data: dict[str, Any]) -> ToolACL:
         merged = {
             "required_roles": self.required_roles,
             "required_scope": self.required_scope,

@@ -9,25 +9,105 @@ from domain.customer_service import CustomerServiceCase, utc_now
 from safety.hitl import RiskLevel
 from safety.policy_engine import PolicyDecision, PolicyEngine
 
-
 PLAYBOOKS: dict[str, dict[str, Any]] = {
-    "where_is_my_order": {"version": "1.0", "risk_level": "low", "severity": "medium", "sla_minutes": 240, "required_evidence": ["order"]},
-    "delivery_delay": {"version": "1.0", "risk_level": "low", "severity": "high", "sla_minutes": 120, "required_evidence": ["order"]},
-    "cancel_request": {"version": "1.0", "risk_level": "critical", "severity": "critical", "sla_minutes": 60, "required_evidence": ["order"]},
-    "refund_demand": {"version": "1.0", "risk_level": "critical", "severity": "critical", "sla_minutes": 60, "required_evidence": ["order"]},
-    "damaged_item": {"version": "1.0", "risk_level": "high", "severity": "high", "sla_minutes": 120, "required_evidence": ["order", "damage_evidence"]},
-    "wrong_item": {"version": "1.0", "risk_level": "high", "severity": "high", "sla_minutes": 120, "required_evidence": ["order", "item_evidence"]},
-    "missing_accessory": {"version": "1.0", "risk_level": "medium", "severity": "medium", "sla_minutes": 240, "required_evidence": ["order", "package_contents"]},
-    "usage_question": {"version": "1.0", "risk_level": "low", "severity": "low", "sla_minutes": 480, "required_evidence": ["product_knowledge"]},
-    "invoice_request": {"version": "1.0", "risk_level": "medium", "severity": "medium", "sla_minutes": 240, "required_evidence": ["order"]},
-    "negative_sentiment": {"version": "1.0", "risk_level": "high", "severity": "high", "sla_minutes": 60, "required_evidence": ["order", "message_history"]},
-    "off_platform_contact": {"version": "1.0", "risk_level": "critical", "severity": "high", "sla_minutes": 120, "required_evidence": ["communication_policy"]},
-    "review_incentive": {"version": "1.0", "risk_level": "critical", "severity": "critical", "sla_minutes": 60, "required_evidence": ["communication_policy"]},
+    "where_is_my_order": {
+        "version": "1.0",
+        "risk_level": "low",
+        "severity": "medium",
+        "sla_minutes": 240,
+        "required_evidence": ["order"],
+    },
+    "delivery_delay": {
+        "version": "1.0",
+        "risk_level": "low",
+        "severity": "high",
+        "sla_minutes": 120,
+        "required_evidence": ["order"],
+    },
+    "cancel_request": {
+        "version": "1.0",
+        "risk_level": "critical",
+        "severity": "critical",
+        "sla_minutes": 60,
+        "required_evidence": ["order"],
+    },
+    "refund_demand": {
+        "version": "1.0",
+        "risk_level": "critical",
+        "severity": "critical",
+        "sla_minutes": 60,
+        "required_evidence": ["order"],
+    },
+    "damaged_item": {
+        "version": "1.0",
+        "risk_level": "high",
+        "severity": "high",
+        "sla_minutes": 120,
+        "required_evidence": ["order", "damage_evidence"],
+    },
+    "wrong_item": {
+        "version": "1.0",
+        "risk_level": "high",
+        "severity": "high",
+        "sla_minutes": 120,
+        "required_evidence": ["order", "item_evidence"],
+    },
+    "missing_accessory": {
+        "version": "1.0",
+        "risk_level": "medium",
+        "severity": "medium",
+        "sla_minutes": 240,
+        "required_evidence": ["order", "package_contents"],
+    },
+    "usage_question": {
+        "version": "1.0",
+        "risk_level": "low",
+        "severity": "low",
+        "sla_minutes": 480,
+        "required_evidence": ["product_knowledge"],
+    },
+    "invoice_request": {
+        "version": "1.0",
+        "risk_level": "medium",
+        "severity": "medium",
+        "sla_minutes": 240,
+        "required_evidence": ["order"],
+    },
+    "negative_sentiment": {
+        "version": "1.0",
+        "risk_level": "high",
+        "severity": "high",
+        "sla_minutes": 60,
+        "required_evidence": ["order", "message_history"],
+    },
+    "off_platform_contact": {
+        "version": "1.0",
+        "risk_level": "critical",
+        "severity": "high",
+        "sla_minutes": 120,
+        "required_evidence": ["communication_policy"],
+    },
+    "review_incentive": {
+        "version": "1.0",
+        "risk_level": "critical",
+        "severity": "critical",
+        "sla_minutes": 60,
+        "required_evidence": ["communication_policy"],
+    },
 }
 
 
 class CustomerServiceWorkflow:
-    def __init__(self, *, case_repository: Any, playbook_repository: Any, commerce_repository: Any, hitl_manager: Any, audit_logger: Any, policy_engine: PolicyEngine | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        case_repository: Any,
+        playbook_repository: Any,
+        commerce_repository: Any,
+        hitl_manager: Any,
+        audit_logger: Any,
+        policy_engine: PolicyEngine | None = None,
+    ) -> None:
         self.cases = case_repository
         self.playbooks = playbook_repository
         self.commerce = commerce_repository
@@ -38,8 +118,11 @@ class CustomerServiceWorkflow:
     def intake(self, *, tenant_id: str, actor_id: str, message: BuyerMessage) -> CustomerServiceCase:
         playbook = dict(PLAYBOOKS[message.scenario_id])
         self.playbooks.ensure(
-            tenant_id=tenant_id, playbook_key=message.scenario_id,
-            version=str(playbook["version"]), config=playbook, actor_id=actor_id,
+            tenant_id=tenant_id,
+            playbook_key=message.scenario_id,
+            version=str(playbook["version"]),
+            config=playbook,
+            actor_id=actor_id,
         )
         order = self.commerce.get_order_context(tenant_id=tenant_id, external_order_id=message.external_order_id)
         missing_data = [name for name in playbook["required_evidence"] if name == "order" and order is None]
@@ -50,7 +133,9 @@ class CustomerServiceWorkflow:
         compliance_violations = self._compliance_violations(message.scenario_id, message.message)
         requested_action = self._requested_action(message.scenario_id)
         if requested_action in {"refund", "cancel_order", "issue_compensation"}:
-            policy = self.policy.evaluate(action=requested_action, arguments={"customer_case": message.scenario_id}, confidence=float(confidence))
+            policy = self.policy.evaluate(
+                action=requested_action, arguments={"customer_case": message.scenario_id}, confidence=float(confidence)
+            )
         else:
             policy = self.policy.evaluate(
                 action="send_customer_reply",
@@ -64,33 +149,60 @@ class CustomerServiceWorkflow:
             PolicyDecision.BLOCK: "policy_blocked",
         }[policy.decision]
         now = utc_now()
-        case = self.cases.create(CustomerServiceCase(
-            tenant_id=tenant_id, external_case_id=message.external_case_id,
-            marketplace_id=message.marketplace_id, external_order_id=message.external_order_id,
-            seller_sku=seller_sku, language=message.language, intent=message.scenario_id,
-            sentiment="negative" if message.scenario_id in {"negative_sentiment", "refund_demand", "damaged_item", "wrong_item"} else "neutral",
-            urgency="urgent" if playbook["severity"] in {"high", "critical"} else "normal",
-            severity=str(playbook["severity"]), risk_level=str(playbook["risk_level"]),
-            priority_score=self._priority(str(playbook["severity"]), str(playbook["risk_level"]), bool(missing_data)),
-            customer_message=message.message, status=status, due_at=now + timedelta(minutes=int(playbook["sla_minutes"])),
-            draft_reply=draft, confidence=confidence,
-            evidence={
-                "order": order,
-                "message": {"received_at": message.received_at.isoformat(), "scenario_id": message.scenario_id},
-                "data_source": "mock_buyer",
-                "verified_amazon_data": False,
-            },
-            missing_data=tuple(missing_data),
-            policy_checks={"decision": policy.decision.value, "risk_level": policy.risk_level, "reason": policy.reason, "violations": compliance_violations},
-            playbook_key=message.scenario_id, playbook_version=str(playbook["version"]),
-            source=message.source, verified_amazon_data=False, created_at=now, updated_at=now,
-        ), actor_id=actor_id)
+        case = self.cases.create(
+            CustomerServiceCase(
+                tenant_id=tenant_id,
+                external_case_id=message.external_case_id,
+                marketplace_id=message.marketplace_id,
+                external_order_id=message.external_order_id,
+                seller_sku=seller_sku,
+                language=message.language,
+                intent=message.scenario_id,
+                sentiment="negative"
+                if message.scenario_id in {"negative_sentiment", "refund_demand", "damaged_item", "wrong_item"}
+                else "neutral",
+                urgency="urgent" if playbook["severity"] in {"high", "critical"} else "normal",
+                severity=str(playbook["severity"]),
+                risk_level=str(playbook["risk_level"]),
+                priority_score=self._priority(
+                    str(playbook["severity"]), str(playbook["risk_level"]), bool(missing_data)
+                ),
+                customer_message=message.message,
+                status=status,
+                due_at=now + timedelta(minutes=int(playbook["sla_minutes"])),
+                draft_reply=draft,
+                confidence=confidence,
+                evidence={
+                    "order": order,
+                    "message": {"received_at": message.received_at.isoformat(), "scenario_id": message.scenario_id},
+                    "data_source": "mock_buyer",
+                    "verified_amazon_data": False,
+                },
+                missing_data=tuple(missing_data),
+                policy_checks={
+                    "decision": policy.decision.value,
+                    "risk_level": policy.risk_level,
+                    "reason": policy.reason,
+                    "violations": compliance_violations,
+                },
+                playbook_key=message.scenario_id,
+                playbook_version=str(playbook["version"]),
+                source=message.source,
+                verified_amazon_data=False,
+                created_at=now,
+                updated_at=now,
+            ),
+            actor_id=actor_id,
+        )
         if policy.decision == PolicyDecision.REQUIRE_APPROVAL:
             approval = self.hitl.submit_request(
                 action="send_customer_reply",
                 payload={
-                    "tenant_id": tenant_id, "customer_case_id": case.id, "resource_id": case.id,
-                    "risk_level": case.risk_level, "draft_reply": draft,
+                    "tenant_id": tenant_id,
+                    "customer_case_id": case.id,
+                    "resource_id": case.id,
+                    "risk_level": case.risk_level,
+                    "draft_reply": draft,
                     "before_snapshot": {"status": "open", "actual_reply": None},
                     "plan": {"action": "manual_send_customer_reply", "arguments": {"customer_case_id": case.id}},
                     "evidence": case.evidence,
@@ -98,25 +210,43 @@ class CustomerServiceWorkflow:
                 requester=actor_id,
                 risk_level=RiskLevel(case.risk_level),
                 reason=policy.reason,
+                policy_decision=policy.decision,
+                policy_version=policy.policy_version,
             )
             case = self.cases.attach_approval(
-                tenant_id=tenant_id, case_id=case.id, approval_request_id=approval.request_id, actor_id=actor_id,
+                tenant_id=tenant_id,
+                case_id=case.id,
+                approval_request_id=approval.request_id,
+                actor_id=actor_id,
             )
         audit_action = "customer_policy_blocked" if policy.decision == PolicyDecision.BLOCK else "customer_case_created"
         self.audit.log_operation(
-            action=audit_action, status="success",
+            action=audit_action,
+            status="success",
             details={
-                "tenant_id": tenant_id, "customer_case_id": case.id, "intent": case.intent,
-                "policy_decision": policy.decision.value, "source": case.source,
+                "tenant_id": tenant_id,
+                "customer_case_id": case.id,
+                "intent": case.intent,
+                "policy_decision": policy.decision.value,
+                "source": case.source,
                 "verified_amazon_data": False,
             },
-            actor=actor_id, risk_level=case.risk_level,
+            actor=actor_id,
+            risk_level=case.risk_level,
         )
         if audit_action != "customer_case_created":
             self.audit.log_operation(
-                action="customer_case_created", status="success",
-                details={"tenant_id": tenant_id, "customer_case_id": case.id, "intent": case.intent, "source": case.source, "verified_amazon_data": False},
-                actor=actor_id, risk_level=case.risk_level,
+                action="customer_case_created",
+                status="success",
+                details={
+                    "tenant_id": tenant_id,
+                    "customer_case_id": case.id,
+                    "intent": case.intent,
+                    "source": case.source,
+                    "verified_amazon_data": False,
+                },
+                actor=actor_id,
+                risk_level=case.risk_level,
             )
         return case
 
@@ -134,7 +264,11 @@ class CustomerServiceWorkflow:
 
     @staticmethod
     def _requested_action(intent: str) -> str:
-        return {"refund_demand": "refund", "cancel_request": "cancel_order", "review_incentive": "issue_compensation"}.get(intent, "send_customer_reply")
+        return {
+            "refund_demand": "refund",
+            "cancel_request": "cancel_order",
+            "review_incentive": "issue_compensation",
+        }.get(intent, "send_customer_reply")
 
     @staticmethod
     def _compliance_violations(intent: str, message: str) -> list[str]:

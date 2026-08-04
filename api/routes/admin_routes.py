@@ -6,9 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from agents import base as agent_base
 from api.security import require_api_key
-
+from application.manual_execution_contract import (
+    EXECUTION_CONTRACT_VERSION,
+    validate_operational_approval_payload,
+)
+from safety.circuit_breaker import circuit_breaker_registry
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 protected_router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_api_key)])
@@ -42,8 +45,12 @@ async def health(request: Request) -> dict[str, Any]:
         "task_queue_ready": hasattr(request.app.state, "task_queue"),
         "rag_service_ready": hasattr(request.app.state, "rag_service"),
         "approval_store_ready": hasattr(request.app.state, "hitl_manager"),
-        "price_recommendations": sum(len(items) for items in getattr(request.app.state, "price_recommendations", {}).values()),
-        "queue_lengths": request.app.state.task_queue.queue_lengths() if hasattr(request.app.state, "task_queue") else {},
+        "price_recommendations": sum(
+            len(items) for items in getattr(request.app.state, "price_recommendations", {}).values()
+        ),
+        "queue_lengths": request.app.state.task_queue.queue_lengths()
+        if hasattr(request.app.state, "task_queue")
+        else {},
     }
 
 
@@ -78,10 +85,19 @@ async def approve_request(request_id: str, payload: ApprovalDecisionRequest, req
     if existing is None or existing.payload.get("tenant_id", "default") != request.state.principal.tenant_id:
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Approval not found."})
     if existing.requester == request.state.principal.user_id:
-        raise HTTPException(status_code=403, detail={"error": "self_approval_forbidden", "message": "Requesters cannot approve their own actions."})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "self_approval_forbidden", "message": "Requesters cannot approve their own actions."},
+        )
     _require_current_approval_context(request, existing.payload)
     if existing.risk_level.value in {"high", "critical"} and not payload.reason.strip():
-        raise HTTPException(status_code=422, detail={"error": "approval_reason_required", "message": "A review reason is required for high-risk approvals."})
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "approval_reason_required",
+                "message": "A review reason is required for high-risk approvals.",
+            },
+        )
     try:
         approval = request.app.state.hitl_manager.approve(
             request_id=request_id,
@@ -90,19 +106,29 @@ async def approve_request(request_id: str, payload: ApprovalDecisionRequest, req
             tenant_id=request.state.principal.tenant_id,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail={"error": "approval_failed", "message": "Approval could not be completed."}) from exc
+        raise HTTPException(
+            status_code=400, detail={"error": "approval_failed", "message": "Approval could not be completed."}
+        ) from exc
     result = approval.to_dict()
     if approval.status.value == "awaiting_second_approval":
-        result.update({
-            "operational_issue": None,
-            "recommended_action": None,
-            "customer_case": None,
-            "agent_run": None,
-        })
+        result.update(
+            {
+                "operational_issue": None,
+                "recommended_action": None,
+                "customer_case": None,
+                "agent_run": None,
+            }
+        )
         return result
-    result["operational_issue"] = _transition_approval_issue(request, approval.payload, approved=True, reason=payload.reason)
-    result["recommended_action"] = _transition_approval_action(request, approval.payload, approved=True, reason=payload.reason)
-    result["customer_case"] = _transition_approval_customer_case(request, approval.payload, approved=True, reason=payload.reason)
+    result["operational_issue"] = _transition_approval_issue(
+        request, approval.payload, approved=True, reason=payload.reason
+    )
+    result["recommended_action"] = _transition_approval_action(
+        request, approval.payload, approved=True, reason=payload.reason
+    )
+    result["customer_case"] = _transition_approval_customer_case(
+        request, approval.payload, approved=True, reason=payload.reason
+    )
     run_id = approval.payload.get("agent_run_id")
     if run_id and hasattr(request.app.state, "operations_agent_service"):
         result["agent_run"] = await request.app.state.operations_agent_service.resume(
@@ -122,7 +148,13 @@ async def reject_request(request_id: str, payload: ApprovalDecisionRequest, requ
     if existing is None or existing.payload.get("tenant_id", "default") != request.state.principal.tenant_id:
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Approval not found."})
     if existing.risk_level.value in {"high", "critical"} and not payload.reason.strip():
-        raise HTTPException(status_code=422, detail={"error": "rejection_reason_required", "message": "A review reason is required for high-risk rejections."})
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "rejection_reason_required",
+                "message": "A review reason is required for high-risk rejections.",
+            },
+        )
     try:
         approval = request.app.state.hitl_manager.reject(
             request_id=request_id,
@@ -131,11 +163,19 @@ async def reject_request(request_id: str, payload: ApprovalDecisionRequest, requ
             tenant_id=request.state.principal.tenant_id,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail={"error": "rejection_failed", "message": "Rejection could not be completed."}) from exc
+        raise HTTPException(
+            status_code=400, detail={"error": "rejection_failed", "message": "Rejection could not be completed."}
+        ) from exc
     result = approval.to_dict()
-    result["operational_issue"] = _transition_approval_issue(request, approval.payload, approved=False, reason=payload.reason)
-    result["recommended_action"] = _transition_approval_action(request, approval.payload, approved=False, reason=payload.reason)
-    result["customer_case"] = _transition_approval_customer_case(request, approval.payload, approved=False, reason=payload.reason)
+    result["operational_issue"] = _transition_approval_issue(
+        request, approval.payload, approved=False, reason=payload.reason
+    )
+    result["recommended_action"] = _transition_approval_action(
+        request, approval.payload, approved=False, reason=payload.reason
+    )
+    result["customer_case"] = _transition_approval_customer_case(
+        request, approval.payload, approved=False, reason=payload.reason
+    )
     run_id = approval.payload.get("agent_run_id")
     if run_id and hasattr(request.app.state, "operations_agent_service"):
         result["agent_run"] = await request.app.state.operations_agent_service.resume(
@@ -179,7 +219,7 @@ async def list_circuit_breakers(request: Request) -> dict[str, Any]:
             "failure_count": breaker.failure_count,
             "half_open_call_count": breaker.half_open_call_count,
         }
-        for name, breaker in agent_base._CIRCUIT_BREAKERS.items()
+        for name, breaker in circuit_breaker_registry().items()
     ]
     return {"total": len(items), "items": items}
 
@@ -188,9 +228,11 @@ async def list_circuit_breakers(request: Request) -> dict[str, Any]:
 async def reset_circuit_breaker(name: str, request: Request) -> dict[str, Any]:
     """Reset a process-wide circuit breaker as an administrator."""
     _require_admin_role(request)
-    breaker = agent_base._CIRCUIT_BREAKERS.get(name)
+    breaker = circuit_breaker_registry().get(name)
     if breaker is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": f"Circuit breaker not found: {name}"})
+        raise HTTPException(
+            status_code=404, detail={"error": "not_found", "message": f"Circuit breaker not found: {name}"}
+        )
     breaker.reset()
     return {"name": name, "state": breaker.state.value, "failure_count": breaker.failure_count}
 
@@ -219,6 +261,10 @@ async def get_prometheus_metrics(request: Request) -> str:
         f"omnisell_agent_tokens_total {metrics['agent_total_tokens']}",
         f"omnisell_agent_estimated_cost_total {metrics['agent_estimated_cost']}",
         f"omnisell_agent_schema_repairs_total {metrics['agent_schema_repairs']}",
+        f"omnisell_agent_first_pass_schema_successes_total {metrics['agent_first_pass_schema_successes']}",
+        f"omnisell_agent_first_pass_schema_success_rate {metrics['agent_first_pass_schema_success_rate'] or 0}",
+        f"omnisell_agent_model_initial_latency_p95_ms {metrics['agent_model_initial_latency_p95_ms']}",
+        f"omnisell_agent_model_repair_latency_p95_ms {metrics['agent_model_repair_latency_p95_ms']}",
         f"omnisell_agent_evidence_validation_failures_total {metrics['agent_evidence_validation_failures']}",
         f"omnisell_agent_retries_total {metrics['agent_retries']}",
         f"omnisell_agent_failovers_total {metrics['agent_failovers']}",
@@ -227,6 +273,8 @@ async def get_prometheus_metrics(request: Request) -> str:
         lines.append(f'omnisell_agent_runs_total{{status="{status}"}} {count}')
     for workflow_type, count in metrics["agent_runs_by_workflow"].items():
         lines.append(f'omnisell_agent_workflow_runs_total{{workflow_type="{workflow_type}"}} {count}')
+    for category, count in metrics["agent_schema_failure_categories"].items():
+        lines.append(f'omnisell_agent_schema_failures_total{{category="{category}"}} {count}')
     for queue_name, size in metrics["queue_lengths"].items():
         lines.append(f'omnisell_queue_length{{queue="{queue_name}"}} {size}')
     for action, latency in metrics["task_avg_latency_ms_by_action"].items():
@@ -234,7 +282,9 @@ async def get_prometheus_metrics(request: Request) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _transition_approval_issue(request: Request, approval_payload: dict[str, Any], *, approved: bool, reason: str) -> dict[str, Any] | None:
+def _transition_approval_issue(
+    request: Request, approval_payload: dict[str, Any], *, approved: bool, reason: str
+) -> dict[str, Any] | None:
     plan = approval_payload.get("plan") or {}
     arguments = plan.get("arguments") or {}
     issue_id = approval_payload.get("issue_id") or arguments.get("issue_id")
@@ -248,18 +298,27 @@ def _transition_approval_issue(request: Request, approval_payload: dict[str, Any
         if approved:
             if issue.status in {"acknowledged", "in_progress"}:
                 issue = request.app.state.operational_issue_repository.transition(
-                    tenant_id=principal.tenant_id, issue_id=issue.id, target_status="awaiting_approval",
-                    actor_id=principal.user_id, note="HITL request submitted.",
+                    tenant_id=principal.tenant_id,
+                    issue_id=issue.id,
+                    target_status="awaiting_approval",
+                    actor_id=principal.user_id,
+                    note="HITL request submitted.",
                 )
             if issue.status == "awaiting_approval":
                 issue = request.app.state.operational_issue_repository.transition(
-                    tenant_id=principal.tenant_id, issue_id=issue.id, target_status="approved_for_manual_execution",
-                    actor_id=principal.user_id, note=reason or "Approved for manual execution in Seller Central.",
+                    tenant_id=principal.tenant_id,
+                    issue_id=issue.id,
+                    target_status="approved_for_manual_execution",
+                    actor_id=principal.user_id,
+                    note=reason or "Approved for manual execution in Seller Central.",
                 )
         elif issue.status == "awaiting_approval":
             issue = request.app.state.operational_issue_repository.transition(
-                tenant_id=principal.tenant_id, issue_id=issue.id, target_status="in_progress",
-                actor_id=principal.user_id, note=reason or "HITL request rejected for operator revision.",
+                tenant_id=principal.tenant_id,
+                issue_id=issue.id,
+                target_status="in_progress",
+                actor_id=principal.user_id,
+                note=reason or "HITL request rejected for operator revision.",
             )
     except ValueError:
         return {"id": issue.id, "status": issue.status}
@@ -273,36 +332,88 @@ def _require_current_approval_context(request: Request, approval_payload: dict[s
     tenant_id = request.state.principal.tenant_id
     issue = request.app.state.operational_issue_repository.get(tenant_id=tenant_id, issue_id=str(issue_id))
     if issue is None or issue.status != "awaiting_approval":
-        raise HTTPException(status_code=409, detail={"error": "stale_approval_context", "message": "The source issue is no longer awaiting this approval."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "stale_approval_context",
+                "message": "The source issue is no longer awaiting this approval.",
+            },
+        )
     expected_freshness = str(approval_payload.get("data_freshness_at") or "")
     if expected_freshness and issue.data_freshness_at.isoformat() != expected_freshness:
-        raise HTTPException(status_code=409, detail={"error": "stale_approval_context", "message": "The source evidence changed after this approval was created."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "stale_approval_context",
+                "message": "The source evidence changed after this approval was created.",
+            },
+        )
     action_id = approval_payload.get("recommended_action_id")
     if action_id and hasattr(request.app.state, "recommended_action_repository"):
         action = request.app.state.recommended_action_repository.get(tenant_id=tenant_id, action_id=str(action_id))
         if action is None or action.status != "proposed":
-            raise HTTPException(status_code=409, detail={"error": "stale_approval_context", "message": "The recommended action changed after this approval was created."})
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "stale_approval_context",
+                    "message": "The recommended action changed after this approval was created.",
+                },
+            )
+        if approval_payload.get("execution_contract_version") == EXECUTION_CONTRACT_VERSION:
+            connection_id = str(approval_payload.get("connection_id") or "")
+            connection = request.app.state.tenant_repository.get_connection(
+                tenant_id=tenant_id,
+                connection_id=connection_id,
+            )
+            if connection is None:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "stale_approval_context",
+                        "message": "The approved Amazon connection no longer exists.",
+                    },
+                )
+            try:
+                validate_operational_approval_payload(
+                    payload=approval_payload,
+                    issue=issue,
+                    action=action,
+                    connection=connection,
+                )
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=409,
+                    detail={"error": "stale_approval_context", "message": str(exc)},
+                ) from exc
 
 
-def _transition_approval_action(request: Request, approval_payload: dict[str, Any], *, approved: bool, reason: str) -> dict[str, Any] | None:
+def _transition_approval_action(
+    request: Request, approval_payload: dict[str, Any], *, approved: bool, reason: str
+) -> dict[str, Any] | None:
     action_id = approval_payload.get("recommended_action_id")
     if not action_id or not hasattr(request.app.state, "recommended_action_repository"):
         return None
     principal = request.state.principal
     action = request.app.state.recommended_action_repository.get(
-        tenant_id=principal.tenant_id, action_id=str(action_id),
+        tenant_id=principal.tenant_id,
+        action_id=str(action_id),
     )
     if action is None:
         return None
     target_status = "accepted" if approved else "rejected"
     if action.status == "proposed":
         action = request.app.state.recommended_action_repository.transition(
-            tenant_id=principal.tenant_id, action_id=action.id, target_status=target_status, reason=reason,
+            tenant_id=principal.tenant_id,
+            action_id=action.id,
+            target_status=target_status,
+            reason=reason,
         )
     return {"id": action.id, "status": action.status}
 
 
-def _transition_approval_customer_case(request: Request, approval_payload: dict[str, Any], *, approved: bool, reason: str) -> dict[str, Any] | None:
+def _transition_approval_customer_case(
+    request: Request, approval_payload: dict[str, Any], *, approved: bool, reason: str
+) -> dict[str, Any] | None:
     case_id = approval_payload.get("customer_case_id")
     if not case_id or not hasattr(request.app.state, "customer_case_repository"):
         return None
@@ -311,13 +422,18 @@ def _transition_approval_customer_case(request: Request, approval_payload: dict[
     if case is None:
         return None
     case = request.app.state.customer_case_repository.decide_approval(
-        tenant_id=principal.tenant_id, case_id=case.id, approved=approved,
-        actor_id=principal.user_id, reason=reason,
+        tenant_id=principal.tenant_id,
+        case_id=case.id,
+        approved=approved,
+        actor_id=principal.user_id,
+        reason=reason,
     )
     request.app.state.audit_logger.log_operation(
-        action="customer_case_approval_decided", status="success",
+        action="customer_case_approval_decided",
+        status="success",
         details={"tenant_id": principal.tenant_id, "customer_case_id": case.id, "approved": approved},
-        actor=principal.user_id, risk_level=case.risk_level,
+        actor=principal.user_id,
+        risk_level=case.risk_level,
     )
     return {"id": case.id, "status": case.status}
 
@@ -331,4 +447,6 @@ def _require_approval_role(request: Request) -> None:
 def _require_admin_role(request: Request) -> None:
     principal = request.state.principal
     if principal.role not in {"owner", "admin"} or "admin" not in principal.scopes:
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Administrator role is required."})
+        raise HTTPException(
+            status_code=403, detail={"error": "forbidden", "message": "Administrator role is required."}
+        )

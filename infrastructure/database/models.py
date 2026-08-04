@@ -4,7 +4,21 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .session import Base
@@ -51,7 +65,9 @@ class ChannelConnectionRow(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class ProductRow(Base):
@@ -79,11 +95,15 @@ class VariantRow(Base):
 class ListingRow(Base):
     __tablename__ = "listings"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "channel_connection_id", "marketplace_id", "seller_sku", name="uq_listing_channel_sku"),
+        UniqueConstraint(
+            "tenant_id", "channel_connection_id", "marketplace_id", "seller_sku", name="uq_listing_channel_sku"
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    channel_connection_id: Mapped[str] = mapped_column(ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True)
+    channel_connection_id: Mapped[str] = mapped_column(
+        ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True
+    )
     variant_id: Mapped[str] = mapped_column(ForeignKey("variants.id", ondelete="CASCADE"), index=True)
     marketplace_id: Mapped[str] = mapped_column(String(50), nullable=False)
     seller_sku: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -99,11 +119,21 @@ class ListingRow(Base):
 class InventoryPositionRow(Base):
     __tablename__ = "inventory_positions"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "channel_connection_id", "marketplace_id", "seller_sku", "fulfillment_mode", "warehouse_code", name="uq_inventory_position"),
+        UniqueConstraint(
+            "tenant_id",
+            "channel_connection_id",
+            "marketplace_id",
+            "seller_sku",
+            "fulfillment_mode",
+            "warehouse_code",
+            name="uq_inventory_position",
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    channel_connection_id: Mapped[str] = mapped_column(ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True)
+    channel_connection_id: Mapped[str] = mapped_column(
+        ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True
+    )
     seller_sku: Mapped[str] = mapped_column(String(100), nullable=False)
     marketplace_id: Mapped[str] = mapped_column(String(50), nullable=False)
     fulfillment_mode: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -123,7 +153,9 @@ class OrderRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    channel_connection_id: Mapped[str] = mapped_column(ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True)
+    channel_connection_id: Mapped[str] = mapped_column(
+        ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True
+    )
     external_order_id: Mapped[str] = mapped_column(String(100), nullable=False)
     marketplace_id: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -157,7 +189,9 @@ class SyncCursorRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    channel_connection_id: Mapped[str] = mapped_column(ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True)
+    channel_connection_id: Mapped[str] = mapped_column(
+        ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True
+    )
     resource_type: Mapped[str] = mapped_column(String(40), nullable=False)
     cursor: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(30), default="never_run", nullable=False)
@@ -168,7 +202,10 @@ class SyncCursorRow(Base):
     last_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_succeeded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
 
 class DurableTaskRow(Base):
     __tablename__ = "durable_tasks"
@@ -192,7 +229,9 @@ class DurableTaskRow(Base):
     max_attempts: Mapped[int] = mapped_column(Integer, default=5)
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replayed_from_task_id: Mapped[str | None] = mapped_column(String(36))
@@ -205,7 +244,9 @@ class DurableTaskRow(Base):
 class AgentRunRow(Base):
     __tablename__ = "agent_runs"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "workflow_type", "idempotency_key", name="uq_agent_run_tenant_workflow_idempotency"),
+        UniqueConstraint(
+            "tenant_id", "workflow_type", "idempotency_key", name="uq_agent_run_tenant_workflow_idempotency"
+        ),
         Index("ix_agent_runs_tenant_workflow_created", "tenant_id", "workflow_type", "created_at"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -228,19 +269,64 @@ class AgentRunRow(Base):
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     state: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class ApprovalRequestRow(Base):
     __tablename__ = "approval_requests"
+    __table_args__ = (
+        CheckConstraint(
+            "policy_decision IN ('allow', 'require_approval')",
+            name="ck_approval_requests_policy_decision",
+        ),
+        CheckConstraint(
+            "risk_level IN ('low', 'medium', 'high', 'critical')",
+            name="ck_approval_requests_risk_level",
+        ),
+        CheckConstraint(
+            "(policy_decision = 'allow' AND risk_level = 'low' AND status = 'auto_approved' "
+            "AND required_approval_count = 0) "
+            "OR (policy_decision = 'require_approval' "
+            "AND ((risk_level = 'critical' AND required_approval_count = 2) "
+            "OR (risk_level <> 'critical' AND required_approval_count = 1)) "
+            "AND status IN "
+            "('pending', 'awaiting_second_approval', 'approved', 'rejected', 'expired'))",
+            name="ck_approval_requests_policy_status",
+        ),
+        CheckConstraint(
+            "length(trim(policy_version)) > 0",
+            name="ck_approval_requests_policy_version",
+        ),
+        CheckConstraint(
+            "length(trim(policy_reason)) > 0",
+            name="ck_approval_requests_policy_reason",
+        ),
+        CheckConstraint(
+            "required_approval_count IN (0, 1, 2)",
+            name="ck_approval_requests_required_count",
+        ),
+        CheckConstraint(
+            "execution_contract_version IS NULL OR length(trim(execution_contract_version)) > 0",
+            name="ck_approval_requests_execution_contract_version",
+        ),
+        Index("ix_approval_requests_tenant_status_created", "tenant_id", "status", "created_at"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     action_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_decision: Mapped[str] = mapped_column(String(30), nullable=False)
+    policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_reason: Mapped[str] = mapped_column(Text, nullable=False)
+    required_approval_count: Mapped[int] = mapped_column(Integer, nullable=False)
     risk_level: Mapped[str] = mapped_column(String(20), nullable=False)
     before_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     proposed_changes: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    execution_contract_version: Mapped[str | None] = mapped_column(String(64))
+    execution_plan: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(30), default="pending")
     approver_id: Mapped[str | None] = mapped_column(String(255))
     first_approver_id: Mapped[str | None] = mapped_column(String(255))
@@ -269,7 +355,6 @@ class ApprovalDecisionRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-
 class AuditEventRow(Base):
     __tablename__ = "audit_events"
     __table_args__ = (Index("ix_audit_tenant_created", "tenant_id", "created_at"),)
@@ -282,6 +367,7 @@ class AuditEventRow(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False)
     details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
 
 class InboxEventRow(Base):
     __tablename__ = "inbox_events"
@@ -450,15 +536,41 @@ class SOPPlaybookRow(Base):
 
 
 TENANT_SCOPED_TABLES = (
-    "memberships", "channel_connections", "products", "variants", "listings", "inventory_positions",
-    "orders", "order_lines", "sync_cursors", "durable_tasks", "agent_runs", "approval_requests", "approval_decisions", "audit_events", "inbox_events", "outbox_events",
-    "sku_cost_profiles", "sku_profit_snapshots", "data_import_jobs",
-    "inventory_policies", "inventory_health_snapshots",
-    "operational_issues", "recommended_actions", "manual_execution_results",
-    "customer_cases", "customer_case_events", "customer_case_clusters", "customer_case_cluster_members", "sop_playbooks",
-    "daily_operations_briefs", "price_recommendations",
-    "listing_quality_snapshots", "listing_optimization_experiments",
-    "reconciliation_runs", "reconciliation_differences",
+    "memberships",
+    "channel_connections",
+    "products",
+    "variants",
+    "listings",
+    "inventory_positions",
+    "orders",
+    "order_lines",
+    "sync_cursors",
+    "durable_tasks",
+    "agent_runs",
+    "approval_requests",
+    "approval_decisions",
+    "audit_events",
+    "inbox_events",
+    "outbox_events",
+    "sku_cost_profiles",
+    "sku_profit_snapshots",
+    "data_import_jobs",
+    "inventory_policies",
+    "inventory_health_snapshots",
+    "operational_issues",
+    "recommended_actions",
+    "manual_execution_results",
+    "customer_cases",
+    "customer_case_events",
+    "customer_case_clusters",
+    "customer_case_cluster_members",
+    "sop_playbooks",
+    "daily_operations_briefs",
+    "price_recommendations",
+    "listing_quality_snapshots",
+    "listing_optimization_experiments",
+    "reconciliation_runs",
+    "reconciliation_differences",
 )
 
 
@@ -467,7 +579,9 @@ class ReconciliationRunRow(Base):
     __table_args__ = (Index("ix_reconciliation_tenant_created", "tenant_id", "created_at"),)
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    channel_connection_id: Mapped[str] = mapped_column(ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True)
+    channel_connection_id: Mapped[str] = mapped_column(
+        ForeignKey("channel_connections.id", ondelete="CASCADE"), index=True
+    )
     status: Mapped[str] = mapped_column(String(30), nullable=False)
     summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -487,6 +601,7 @@ class ReconciliationDifferenceRow(Base):
     amazon_value: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     internal_value: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
 
 class SKUCostProfileRow(Base):
     __tablename__ = "sku_cost_profiles"
@@ -523,7 +638,9 @@ class SKUCostProfileRow(Base):
 
 class SKUProfitSnapshotRow(Base):
     __tablename__ = "sku_profit_snapshots"
-    __table_args__ = (Index("ix_profit_snapshot_scope_window", "tenant_id", "marketplace_id", "seller_sku", "window_end"),)
+    __table_args__ = (
+        Index("ix_profit_snapshot_scope_window", "tenant_id", "marketplace_id", "seller_sku", "window_end"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     seller_sku: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -558,7 +675,9 @@ class SKUProfitSnapshotRow(Base):
 
 class DataImportJobRow(Base):
     __tablename__ = "data_import_jobs"
-    __table_args__ = (UniqueConstraint("tenant_id", "import_type", "idempotency_key", name="uq_import_tenant_type_idempotency"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "import_type", "idempotency_key", name="uq_import_tenant_type_idempotency"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -579,8 +698,12 @@ class DataImportJobRow(Base):
 class InventoryPolicyRow(Base):
     __tablename__ = "inventory_policies"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "marketplace_id", "seller_sku", "version", name="uq_inventory_policy_scope_version"),
-        Index("ix_inventory_policy_active", "tenant_id", "marketplace_id", "seller_sku", "effective_from", "effective_to"),
+        UniqueConstraint(
+            "tenant_id", "marketplace_id", "seller_sku", "version", name="uq_inventory_policy_scope_version"
+        ),
+        Index(
+            "ix_inventory_policy_active", "tenant_id", "marketplace_id", "seller_sku", "effective_from", "effective_to"
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
@@ -608,7 +731,9 @@ class InventoryPolicyRow(Base):
 
 class InventoryHealthSnapshotRow(Base):
     __tablename__ = "inventory_health_snapshots"
-    __table_args__ = (Index("ix_inventory_health_scope_calculated", "tenant_id", "marketplace_id", "seller_sku", "calculated_at"),)
+    __table_args__ = (
+        Index("ix_inventory_health_scope_calculated", "tenant_id", "marketplace_id", "seller_sku", "calculated_at"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     seller_sku: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -647,6 +772,7 @@ class InventoryHealthSnapshotRow(Base):
     estimated_profit_at_risk: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     estimated_extra_logistics_cost: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
 
 class OperationalIssueRow(Base):
     __tablename__ = "operational_issues"
@@ -693,11 +819,28 @@ class OperationalIssueRow(Base):
 
 class ManualExecutionResultRow(Base):
     __tablename__ = "manual_execution_results"
-    __table_args__ = (Index("ix_manual_execution_tenant_issue", "tenant_id", "issue_id"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "approval_request_id", name="uq_manual_execution_tenant_approval"),
+        UniqueConstraint("tenant_id", "idempotency_key", name="uq_manual_execution_tenant_idempotency"),
+        CheckConstraint("status IN ('executing', 'executed', 'failed')", name="ck_manual_execution_status"),
+        CheckConstraint("length(action_hash) = 64", name="ck_manual_execution_action_hash"),
+        CheckConstraint(
+            "length(trim(execution_contract_version)) > 0",
+            name="ck_manual_execution_contract_version",
+        ),
+        CheckConstraint("length(trim(idempotency_key)) > 0", name="ck_manual_execution_idempotency_key"),
+        Index("ix_manual_execution_tenant_issue", "tenant_id", "issue_id"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     issue_id: Mapped[str] = mapped_column(ForeignKey("operational_issues.id", ondelete="CASCADE"), nullable=False)
-    recommended_action_id: Mapped[str | None] = mapped_column(String(36))
+    approval_request_id: Mapped[str] = mapped_column(
+        ForeignKey("approval_requests.id", ondelete="RESTRICT"), nullable=False
+    )
+    recommended_action_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    action_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    execution_contract_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
     action_type: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[str] = mapped_column(String(40), nullable=False)
     before_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
@@ -706,6 +849,8 @@ class ManualExecutionResultRow(Base):
     execution_evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     executed_by: Mapped[str] = mapped_column(String(255), nullable=False)
     executed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failure_reason: Mapped[str | None] = mapped_column(Text)
     verification_status: Mapped[str] = mapped_column(String(40), nullable=False)
     verification_details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -755,7 +900,9 @@ class OperationalWorkItemRow(Base):
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     source_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    operational_issue_id: Mapped[str] = mapped_column(ForeignKey("operational_issues.id", ondelete="CASCADE"), nullable=False)
+    operational_issue_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_issues.id", ondelete="CASCADE"), nullable=False
+    )
     recommended_action_id: Mapped[str | None] = mapped_column(ForeignKey("recommended_actions.id", ondelete="CASCADE"))
     domain: Mapped[str] = mapped_column(String(50), nullable=False)
     team: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -809,6 +956,7 @@ class DailyOperationsBriefRow(Base):
     sku_health: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     source_manifest: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
+
 class PriceRecommendationRow(Base):
     __tablename__ = "price_recommendations"
     __table_args__ = (
@@ -849,10 +997,13 @@ class PriceRecommendationRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+
 class ListingQualitySnapshotRow(Base):
     __tablename__ = "listing_quality_snapshots"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "listing_id", "content_version", "calculated_at", name="uq_listing_quality_version_time"),
+        UniqueConstraint(
+            "tenant_id", "listing_id", "content_version", "calculated_at", name="uq_listing_quality_version_time"
+        ),
         Index("ix_listing_quality_latest", "tenant_id", "marketplace_id", "seller_sku", "calculated_at"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -986,7 +1137,9 @@ class AdvertisingDailySnapshotRow(Base):
 class SearchTermPerformanceSnapshotRow(Base):
     __tablename__ = "search_term_performance_snapshots"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "campaign_id", "search_term", "period_start", name="uq_search_term_snapshot_period"),
+        UniqueConstraint(
+            "tenant_id", "campaign_id", "search_term", "period_start", name="uq_search_term_snapshot_period"
+        ),
         Index("ix_search_term_queue", "tenant_id", "marketplace_id", "seller_sku", "period_end"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -1021,7 +1174,9 @@ class AdvertisingBudgetDiagnosticRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    snapshot_id: Mapped[str] = mapped_column(ForeignKey("advertising_daily_snapshots.id", ondelete="CASCADE"), nullable=False)
+    snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("advertising_daily_snapshots.id", ondelete="CASCADE"), nullable=False
+    )
     seller_sku: Mapped[str] = mapped_column(String(100), nullable=False)
     marketplace_id: Mapped[str] = mapped_column(String(50), nullable=False)
     campaign_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -1102,7 +1257,9 @@ class BuyerMessageTagRow(Base):
 class SKUVoCSummaryRow(Base):
     __tablename__ = "sku_voc_summaries"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "marketplace_id", "seller_sku", "period_start", "period_end", name="uq_sku_voc_period"),
+        UniqueConstraint(
+            "tenant_id", "marketplace_id", "seller_sku", "period_start", "period_end", name="uq_sku_voc_period"
+        ),
         Index("ix_sku_voc_queue", "tenant_id", "status", "top_reason_code", "period_end"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -1135,7 +1292,9 @@ class IssueFeedbackRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    operational_issue_id: Mapped[str] = mapped_column(ForeignKey("operational_issues.id", ondelete="CASCADE"), nullable=False)
+    operational_issue_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_issues.id", ondelete="CASCADE"), nullable=False
+    )
     actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
@@ -1175,7 +1334,9 @@ class OperatorActivityEventRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    work_item_id: Mapped[str] = mapped_column(ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False)
+    work_item_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False
+    )
     actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
     event_type: Mapped[str] = mapped_column(String(30), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -1211,7 +1372,9 @@ class ActionExecutionAttemptRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    work_item_id: Mapped[str] = mapped_column(ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False)
+    work_item_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False
+    )
     action_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     execution_mode: Mapped[str] = mapped_column(String(30), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -1227,14 +1390,20 @@ class ActionExecutionAttemptRow(Base):
 class ActionOutcomeRow(Base):
     __tablename__ = "action_outcomes"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "execution_id", "primary_metric", "observation_end", name="uq_action_outcome_window"),
+        UniqueConstraint(
+            "tenant_id", "execution_id", "primary_metric", "observation_end", name="uq_action_outcome_window"
+        ),
         Index("ix_action_outcome_work_item", "tenant_id", "work_item_id", "evaluated_at"),
         Index("ix_action_outcome_attribution", "tenant_id", "attribution_level", "outcome_status"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    work_item_id: Mapped[str] = mapped_column(ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False)
-    execution_id: Mapped[str] = mapped_column(ForeignKey("action_execution_attempts.id", ondelete="CASCADE"), nullable=False)
+    work_item_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False
+    )
+    execution_id: Mapped[str] = mapped_column(
+        ForeignKey("action_execution_attempts.id", ondelete="CASCADE"), nullable=False
+    )
     primary_metric: Mapped[str] = mapped_column(String(100), nullable=False)
     desired_direction: Mapped[str] = mapped_column(String(20), nullable=False)
     baseline_metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
@@ -1310,7 +1479,9 @@ class ExecutionAuthorizationRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    work_item_id: Mapped[str] = mapped_column(ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False)
+    work_item_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False
+    )
     action_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     action_type: Mapped[str] = mapped_column(String(100), nullable=False)
     risk_level: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -1334,7 +1505,9 @@ class AttributionPlanRow(Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
-    work_item_id: Mapped[str] = mapped_column(ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False)
+    work_item_id: Mapped[str] = mapped_column(
+        ForeignKey("operational_work_items.id", ondelete="CASCADE"), nullable=False
+    )
     action_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     primary_metric: Mapped[str] = mapped_column(String(100), nullable=False)
     desired_direction: Mapped[str] = mapped_column(String(20), nullable=False)

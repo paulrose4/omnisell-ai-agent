@@ -17,8 +17,12 @@ class AmazonWriteGate:
 
     def require_write(self, *, action: str, tenant_id: str, resource_id: str | None = None) -> None:
         if self.pilot_read_only:
-            raise AmazonWriteBlocked("blocked_read_only_pilot", "Amazon writes are disabled during the read-only production pilot.")
+            raise AmazonWriteBlocked(
+                "blocked_read_only_pilot", "Amazon writes are disabled during the read-only production pilot."
+            )
         if not self.global_enabled:
             raise AmazonWriteBlocked("blocked_global_write_disabled", "Amazon writes are disabled globally.")
         if not self.tenant_enabled:
-            raise AmazonWriteBlocked("blocked_tenant_write_disabled", f"Amazon writes are disabled for tenant {tenant_id}.")
+            raise AmazonWriteBlocked(
+                "blocked_tenant_write_disabled", f"Amazon writes are disabled for tenant {tenant_id}."
+            )

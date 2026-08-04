@@ -13,7 +13,6 @@ from domain.models import DataSource, InventoryPolicy
 from safety.hitl import ApprovalStatus, RiskLevel
 from safety.policy_engine import canonical_action_hash
 
-
 router = APIRouter(prefix="/api/inventory", tags=["inventory-health"], dependencies=[Depends(require_api_key)])
 
 
@@ -97,34 +96,56 @@ class InventoryHealthRequest(BaseModel):
 @router.post("/policies")
 async def create_inventory_policy(payload: InventoryPolicyRequest, request: Request, response: Response) -> dict:
     principal = request.state.principal
-    if principal.role not in {"owner", "admin"} or ("write" not in principal.scopes and "admin" not in principal.scopes):
-        raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Owner or admin write access is required."})
+    if principal.role not in {"owner", "admin"} or (
+        "write" not in principal.scopes and "admin" not in principal.scopes
+    ):
+        raise HTTPException(
+            status_code=403, detail={"error": "forbidden", "message": "Owner or admin write access is required."}
+        )
     policy_arguments = payload.model_dump(exclude={"approval_request_id"})
     policy_hash_arguments = payload.model_dump(mode="json", exclude={"approval_request_id"})
     existing = request.app.state.inventory_policy_repository.list_policies(
-        tenant_id=principal.tenant_id, marketplace_id=payload.marketplace_id, seller_sku=payload.seller_sku,
+        tenant_id=principal.tenant_id,
+        marketplace_id=payload.marketplace_id,
+        seller_sku=payload.seller_sku,
     )
     action_hash = canonical_action_hash(
-        action="update_inventory_policy", tenant_id=principal.tenant_id,
-        resource_id=f"{payload.marketplace_id}:{payload.seller_sku}", arguments=policy_hash_arguments,
+        action="update_inventory_policy",
+        tenant_id=principal.tenant_id,
+        resource_id=f"{payload.marketplace_id}:{payload.seller_sku}",
+        arguments=policy_hash_arguments,
     )
     if existing:
-        approval = request.app.state.hitl_manager.get_request(payload.approval_request_id, tenant_id=principal.tenant_id) if payload.approval_request_id else None
+        approval = (
+            request.app.state.hitl_manager.get_request(payload.approval_request_id, tenant_id=principal.tenant_id)
+            if payload.approval_request_id
+            else None
+        )
         approval_valid = (
-            approval is not None and approval.status == ApprovalStatus.APPROVED
+            approval is not None
+            and approval.status == ApprovalStatus.APPROVED
             and approval.payload.get("tenant_id") == principal.tenant_id
             and approval.payload.get("action_hash") == action_hash
         )
         if not approval_valid:
             if payload.approval_request_id:
-                raise HTTPException(status_code=409, detail={"error": "approval_invalid", "message": "The approval is missing, not approved, or does not match this policy payload."})
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "approval_invalid",
+                        "message": "The approval is missing, not approved, or does not match this policy payload.",
+                    },
+                )
             approval = request.app.state.hitl_manager.submit_request(
                 action="update_inventory_policy",
                 payload={
-                    "tenant_id": principal.tenant_id, "resource_id": f"{payload.marketplace_id}:{payload.seller_sku}",
-                    "action_hash": action_hash, "proposed_changes": policy_hash_arguments,
+                    "tenant_id": principal.tenant_id,
+                    "resource_id": f"{payload.marketplace_id}:{payload.seller_sku}",
+                    "action_hash": action_hash,
+                    "proposed_changes": policy_hash_arguments,
                 },
-                requester=principal.user_id, risk_level=RiskLevel.HIGH,
+                requester=principal.user_id,
+                risk_level=RiskLevel.HIGH,
                 reason="Inventory policy changes affect replenishment and require one-person approval.",
             )
             response.status_code = 202
@@ -136,11 +157,18 @@ async def create_inventory_policy(payload: InventoryPolicyRequest, request: Requ
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"error": "invalid_inventory_policy", "message": str(exc)}) from exc
     request.app.state.audit_logger.log_operation(
-        action="inventory_policy_created", status="success",
+        action="inventory_policy_created",
+        status="success",
         details={
-            "tenant_id": principal.tenant_id, "policy_id": policy.id, "seller_sku": policy.seller_sku,
-            "marketplace_id": policy.marketplace_id, "version": policy.version, "effective_from": policy.effective_from.isoformat(),
-        }, actor=principal.user_id, risk_level="medium",
+            "tenant_id": principal.tenant_id,
+            "policy_id": policy.id,
+            "seller_sku": policy.seller_sku,
+            "marketplace_id": policy.marketplace_id,
+            "version": policy.version,
+            "effective_from": policy.effective_from.isoformat(),
+        },
+        actor=principal.user_id,
+        risk_level="medium",
     )
     return _serialize(policy)
 
@@ -153,7 +181,9 @@ async def list_inventory_policies(
 ) -> dict:
     _require_read(request)
     policies = request.app.state.inventory_policy_repository.list_policies(
-        tenant_id=request.state.principal.tenant_id, marketplace_id=marketplace_id, seller_sku=seller_sku,
+        tenant_id=request.state.principal.tenant_id,
+        marketplace_id=marketplace_id,
+        seller_sku=seller_sku,
     )
     return {"items": [_serialize(policy) for policy in policies], "total": len(policies)}
 
@@ -163,15 +193,20 @@ async def calculate_inventory_health(payload: InventoryHealthRequest, request: R
     _require_read(request)
     tenant_id = request.state.principal.tenant_id
     policy = request.app.state.inventory_policy_repository.get_active(
-        tenant_id=tenant_id, marketplace_id=payload.marketplace_id,
-        seller_sku=payload.seller_sku, effective_at=payload.calculated_at,
+        tenant_id=tenant_id,
+        marketplace_id=payload.marketplace_id,
+        seller_sku=payload.seller_sku,
+        effective_at=payload.calculated_at,
     )
     if policy is None:
         raise HTTPException(
             status_code=422,
             detail={
-                "error": "missing_inventory_policy", "message": "No effective inventory policy exists for this tenant, marketplace and SKU.",
-                "missing_data": ["inventory_policy"], "confidence": "0.00", "degraded_reason": "missing_inventory_policy",
+                "error": "missing_inventory_policy",
+                "message": "No effective inventory policy exists for this tenant, marketplace and SKU.",
+                "missing_data": ["inventory_policy"],
+                "confidence": "0.00",
+                "degraded_reason": "missing_inventory_policy",
             },
         )
     try:
@@ -180,17 +215,28 @@ async def calculate_inventory_health(payload: InventoryHealthRequest, request: R
             input_data=InventoryHealthInput(tenant_id=tenant_id, **payload.model_dump()),
         )
     except InventoryCalculationError as exc:
-        raise HTTPException(status_code=422, detail={"error": "inventory_calculation_error", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=422, detail={"error": "inventory_calculation_error", "message": str(exc)}
+        ) from exc
     request.app.state.inventory_health_repository.save(snapshot)
     request.app.state.audit_logger.log_operation(
-        action="inventory_health_calculated", status="degraded" if snapshot.degraded_reason else "success",
+        action="inventory_health_calculated",
+        status="degraded" if snapshot.degraded_reason else "success",
         details={
-            "tenant_id": tenant_id, "snapshot_id": snapshot.id, "seller_sku": snapshot.seller_sku,
-            "marketplace_id": snapshot.marketplace_id, "inventory_health": snapshot.inventory_health,
-            "stockout_risk": snapshot.stockout_risk, "recommended_reorder_quantity": snapshot.recommended_reorder_quantity,
-            "forecast_confidence": str(snapshot.forecast_confidence), "automation_eligible": snapshot.automation_eligible,
-            "missing_data": list(snapshot.missing_data), "data_warnings": list(snapshot.data_warnings),
-        }, actor=request.state.principal.user_id, risk_level="low",
+            "tenant_id": tenant_id,
+            "snapshot_id": snapshot.id,
+            "seller_sku": snapshot.seller_sku,
+            "marketplace_id": snapshot.marketplace_id,
+            "inventory_health": snapshot.inventory_health,
+            "stockout_risk": snapshot.stockout_risk,
+            "recommended_reorder_quantity": snapshot.recommended_reorder_quantity,
+            "forecast_confidence": str(snapshot.forecast_confidence),
+            "automation_eligible": snapshot.automation_eligible,
+            "missing_data": list(snapshot.missing_data),
+            "data_warnings": list(snapshot.data_warnings),
+        },
+        actor=request.state.principal.user_id,
+        risk_level="low",
     )
     return _serialize(snapshot)
 

@@ -1,39 +1,40 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import RLock
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_AUDIT_PATH = PROJECT_ROOT / "logs" / "audit.jsonl"
 _SECRET_KEY_MARKERS = ("token", "secret", "password", "authorization", "api_key", "credential")
-_SENSITIVE_CONTENT_KEYS = frozenset({
-    "evidence",
-    "order",
-    "order_context",
-    "external_order_id",
-    "customer_message",
-    "buyer_message",
-    "message_history",
-    "draft_reply",
-    "approved_reply",
-    "actual_reply",
-    "reply",
-    "prompt",
-    "messages",
-    "content",
-    "address",
-    "shipping_address",
-    "billing_address",
-    "buyer_email",
-    "buyer_name",
-    "phone",
-})
+_SENSITIVE_CONTENT_KEYS = frozenset(
+    {
+        "evidence",
+        "order",
+        "order_context",
+        "external_order_id",
+        "customer_message",
+        "buyer_message",
+        "message_history",
+        "draft_reply",
+        "approved_reply",
+        "actual_reply",
+        "reply",
+        "prompt",
+        "messages",
+        "content",
+        "address",
+        "shipping_address",
+        "billing_address",
+        "buyer_email",
+        "buyer_name",
+        "phone",
+    }
+)
 
 
 @dataclass
@@ -75,20 +76,40 @@ class AuditLogger:
             status=status,
             details=sanitized_details,
         )
-        with self._lock:
-            with self.path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(asdict(record), ensure_ascii=False, default=str) + "\n")
+        with self._lock, self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(asdict(record), ensure_ascii=False, default=str) + "\n")
         return record
 
-    def log_operation(self, action: str, status: str, details: dict[str, Any] | None = None, actor: str = "agent", risk_level: str = "low") -> AuditRecord:
+    def log_operation(
+        self,
+        action: str,
+        status: str,
+        details: dict[str, Any] | None = None,
+        actor: str = "agent",
+        risk_level: str = "low",
+    ) -> AuditRecord:
         """Log a regular tool or business operation."""
         return self.log("operation", action, status, details, actor=actor, risk_level=risk_level)
 
-    def log_approval(self, action: str, status: str, details: dict[str, Any] | None = None, actor: str = "hitl", risk_level: str = "high") -> AuditRecord:
+    def log_approval(
+        self,
+        action: str,
+        status: str,
+        details: dict[str, Any] | None = None,
+        actor: str = "hitl",
+        risk_level: str = "high",
+    ) -> AuditRecord:
         """Log a HITL approval decision or state change."""
         return self.log("approval", action, status, details, actor=actor, risk_level=risk_level)
 
-    def log_sandbox(self, action: str, status: str, details: dict[str, Any] | None = None, actor: str = "sandbox", risk_level: str = "medium") -> AuditRecord:
+    def log_sandbox(
+        self,
+        action: str,
+        status: str,
+        details: dict[str, Any] | None = None,
+        actor: str = "sandbox",
+        risk_level: str = "medium",
+    ) -> AuditRecord:
         """Log a sandbox execution result."""
         return self.log("sandbox", action, status, details, actor=actor, risk_level=risk_level)
 
@@ -126,10 +147,7 @@ class AuditLogger:
 
 
 def sanitize_audit_details(details: dict[str, Any]) -> dict[str, Any]:
-    return {
-        str(key): _sanitize_audit_value(value, key=str(key).lower())
-        for key, value in details.items()
-    }
+    return {str(key): _sanitize_audit_value(value, key=str(key).lower()) for key, value in details.items()}
 
 
 def _sanitize_audit_value(value: Any, *, key: str) -> Any:

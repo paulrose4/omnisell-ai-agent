@@ -5,10 +5,10 @@ from typing import Any
 
 import pytest
 
-from agents.base import safe_tool_execution
-from agents.cs_agent import CS_AGENT_SYSTEM_PROMPT
-from agents.price_agent import PRICE_AGENT_SYSTEM_PROMPT
-from agents.sync_agent import SYNC_AGENT_SYSTEM_PROMPT
+from legacy.autogen_demo.base import safe_tool_execution
+from legacy.autogen_demo.cs_agent import CS_AGENT_SYSTEM_PROMPT
+from legacy.autogen_demo.price_agent import PRICE_AGENT_SYSTEM_PROMPT
+from legacy.autogen_demo.sync_agent import SYNC_AGENT_SYSTEM_PROMPT
 from safety.audit import AuditLogger
 from safety.circuit_breaker import CircuitBreaker
 from safety.hitl import ApprovalRejectedError, ApprovalRequest, ApprovalStatus, HITLManager, RiskLevel
@@ -40,7 +40,10 @@ def test_sync_agent_prompt_contains_refund_handoff_reply_at_top() -> None:
 def test_price_agent_prompt_contains_refund_handoff_reply_at_top() -> None:
     assert PRICE_AGENT_SYSTEM_PROMPT.startswith("⚠️ CRITICAL RULES - VIOLATION IS NOT ALLOWED:")
     assert REFUND_HANDOFF_REPLY in PRICE_AGENT_SYSTEM_PROMPT
-    assert "If you are unsure whether an action involves a refund, treat it as a refund and block it." in PRICE_AGENT_SYSTEM_PROMPT
+    assert (
+        "If you are unsure whether an action involves a refund, treat it as a refund and block it."
+        in PRICE_AGENT_SYSTEM_PROMPT
+    )
 
 
 def test_legacy_demo_prompts_retain_hard_refund_boundary() -> None:
@@ -97,9 +100,8 @@ def test_safe_tool_execution_blocks_refund_before_tool_body(tmp_path: Path) -> N
         called = True
         return {"product_id": product_id, "description": description}
 
-    with tool_caller_context(_caller()):
-        with pytest.raises(RefundBlockedError):
-            update_product(product_id="P1001", description="承诺补偿并退款")
+    with tool_caller_context(_caller()), pytest.raises(RefundBlockedError):
+        update_product(product_id="P1001", description="承诺补偿并退款")
 
     assert called is False
     assert logger.query(event_type="refund_blocked", action="update_product")

@@ -6,7 +6,7 @@ from decimal import Decimal
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from domain.work_items import OperationalWorkItem, WORK_ITEM_ACTIVE_STATUSES
+from domain.work_items import WORK_ITEM_ACTIVE_STATUSES, OperationalWorkItem
 from infrastructure.database.models import OperationalWorkItemRow
 
 
@@ -16,19 +16,23 @@ class OperationalWorkItemRepository:
 
     def get(self, *, tenant_id: str, work_item_id: str) -> OperationalWorkItem | None:
         with self.session_factory() as session:
-            row = session.scalar(select(OperationalWorkItemRow).where(
-                OperationalWorkItemRow.tenant_id == tenant_id,
-                OperationalWorkItemRow.id == work_item_id,
-            ))
+            row = session.scalar(
+                select(OperationalWorkItemRow).where(
+                    OperationalWorkItemRow.tenant_id == tenant_id,
+                    OperationalWorkItemRow.id == work_item_id,
+                )
+            )
         return None if row is None else self._domain(row)
 
     def get_by_source(self, *, tenant_id: str, source_type: str, source_id: str) -> OperationalWorkItem | None:
         with self.session_factory() as session:
-            row = session.scalar(select(OperationalWorkItemRow).where(
-                OperationalWorkItemRow.tenant_id == tenant_id,
-                OperationalWorkItemRow.source_type == source_type,
-                OperationalWorkItemRow.source_id == source_id,
-            ))
+            row = session.scalar(
+                select(OperationalWorkItemRow).where(
+                    OperationalWorkItemRow.tenant_id == tenant_id,
+                    OperationalWorkItemRow.source_type == source_type,
+                    OperationalWorkItemRow.source_id == source_id,
+                )
+            )
         return None if row is None else self._domain(row)
 
     def list(
@@ -53,11 +57,15 @@ class OperationalWorkItemRepository:
         if active_only:
             statement = statement.where(OperationalWorkItemRow.status.in_(WORK_ITEM_ACTIVE_STATUSES))
         with self.session_factory() as session:
-            rows = list(session.scalars(statement.order_by(
-                OperationalWorkItemRow.escalation_level.desc(),
-                OperationalWorkItemRow.priority_score.desc(),
-                OperationalWorkItemRow.due_at,
-            )))
+            rows = list(
+                session.scalars(
+                    statement.order_by(
+                        OperationalWorkItemRow.escalation_level.desc(),
+                        OperationalWorkItemRow.priority_score.desc(),
+                        OperationalWorkItemRow.due_at,
+                    )
+                )
+            )
         return [self._domain(row) for row in rows]
 
     def list_page(
@@ -84,10 +92,12 @@ class OperationalWorkItemRepository:
         if status:
             statement = statement.where(OperationalWorkItemRow.status == status)
         if statuses and verification_statuses and status_or_verification:
-            statement = statement.where(or_(
-                OperationalWorkItemRow.status.in_(statuses),
-                OperationalWorkItemRow.verification_status.in_(verification_statuses),
-            ))
+            statement = statement.where(
+                or_(
+                    OperationalWorkItemRow.status.in_(statuses),
+                    OperationalWorkItemRow.verification_status.in_(verification_statuses),
+                )
+            )
         else:
             if statuses:
                 statement = statement.where(OperationalWorkItemRow.status.in_(statuses))
@@ -138,10 +148,16 @@ class OperationalWorkItemRepository:
         if effective_now.tzinfo is None or (due_at is not None and due_at.tzinfo is None):
             raise ValueError("work item timestamps must be timezone-aware")
         with self.session_factory.begin() as session:
-            rows = list(session.scalars(select(OperationalWorkItemRow).where(
-                OperationalWorkItemRow.tenant_id == tenant_id,
-                OperationalWorkItemRow.id.in_(work_item_ids),
-            ).with_for_update()))
+            rows = list(
+                session.scalars(
+                    select(OperationalWorkItemRow)
+                    .where(
+                        OperationalWorkItemRow.tenant_id == tenant_id,
+                        OperationalWorkItemRow.id.in_(work_item_ids),
+                    )
+                    .with_for_update()
+                )
+            )
             if len(rows) != len(set(work_item_ids)):
                 raise LookupError("one or more work items were not found")
             for row in rows:
@@ -195,11 +211,17 @@ class OperationalWorkItemRepository:
         if effective_now.tzinfo is None:
             raise ValueError("now must be timezone-aware")
         with self.session_factory.begin() as session:
-            rows = list(session.scalars(select(OperationalWorkItemRow).where(
-                OperationalWorkItemRow.tenant_id == tenant_id,
-                OperationalWorkItemRow.status.in_(WORK_ITEM_ACTIVE_STATUSES),
-                OperationalWorkItemRow.due_at < effective_now,
-            ).with_for_update()))
+            rows = list(
+                session.scalars(
+                    select(OperationalWorkItemRow)
+                    .where(
+                        OperationalWorkItemRow.tenant_id == tenant_id,
+                        OperationalWorkItemRow.status.in_(WORK_ITEM_ACTIVE_STATUSES),
+                        OperationalWorkItemRow.due_at < effective_now,
+                    )
+                    .with_for_update()
+                )
+            )
             changed = []
             for row in rows:
                 target_level = 2 if row.verification_status == "failed" and row.verification_attempts >= 2 else 1
@@ -217,10 +239,17 @@ class OperationalWorkItemRepository:
         by_assignee: dict[str, dict[str, object]] = {}
         for item in items:
             key = item.assignee_id or "unassigned"
-            summary = by_assignee.setdefault(key, {
-                "assignee_id": key, "total": 0, "critical": 0, "overdue": 0,
-                "awaiting_approval": 0, "blocked": 0,
-            })
+            summary = by_assignee.setdefault(
+                key,
+                {
+                    "assignee_id": key,
+                    "total": 0,
+                    "critical": 0,
+                    "overdue": 0,
+                    "awaiting_approval": 0,
+                    "blocked": 0,
+                },
+            )
             summary["total"] = int(summary["total"]) + 1
             if item.severity == "critical":
                 summary["critical"] = int(summary["critical"]) + 1
@@ -234,26 +263,49 @@ class OperationalWorkItemRepository:
             "total_active": len(items),
             "unassigned": sum(1 for item in items if item.assignee_id is None),
             "overdue": sum(1 for item in items if item.due_at < effective_now),
-            "assignees": sorted(by_assignee.values(), key=lambda item: (-int(item["critical"]), -int(item["total"]), str(item["assignee_id"]))),
+            "assignees": sorted(
+                by_assignee.values(),
+                key=lambda item: (-int(item["critical"]), -int(item["total"]), str(item["assignee_id"])),
+            ),
         }
 
     @staticmethod
     def _domain(row: OperationalWorkItemRow) -> OperationalWorkItem:
         return OperationalWorkItem(
-            id=row.id, tenant_id=row.tenant_id, source_type=row.source_type, source_id=row.source_id,
-            operational_issue_id=row.operational_issue_id, recommended_action_id=row.recommended_action_id,
-            domain=row.domain, team=row.team, seller_sku=row.seller_sku,
-            marketplace_id=row.marketplace_id, brand=row.brand, assignee_id=row.assignee_id,
-            severity=row.severity, priority_score=Decimal(str(row.priority_score)), title=row.title,
-            description=row.description, status=row.status, due_at=_utc(row.due_at),
-            acknowledged_at=_optional_utc(row.acknowledged_at), sla_policy_version=row.sla_policy_version,
-            escalation_level=row.escalation_level, expected_outcome=row.expected_outcome,
-            baseline_metrics=row.baseline_metrics or {}, result_metrics=row.result_metrics or {},
-            verification_status=row.verification_status, verification_attempts=row.verification_attempts,
-            evidence_manifest=list(row.evidence_manifest or []), action_hash=row.action_hash,
-            handoff_note=row.handoff_note, blocked_reason=row.blocked_reason,
-            last_handoff_at=_optional_utc(row.last_handoff_at), created_at=_utc(row.created_at),
-            updated_at=_utc(row.updated_at), completed_at=_optional_utc(row.completed_at),
+            id=row.id,
+            tenant_id=row.tenant_id,
+            source_type=row.source_type,
+            source_id=row.source_id,
+            operational_issue_id=row.operational_issue_id,
+            recommended_action_id=row.recommended_action_id,
+            domain=row.domain,
+            team=row.team,
+            seller_sku=row.seller_sku,
+            marketplace_id=row.marketplace_id,
+            brand=row.brand,
+            assignee_id=row.assignee_id,
+            severity=row.severity,
+            priority_score=Decimal(str(row.priority_score)),
+            title=row.title,
+            description=row.description,
+            status=row.status,
+            due_at=_utc(row.due_at),
+            acknowledged_at=_optional_utc(row.acknowledged_at),
+            sla_policy_version=row.sla_policy_version,
+            escalation_level=row.escalation_level,
+            expected_outcome=row.expected_outcome,
+            baseline_metrics=row.baseline_metrics or {},
+            result_metrics=row.result_metrics or {},
+            verification_status=row.verification_status,
+            verification_attempts=row.verification_attempts,
+            evidence_manifest=list(row.evidence_manifest or []),
+            action_hash=row.action_hash,
+            handoff_note=row.handoff_note,
+            blocked_reason=row.blocked_reason,
+            last_handoff_at=_optional_utc(row.last_handoff_at),
+            created_at=_utc(row.created_at),
+            updated_at=_utc(row.updated_at),
+            completed_at=_optional_utc(row.completed_at),
         )
 
 

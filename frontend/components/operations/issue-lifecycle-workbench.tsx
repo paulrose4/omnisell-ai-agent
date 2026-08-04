@@ -56,15 +56,25 @@ function ManualExecutionLink({ className }: { className: string }) {
 }
 
 function IssueDetail({ issueId, onChanged }: { issueId: string; onChanged: () => void }) {
+  const [connectionId, setConnectionId] = useState("");
   const detail = useQuery({
     queryKey: ["issue-detail", issueId],
     queryFn: () => apiFetch<OperationalIssueDetailResponse>(`/api/issues/${issueId}/detail`),
     refetchInterval: 5000,
   });
+  const connections = useQuery({
+    queryKey: ["connections"],
+    queryFn: () => apiFetch<{ items: Array<{
+      id: string;
+      selling_partner_id: string;
+      marketplace_ids: string[];
+      status: string;
+    }> }>("/api/connections"),
+  });
   const submit = useMutation({
-    mutationFn: ({ actionId, note }: { actionId: string; note: string }) => apiFetch<OperationalIssueApprovalResponse>(`/api/issues/${issueId}/approval-requests`, {
+    mutationFn: ({ actionId, selectedConnectionId, note }: { actionId: string; selectedConnectionId: string; note: string }) => apiFetch<OperationalIssueApprovalResponse>(`/api/issues/${issueId}/approval-requests`, {
       method: "POST",
-      body: JSON.stringify({ recommended_action_id: actionId, note }),
+      body: JSON.stringify({ connection_id: selectedConnectionId, recommended_action_id: actionId, note }),
     }),
     onSuccess: async () => {
       await detail.refetch();
@@ -75,11 +85,21 @@ function IssueDetail({ issueId, onChanged }: { issueId: string; onChanged: () =>
   if (detail.isLoading) return <div className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">正在加载证据和推荐动作…</div>;
   if (detail.error || !detail.data) return <div className="mt-5 rounded-2xl bg-rose-50 p-5 text-sm text-rose-700">异常详情加载失败，请刷新后重试。</div>;
   const { issue, recommended_actions: actions, pending_approval: approval } = detail.data;
+  const eligibleConnections = (connections.data?.items ?? []).filter(
+    item => item.status === "active" && item.marketplace_ids.includes(issue.marketplace_id),
+  );
+  const selectedConnectionId = eligibleConnections.some(item => item.id === connectionId)
+    ? connectionId
+    : eligibleConnections.length === 1 ? eligibleConnections[0].id : "";
 
   function requestApproval(action: RecommendedAction) {
+    if (!selectedConnectionId) {
+      alert("请先选择服务该 Marketplace 的活动 Amazon 连接。");
+      return;
+    }
     const note = prompt("提交审批说明（必填）", `请审批 ${issue.seller_sku} 的${action.title}建议，仅允许运营人员在 Seller Central 手工执行。`) ?? "";
     if (!note.trim()) return;
-    submit.mutate({ actionId: action.id, note });
+    submit.mutate({ actionId: action.id, selectedConnectionId, note });
   }
 
   return <div className="mt-5 space-y-4 border-t border-slate-200 pt-5">
@@ -89,6 +109,19 @@ function IssueDetail({ issueId, onChanged }: { issueId: string; onChanged: () =>
       <Metric label="建议补货量" value={`${formatNumber(actions[0]?.parameters.recommended_reorder_quantity as string | number | undefined, 0)} 件`} />
       <Metric label="建议运输方式" value={String(actions[0]?.parameters.recommended_shipping_mode ?? "待人工判断")} />
     </div>
+
+    <label className="block max-w-xl text-sm font-semibold">
+      审批绑定的 Amazon 连接
+      <select
+        value={selectedConnectionId}
+        onChange={event => setConnectionId(event.target.value)}
+        className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal"
+      >
+        <option value="">选择服务 {issue.marketplace_id} 的活动连接</option>
+        {eligibleConnections.map(item => <option key={item.id} value={item.id}>{item.selling_partner_id} · {item.id}</option>)}
+      </select>
+      {!connections.isLoading && eligibleConnections.length === 0 && <span className="mt-2 block text-xs font-normal text-rose-700">没有可用于该 Marketplace 的活动 Amazon 连接，当前建议不能提交执行审批。</span>}
+    </label>
 
     <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
       <section className="rounded-2xl border border-slate-200 p-4">
@@ -116,7 +149,7 @@ function IssueDetail({ issueId, onChanged }: { issueId: string; onChanged: () =>
     {actions.map(action => <section key={action.id} className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700">{severityLabels[action.risk_level]}</span><span className="rounded-full bg-white px-2 py-1 text-xs text-slate-600">仅人工执行</span></div><h3 className="mt-3 font-bold">{action.title}</h3><p className="mt-1 text-sm leading-6 text-slate-600">{action.description}</p><p className="mt-2 text-xs text-slate-500">预期结果：{action.expected_outcome}</p></div>
-        {issue.status === "in_progress" && action.status === "proposed" && <button onClick={() => requestApproval(action)} disabled={submit.isPending} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{submit.isPending ? "正在提交…" : "提交 HITL 审批"}</button>}
+        {issue.status === "in_progress" && action.status === "proposed" && <button onClick={() => requestApproval(action)} disabled={submit.isPending || !selectedConnectionId} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{submit.isPending ? "正在提交…" : "提交 HITL 审批"}</button>}
         {issue.status === "approved_for_manual_execution" && <ManualExecutionLink className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white" />}
       </div>
       <div className="mt-4 rounded-xl bg-white p-3 text-xs text-slate-600"><strong>批准参数：</strong><code className="ml-2 break-all">{JSON.stringify(action.parameters)}</code></div>

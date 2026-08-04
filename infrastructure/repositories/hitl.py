@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from infrastructure.database.models import ApprovalDecisionRow, ApprovalRequestRow
 from safety.hitl import ApprovalRejectedError, ApprovalRequest, ApprovalStatus, HITLManager, RiskLevel
-from safety.policy_engine import canonical_action_hash, permanently_prohibited_intent
+from safety.policy_engine import (
+    POLICY_RULESET_VERSION,
+    PolicyDecision,
+    canonical_action_hash,
+    permanently_prohibited_intent,
+)
 
 
 class SQLHITLManager(HITLManager):
@@ -19,35 +24,127 @@ class SQLHITLManager(HITLManager):
         super().__init__(audit_logger=audit_logger)
         self.session_factory = session_factory
 
-    def submit_request(self, action: str, payload: dict[str, Any] | None = None, requester: str = "agent", risk_level: RiskLevel | str | None = None, reason: str | None = None) -> ApprovalRequest:
+    def submit_request(
+        self,
+        action: str,
+        payload: dict[str, Any] | None = None,
+        requester: str = "agent",
+        risk_level: RiskLevel | str | None = None,
+        reason: str | None = None,
+        policy_decision: PolicyDecision | str = PolicyDecision.REQUIRE_APPROVAL,
+        policy_version: str = POLICY_RULESET_VERSION,
+    ) -> ApprovalRequest:
         payload = _json_safe(payload or {})
         self._raise_if_permanently_prohibited(action, payload, actor=requester)
         assessed_level, assessed_reason = self.assess_risk(action, payload)
         if risk_level is not None:
             assessed_level = risk_level if isinstance(risk_level, RiskLevel) else RiskLevel(risk_level)
-        status = ApprovalStatus.AUTO_APPROVED if assessed_level in {RiskLevel.LOW, RiskLevel.MEDIUM} else ApprovalStatus.PENDING
+        decision = policy_decision if isinstance(policy_decision, PolicyDecision) else PolicyDecision(policy_decision)
+        policy_version = policy_version.strip()
+        if not policy_version:
+            raise ValueError("policy_version must not be empty.")
+        if decision == PolicyDecision.BLOCK:
+            self.audit_logger.log_approval(
+                action,
+                "blocked",
+                {
+                    "tenant_id": payload.get("tenant_id"),
+                    "policy_decision": decision.value,
+                    "reason": reason or assessed_reason,
+                },
+                actor=requester,
+                risk_level=assessed_level.value,
+            )
+            raise ApprovalRejectedError("Blocked policy decisions cannot create approvable requests.")
+        if decision == PolicyDecision.ALLOW and assessed_level != RiskLevel.LOW:
+            raise ValueError("Only explicit low-risk ALLOW decisions may be auto-approved.")
+        status = ApprovalStatus.AUTO_APPROVED if decision == PolicyDecision.ALLOW else ApprovalStatus.PENDING
         timeout_hours = 1 if assessed_level == RiskLevel.CRITICAL else 24
+        policy_reason = reason or assessed_reason
+        required_approval_count = (
+            0 if decision == PolicyDecision.ALLOW else (2 if assessed_level == RiskLevel.CRITICAL else 1)
+        )
         tenant_id = str(payload.get("tenant_id") or "default")
         resource_id = payload.get("resource_id") or payload.get("product_id") or payload.get("order_id")
         supplied_hash = payload.get("action_hash")
-        hash_arguments = {key: value for key, value in payload.items() if key != "action_hash"}
-        action_hash = str(supplied_hash) if supplied_hash else canonical_action_hash(action=action, tenant_id=tenant_id, resource_id=str(resource_id) if resource_id else None, arguments=hash_arguments)
+        hash_arguments = {
+            key: value
+            for key, value in payload.items()
+            if key
+            not in {
+                "action_hash",
+                "policy_decision",
+                "policy_version",
+                "policy_reason",
+                "required_approval_count",
+            }
+        }
+        action_hash = (
+            str(supplied_hash)
+            if supplied_hash
+            else canonical_action_hash(
+                action=action,
+                tenant_id=tenant_id,
+                resource_id=str(resource_id) if resource_id else None,
+                arguments=hash_arguments,
+            )
+        )
+        request_payload = {
+            **payload,
+            "policy_decision": decision.value,
+            "policy_version": policy_version,
+            "policy_reason": policy_reason,
+            "required_approval_count": required_approval_count,
+            "action_hash": action_hash,
+        }
         request = ApprovalRequest(
-            request_id=str(uuid4()), action=action, risk_level=assessed_level, payload={**payload, "action_hash": action_hash},
-            requester=requester, status=status, reason=reason or assessed_reason,
+            request_id=str(uuid4()),
+            action=action,
+            risk_level=assessed_level,
+            payload=request_payload,
+            policy_decision=decision,
+            policy_version=policy_version,
+            required_approval_count=required_approval_count,
+            requester=requester,
+            status=status,
+            reason=policy_reason,
             requires_second_verification=assessed_level == RiskLevel.CRITICAL,
             expires_at=datetime.now(UTC) + timedelta(hours=timeout_hours),
         )
         with self.session_factory.begin() as session:
-            session.add(ApprovalRequestRow(
-                id=request.request_id, tenant_id=tenant_id, actor_id=requester, action=action, action_hash=action_hash,
-                risk_level=assessed_level.value, before_snapshot=payload.get("before_snapshot", {}), proposed_changes=payload,
-                status=status.value, expires_at=request.expires_at, created_at=request.created_at,
-            ))
-        self.audit_logger.log_approval(action, "pending" if status == ApprovalStatus.PENDING else "auto_approved", {**request.to_dict(), "tenant_id": tenant_id}, actor=requester, risk_level=assessed_level.value)
+            session.add(
+                ApprovalRequestRow(
+                    id=request.request_id,
+                    tenant_id=tenant_id,
+                    actor_id=requester,
+                    action=action,
+                    action_hash=action_hash,
+                    policy_decision=decision.value,
+                    policy_version=policy_version,
+                    policy_reason=policy_reason,
+                    required_approval_count=required_approval_count,
+                    risk_level=assessed_level.value,
+                    before_snapshot=payload.get("before_snapshot", {}),
+                    proposed_changes=request_payload,
+                    execution_contract_version=payload.get("execution_contract_version"),
+                    execution_plan=payload.get("execution_plan", {}),
+                    status=status.value,
+                    expires_at=request.expires_at,
+                    created_at=request.created_at,
+                )
+            )
+        self.audit_logger.log_approval(
+            action,
+            "pending" if status == ApprovalStatus.PENDING else "auto_approved",
+            {**request.to_dict(), "tenant_id": tenant_id},
+            actor=requester,
+            risk_level=assessed_level.value,
+        )
         return request
 
-    def approve(self, request_id: str, approver: str, reason: str = "", tenant_id: str | None = None) -> ApprovalRequest:
+    def approve(
+        self, request_id: str, approver: str, reason: str = "", tenant_id: str | None = None
+    ) -> ApprovalRequest:
         tenant_id = _required_tenant_id(tenant_id)
         expired_request: ApprovalRequest | None = None
         blocked_request: ApprovalRequest | None = None
@@ -55,10 +152,14 @@ class SQLHITLManager(HITLManager):
         audit_status = ApprovalStatus.APPROVED.value
         now = datetime.now(UTC)
         with self.session_factory.begin() as session:
-            row = session.scalar(select(ApprovalRequestRow).where(
-                ApprovalRequestRow.id == request_id,
-                ApprovalRequestRow.tenant_id == tenant_id,
-            ).with_for_update())
+            row = session.scalar(
+                select(ApprovalRequestRow)
+                .where(
+                    ApprovalRequestRow.id == request_id,
+                    ApprovalRequestRow.tenant_id == tenant_id,
+                )
+                .with_for_update()
+            )
             if row is None or row.status not in {
                 ApprovalStatus.PENDING.value,
                 ApprovalStatus.AWAITING_SECOND_APPROVAL.value,
@@ -71,8 +172,13 @@ class SQLHITLManager(HITLManager):
                 row.decided_at = now
                 row.decision_reason = "permanently prohibited actions cannot be approved."
                 self._append_decision(
-                    session=session, row=row, stage="policy_block", decision="rejected",
-                    actor_id="policy", reason=row.decision_reason, created_at=now,
+                    session=session,
+                    row=row,
+                    stage="policy_block",
+                    decision="rejected",
+                    actor_id="policy",
+                    reason=row.decision_reason,
+                    created_at=now,
                 )
                 blocked_request = self._from_row(row)
             elif row.expires_at is not None and _utc(row.expires_at) <= now:
@@ -80,8 +186,13 @@ class SQLHITLManager(HITLManager):
                 row.decided_at = now
                 row.decision_reason = "Approval timed out."
                 self._append_decision(
-                    session=session, row=row, stage="expiration", decision="expired",
-                    actor_id="hitl", reason=row.decision_reason, created_at=now,
+                    session=session,
+                    row=row,
+                    stage="expiration",
+                    decision="expired",
+                    actor_id="hitl",
+                    reason=row.decision_reason,
+                    created_at=now,
                 )
                 expired_request = self._from_row(row)
             elif row.actor_id == approver:
@@ -92,8 +203,13 @@ class SQLHITLManager(HITLManager):
                 row.first_approved_at = now
                 row.first_approval_reason = reason
                 self._append_decision(
-                    session=session, row=row, stage="first_approval", decision="approved",
-                    actor_id=approver, reason=reason, created_at=now,
+                    session=session,
+                    row=row,
+                    stage="first_approval",
+                    decision="approved",
+                    actor_id=approver,
+                    reason=reason,
+                    created_at=now,
                 )
                 audit_status = ApprovalStatus.AWAITING_SECOND_APPROVAL.value
                 request = self._from_row(row)
@@ -105,8 +221,13 @@ class SQLHITLManager(HITLManager):
                 row.decided_at = now
                 row.decision_reason = reason
                 self._append_decision(
-                    session=session, row=row, stage="second_approval", decision="approved",
-                    actor_id=approver, reason=reason, created_at=now,
+                    session=session,
+                    row=row,
+                    stage="second_approval",
+                    decision="approved",
+                    actor_id=approver,
+                    reason=reason,
+                    created_at=now,
                 )
                 request = self._from_row(row)
             elif expired_request is None and blocked_request is None:
@@ -115,8 +236,13 @@ class SQLHITLManager(HITLManager):
                 row.decided_at = now
                 row.decision_reason = reason
                 self._append_decision(
-                    session=session, row=row, stage="approval", decision="approved",
-                    actor_id=approver, reason=reason, created_at=now,
+                    session=session,
+                    row=row,
+                    stage="approval",
+                    decision="approved",
+                    actor_id=approver,
+                    reason=reason,
+                    created_at=now,
                 )
                 request = self._from_row(row)
         if blocked_request is not None and blocked_intent is not None:
@@ -136,16 +262,20 @@ class SQLHITLManager(HITLManager):
                 risk_level=expired_request.risk_level.value,
             )
             raise ApprovalRejectedError(f"Approval request expired: {request_id}")
-        self.audit_logger.log_approval(request.action, audit_status, request.to_dict(), actor=approver, risk_level=request.risk_level.value)
+        self.audit_logger.log_approval(
+            request.action, audit_status, request.to_dict(), actor=approver, risk_level=request.risk_level.value
+        )
         return request
 
     def reject(self, request_id: str, approver: str, reason: str = "", tenant_id: str | None = None) -> ApprovalRequest:
         tenant_id = _required_tenant_id(tenant_id)
         with self.session_factory.begin() as session:
-            row = session.scalar(select(ApprovalRequestRow).where(
-                ApprovalRequestRow.id == request_id,
-                ApprovalRequestRow.tenant_id == tenant_id,
-            ))
+            row = session.scalar(
+                select(ApprovalRequestRow).where(
+                    ApprovalRequestRow.id == request_id,
+                    ApprovalRequestRow.tenant_id == tenant_id,
+                )
+            )
             if row is None or row.status not in {
                 ApprovalStatus.PENDING.value,
                 ApprovalStatus.AWAITING_SECOND_APPROVAL.value,
@@ -157,24 +287,51 @@ class SQLHITLManager(HITLManager):
             row.decided_at = now
             row.decision_reason = reason
             self._append_decision(
-                session=session, row=row, stage="rejection", decision="rejected",
-                actor_id=approver, reason=reason, created_at=now,
+                session=session,
+                row=row,
+                stage="rejection",
+                decision="rejected",
+                actor_id=approver,
+                reason=reason,
+                created_at=now,
             )
             request = self._from_row(row)
-        self.audit_logger.log_approval(request.action, "rejected", request.to_dict(), actor=approver, risk_level=request.risk_level.value)
+        self.audit_logger.log_approval(
+            request.action, "rejected", request.to_dict(), actor=approver, risk_level=request.risk_level.value
+        )
         return request
 
     def get_pending(self, tenant_id: str | None = None) -> list[ApprovalRequest]:
         tenant_id = _required_tenant_id(tenant_id)
         self.expire_overdue(tenant_id=tenant_id)
         statement = select(ApprovalRequestRow).where(
-            ApprovalRequestRow.status.in_((
-                ApprovalStatus.PENDING.value,
-                ApprovalStatus.AWAITING_SECOND_APPROVAL.value,
-            )),
+            ApprovalRequestRow.status.in_(
+                (
+                    ApprovalStatus.PENDING.value,
+                    ApprovalStatus.AWAITING_SECOND_APPROVAL.value,
+                )
+            ),
             ApprovalRequestRow.tenant_id == tenant_id,
         )
         statement = statement.order_by(ApprovalRequestRow.created_at.desc(), ApprovalRequestRow.id.desc())
+        with self.session_factory() as session:
+            return [self._from_row(row) for row in session.scalars(statement)]
+
+    def get_approved(
+        self,
+        *,
+        tenant_id: str | None = None,
+        action: str | None = None,
+    ) -> list[ApprovalRequest]:
+        tenant_id = _required_tenant_id(tenant_id)
+        statement = select(ApprovalRequestRow).where(
+            ApprovalRequestRow.tenant_id == tenant_id,
+            ApprovalRequestRow.status == ApprovalStatus.APPROVED.value,
+            ApprovalRequestRow.expires_at > datetime.now(UTC),
+        )
+        if action is not None:
+            statement = statement.where(ApprovalRequestRow.action == action)
+        statement = statement.order_by(ApprovalRequestRow.decided_at.desc(), ApprovalRequestRow.id.desc())
         with self.session_factory() as session:
             return [self._from_row(row) for row in session.scalars(statement)]
 
@@ -193,10 +350,12 @@ class SQLHITLManager(HITLManager):
         tenant_id = _required_tenant_id(tenant_id)
         now = datetime.now(UTC)
         statement = select(ApprovalRequestRow).where(
-            ApprovalRequestRow.status.in_((
-                ApprovalStatus.PENDING.value,
-                ApprovalStatus.AWAITING_SECOND_APPROVAL.value,
-            )),
+            ApprovalRequestRow.status.in_(
+                (
+                    ApprovalStatus.PENDING.value,
+                    ApprovalStatus.AWAITING_SECOND_APPROVAL.value,
+                )
+            ),
             ApprovalRequestRow.expires_at <= now,
             ApprovalRequestRow.tenant_id == tenant_id,
         )
@@ -207,23 +366,61 @@ class SQLHITLManager(HITLManager):
                 row.decided_at = now
                 row.decision_reason = "Approval timed out."
                 self._append_decision(
-                    session=session, row=row, stage="expiration", decision="expired",
-                    actor_id="hitl", reason=row.decision_reason, created_at=now,
+                    session=session,
+                    row=row,
+                    stage="expiration",
+                    decision="expired",
+                    actor_id="hitl",
+                    reason=row.decision_reason,
+                    created_at=now,
                 )
 
     @staticmethod
     def _from_row(row: ApprovalRequestRow) -> ApprovalRequest:
+        policy_decision = PolicyDecision(row.policy_decision)
+        policy_snapshot = {
+            "policy_decision": row.policy_decision,
+            "policy_version": row.policy_version,
+            "policy_reason": row.policy_reason,
+            "required_approval_count": row.required_approval_count,
+        }
+        if row.execution_contract_version is not None:
+            policy_snapshot.update(
+                {
+                    "execution_contract_version": row.execution_contract_version,
+                    "execution_plan": row.execution_plan,
+                }
+            )
+        mismatched_snapshot_fields = [
+            key
+            for key, expected in policy_snapshot.items()
+            if key in row.proposed_changes and row.proposed_changes[key] != expected
+        ]
+        if mismatched_snapshot_fields:
+            raise ApprovalRejectedError(
+                "Stored approval policy snapshot does not match structured fields: "
+                + ", ".join(sorted(mismatched_snapshot_fields))
+            )
         requires_second_verification = row.risk_level == RiskLevel.CRITICAL.value
         second_approver_id = (
-            row.approver_id
-            if requires_second_verification and row.status == ApprovalStatus.APPROVED.value
-            else None
+            row.approver_id if requires_second_verification and row.status == ApprovalStatus.APPROVED.value else None
         )
         return ApprovalRequest(
-            request_id=row.id, action=row.action, risk_level=RiskLevel(row.risk_level), payload={**row.proposed_changes, "action_hash": row.action_hash},
-            requester=row.actor_id, status=ApprovalStatus(row.status), requires_second_verification=requires_second_verification,
-            created_at=_utc(row.created_at), expires_at=_utc(row.expires_at) if row.expires_at else datetime.now(UTC),
-            decided_at=_utc(row.decided_at) if row.decided_at else None, decided_by=row.approver_id,
+            request_id=row.id,
+            action=row.action,
+            risk_level=RiskLevel(row.risk_level),
+            payload={**row.proposed_changes, **policy_snapshot, "action_hash": row.action_hash},
+            policy_decision=policy_decision,
+            policy_version=row.policy_version,
+            required_approval_count=row.required_approval_count,
+            requester=row.actor_id,
+            status=ApprovalStatus(row.status),
+            reason=row.policy_reason,
+            requires_second_verification=requires_second_verification,
+            created_at=_utc(row.created_at),
+            expires_at=_utc(row.expires_at) if row.expires_at else datetime.now(UTC),
+            decided_at=_utc(row.decided_at) if row.decided_at else None,
+            decided_by=row.approver_id,
             decision_reason=row.decision_reason,
             first_approver_id=row.first_approver_id,
             first_approved_at=_utc(row.first_approved_at) if row.first_approved_at else None,
@@ -244,17 +441,31 @@ class SQLHITLManager(HITLManager):
         reason: str,
         created_at: datetime,
     ) -> None:
-        sequence = int(session.scalar(
-            select(func.coalesce(func.max(ApprovalDecisionRow.sequence), 0)).where(
-                ApprovalDecisionRow.approval_request_id == row.id,
-                ApprovalDecisionRow.tenant_id == row.tenant_id,
+        sequence = (
+            int(
+                session.scalar(
+                    select(func.coalesce(func.max(ApprovalDecisionRow.sequence), 0)).where(
+                        ApprovalDecisionRow.approval_request_id == row.id,
+                        ApprovalDecisionRow.tenant_id == row.tenant_id,
+                    )
+                )
+                or 0
             )
-        ) or 0) + 1
-        session.add(ApprovalDecisionRow(
-            id=str(uuid4()), tenant_id=row.tenant_id, approval_request_id=row.id,
-            sequence=sequence, stage=stage, decision=decision, actor_id=actor_id,
-            reason=reason, created_at=created_at,
-        ))
+            + 1
+        )
+        session.add(
+            ApprovalDecisionRow(
+                id=str(uuid4()),
+                tenant_id=row.tenant_id,
+                approval_request_id=row.id,
+                sequence=sequence,
+                stage=stage,
+                decision=decision,
+                actor_id=actor_id,
+                reason=reason,
+                created_at=created_at,
+            )
+        )
 
 
 def _json_safe(value: Any) -> Any:

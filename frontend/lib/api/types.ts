@@ -278,6 +278,38 @@ export interface OperationalIssueApprovalResponse {
   approval_request: ApprovalRequest;
 }
 
+export interface ApprovedManualExecutionPlan {
+  execution_contract_version: "manual-execution-v1";
+  connection_id: string;
+  issue_id: string;
+  recommended_action_id: string;
+  recommended_action_type: "review_replenishment";
+  action_type: "create_replenishment_plan";
+  changes: { inbound_quantity: number };
+}
+
+export interface ApprovedManualExecution {
+  approval_request_id: string;
+  action_hash: string;
+  execution_contract_version: string;
+  execution_plan: ApprovedManualExecutionPlan;
+  expires_at: string;
+  issue: Pick<OperationalIssue, "id" | "seller_sku" | "marketplace_id" | "title" | "summary" | "severity" | "status" | "data_freshness_at">;
+  recommended_action: Pick<RecommendedAction, "id" | "action_type" | "title" | "description" | "risk_level" | "status" | "expected_outcome">;
+  approvals: {
+    requester: string;
+    first_approver_id?: string | null;
+    first_approved_at?: string | null;
+    second_approver_id?: string | null;
+    second_approved_at?: string | null;
+  };
+}
+
+export interface ApprovedManualExecutionListResponse {
+  total: number;
+  items: ApprovedManualExecution[];
+}
+
 export interface SKUHealthSummary {
   tenant_id: string;
   seller_sku: string;

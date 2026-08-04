@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 import inspect
 import time
+from collections.abc import Callable
 from enum import Enum
 from threading import RLock
-from typing import Any, Callable, TypeVar
-
+from typing import Any, TypeVar
 
 T = TypeVar("T")
+_CIRCUIT_BREAKERS: dict[str, CircuitBreaker] = {}
+_REGISTRY_LOCK = RLock()
 
 
 class CircuitState(str, Enum):
@@ -92,7 +94,10 @@ class CircuitBreaker:
     def _before_call(self) -> None:
         with self._lock:
             if self.state == CircuitState.OPEN:
-                if self.last_failure_time is not None and time.monotonic() - self.last_failure_time >= self.recovery_timeout:
+                if (
+                    self.last_failure_time is not None
+                    and time.monotonic() - self.last_failure_time >= self.recovery_timeout
+                ):
                     self.state = CircuitState.HALF_OPEN
                     self.half_open_call_count = 0
                 else:
@@ -125,6 +130,18 @@ class CircuitBreaker:
             self.failure_count = 0
             self.last_failure_time = None
             self.half_open_call_count = 0
+
+
+def get_circuit_breaker(name: str) -> CircuitBreaker:
+    with _REGISTRY_LOCK:
+        if name not in _CIRCUIT_BREAKERS:
+            _CIRCUIT_BREAKERS[name] = CircuitBreaker(name=name)
+        return _CIRCUIT_BREAKERS[name]
+
+
+def circuit_breaker_registry() -> dict[str, CircuitBreaker]:
+    with _REGISTRY_LOCK:
+        return dict(_CIRCUIT_BREAKERS)
 
 
 if __name__ == "__main__":
