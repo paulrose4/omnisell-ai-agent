@@ -61,12 +61,22 @@ const mockNav = [
   { href: "/mock-customer-service", label: "Mock 客服场景", icon: MessageSquareMore },
 ];
 
-export function AppShell({ children, email, mockEnabled, environment, signOutAction }: { children: React.ReactNode; email?: string | null; mockEnabled: boolean; environment: string; signOutAction: () => Promise<void> }) {
+const interviewNav = [
+  { href: "/dashboard", label: "经营总览", icon: Gauge },
+  { href: "/issues", label: "异常处理", icon: TriangleAlert },
+  { href: "/approvals", label: "审批工作台", icon: ClipboardCheck },
+  { href: "/mock-seller-central", label: "Mock Seller Central", icon: Store },
+  { href: "/agents", label: "Agent 监控", icon: Radio },
+];
+
+export function AppShell({ children, email, mockEnabled, environment, releaseProfile, signOutAction }: { children: React.ReactNode; email?: string | null; mockEnabled: boolean; environment: string; releaseProfile: string; signOutAction: () => Promise<void> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const firstLink = useRef<HTMLAnchorElement>(null);
   const context = useQuery({ queryKey: ["session-context"], queryFn: () => apiFetch<SessionContext>("/api/session-context"), staleTime: 60_000 });
-  const nav = mockEnabled ? [...baseNav, ...mockNav] : baseNav;
+  const nav = releaseProfile === "interview"
+    ? interviewNav.filter((item) => item.href !== "/mock-seller-central" || mockEnabled)
+    : (mockEnabled ? [...baseNav, ...mockNav] : baseNav);
   const production = environment === "production";
   const readOnly = context.data?.amazon_pilot_read_only !== false || context.data?.amazon_writes_enabled !== true;
 

@@ -15,5 +15,5 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     "use server";
     await signOut({ redirectTo: "/signin" });
   }
-  return <html lang="zh-CN"><body className="min-h-screen antialiased"><Providers><AppShell email={session?.user?.email} mockEnabled={process.env.NEXT_PUBLIC_MOCK_DRILL_ENABLED === "true"} environment={process.env.NEXT_PUBLIC_ENVIRONMENT ?? "development"} signOutAction={signOutAction}>{children}</AppShell></Providers></body></html>;
+  return <html lang="zh-CN"><body className="min-h-screen antialiased"><Providers><AppShell email={session?.user?.email} mockEnabled={process.env.NEXT_PUBLIC_MOCK_DRILL_ENABLED === "true"} environment={process.env.NEXT_PUBLIC_ENVIRONMENT ?? "development"} releaseProfile={process.env.NEXT_PUBLIC_RELEASE_PROFILE ?? "full"} signOutAction={signOutAction}>{children}</AppShell></Providers></body></html>;
 }
