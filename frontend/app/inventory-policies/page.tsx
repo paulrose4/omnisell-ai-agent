@@ -1,0 +1,1 @@
+import { InventoryPolicyWorkbench } from "@/components/operations/inventory-policy-workbench"; export default function Page(){return <InventoryPolicyWorkbench/>}

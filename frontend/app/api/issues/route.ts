@@ -1,0 +1,2 @@
+import { backendFetch, proxyBackend } from "@/lib/api/server";
+export async function GET(request: Request){const q=new URL(request.url).searchParams.toString();return proxyBackend(await backendFetch(`/api/operations/issues${q?`?${q}`:""}`));}

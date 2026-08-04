@@ -1,0 +1,2 @@
+import { backendFetch, proxyBackend } from "@/lib/api/server";
+export async function PATCH(request: Request,{params}:{params:Promise<{issueId:string}>}){const {issueId}=await params;return proxyBackend(await backendFetch(`/api/operations/issues/${issueId}`,{method:"PATCH",body:await request.text()}));}

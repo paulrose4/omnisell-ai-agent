@@ -1,0 +1,1 @@
+import { IssueLifecycleWorkbench } from "@/components/operations/issue-lifecycle-workbench"; export default function Page(){return <IssueLifecycleWorkbench/>}

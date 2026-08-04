@@ -1,0 +1,2 @@
+import { backendFetch, proxyBackend } from "@/lib/api/server";
+export async function POST(_: Request, { params }: { params: Promise<{ taskId: string }> }) { const { taskId } = await params; return proxyBackend(await backendFetch(`/api/tasks/${taskId}/replay`, { method: "POST" })); }
