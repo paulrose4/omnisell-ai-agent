@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from agents.base import safe_tool_execution
-from agents.cs_agent import CS_AGENT_SYSTEM_PROMPT, create_cs_agent
-from agents.price_agent import PRICE_AGENT_SYSTEM_PROMPT, create_price_agent
-from agents.sync_agent import SYNC_AGENT_SYSTEM_PROMPT, create_sync_agent
+from agents.cs_agent import CS_AGENT_SYSTEM_PROMPT
+from agents.price_agent import PRICE_AGENT_SYSTEM_PROMPT
+from agents.sync_agent import SYNC_AGENT_SYSTEM_PROMPT
 from safety.audit import AuditLogger
 from safety.circuit_breaker import CircuitBreaker
-from safety.hitl import ApprovalRejectedError, ApprovalStatus, HITLManager, RiskLevel
+from safety.hitl import ApprovalRejectedError, ApprovalRequest, ApprovalStatus, HITLManager, RiskLevel
 from safety.refund_gate import REFUND_HANDOFF_REPLY, RefundBlockedError, RefundGate
 from safety.tool_auth import ToolPermissionValidator, tool_caller_context
 
@@ -44,10 +43,11 @@ def test_price_agent_prompt_contains_refund_handoff_reply_at_top() -> None:
     assert "If you are unsure whether an action involves a refund, treat it as a refund and block it." in PRICE_AGENT_SYSTEM_PROMPT
 
 
-def test_created_agents_receive_hard_refund_system_message() -> None:
-    for agent in (create_cs_agent(llm_config=False), create_sync_agent(llm_config=False), create_price_agent(llm_config=False)):
-        assert REFUND_HANDOFF_REPLY in agent.system_message
-        assert agent.system_message.index(REFUND_HANDOFF_REPLY) < agent.system_message.index("Agent")
+def test_legacy_demo_prompts_retain_hard_refund_boundary() -> None:
+    for system_message in (CS_AGENT_SYSTEM_PROMPT, SYNC_AGENT_SYSTEM_PROMPT, PRICE_AGENT_SYSTEM_PROMPT):
+        assert REFUND_HANDOFF_REPLY in system_message
+        assert system_message.startswith("⚠️ CRITICAL RULES - VIOLATION IS NOT ALLOWED:")
+        assert system_message.index(REFUND_HANDOFF_REPLY) < 1000
 
 
 def test_refund_gate_detects_action_keyword() -> None:
@@ -106,55 +106,97 @@ def test_safe_tool_execution_blocks_refund_before_tool_body(tmp_path: Path) -> N
     assert not logger.query(action="update_product", status="success")
 
 
+@pytest.mark.parametrize(
+    ("action", "payload"),
+    [
+        ("approve_refund", {"order_id": "O1001"}),
+        ("payment_reversal", {"order_id": "O1001"}),
+        ("cancel_order", {"order_id": "O1001"}),
+        ("autonomous_cancellation", {"order_id": "O1001"}),
+        ("manual_review", {"action_type": "issue_refund", "order_id": "O1001"}),
+        ("manual_review", {"plan": {"action": "cancel_order"}, "order_id": "O1001"}),
+    ],
+)
+def test_hitl_permanently_prohibited_action_never_enters_approval(
+    tmp_path: Path,
+    action: str,
+    payload: dict[str, Any],
+) -> None:
+    logger = _logger(tmp_path)
+    manager = HITLManager(audit_logger=logger)
+
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.submit_request(action, payload, requester="operator")
+
+    assert manager.get_pending() == []
+    assert logger.query(action=action, status="blocked")
+
+
+def test_hitl_rejects_legacy_pending_refund_instead_of_approving(tmp_path: Path) -> None:
+    logger = _logger(tmp_path)
+    manager = HITLManager(audit_logger=logger)
+    legacy = ApprovalRequest(
+        request_id="legacy-refund",
+        action="approve_refund",
+        risk_level=RiskLevel.CRITICAL,
+        payload={"order_id": "O1001"},
+        requester="legacy-requester",
+        status=ApprovalStatus.PENDING,
+    )
+    manager._requests[legacy.request_id] = legacy
+
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.approve(legacy.request_id, approver="lead")
+
+    assert legacy.status == ApprovalStatus.REJECTED
+    assert logger.query(action="approve_refund", status="blocked")
+
+
 def test_hitl_refund_is_critical_and_requires_double_verification(tmp_path: Path) -> None:
     manager = HITLManager(audit_logger=_logger(tmp_path))
 
     risk, reason = manager.assess_risk("approve_refund", {"order_id": "O1001"})
-    request = manager.submit_request("approve_refund", {"order_id": "O1001"}, requester="agent")
 
     assert risk == RiskLevel.CRITICAL
     assert "REFUND_RISK" in reason
-    assert request.status == ApprovalStatus.PENDING
-    assert request.risk_level == RiskLevel.CRITICAL
-    assert request.requires_second_verification is True
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.submit_request("approve_refund", {"order_id": "O1001"}, requester="agent")
+    assert manager.get_pending() == []
 
 
-def test_hitl_refund_timeout_is_72_hours(tmp_path: Path) -> None:
+def test_hitl_refund_never_receives_an_approval_timeout(tmp_path: Path) -> None:
     manager = HITLManager(audit_logger=_logger(tmp_path))
 
-    request = manager.submit_request("issue_refund", {"amount": 10.0})
-
-    assert request.expires_at - request.created_at == timedelta(hours=72)
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.submit_request("issue_refund", {"amount": 10.0})
+    assert manager.get_pending() == []
 
 
 def test_hitl_refund_explicit_low_risk_cannot_override_policy(tmp_path: Path) -> None:
     manager = HITLManager(audit_logger=_logger(tmp_path))
 
-    request = manager.submit_request("manual_review", {"risk_level": "low", "note": "退款给客户"})
-
-    assert request.risk_level == RiskLevel.CRITICAL
-    assert request.status == ApprovalStatus.PENDING
-    assert request.requires_second_verification is True
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.submit_request(
+            "manual_review",
+            {"risk_level": "low", "action_type": "issue_refund", "note": "review requested"},
+        )
+    assert manager.get_pending() == []
 
 
 def test_hitl_refund_single_approver_is_rejected(tmp_path: Path) -> None:
     manager = HITLManager(audit_logger=_logger(tmp_path))
-    request = manager.submit_request("refund_review", {"order_id": "O1001"})
 
-    with pytest.raises(ApprovalRejectedError):
-        manager.approve(request.request_id, approver="lead")
-
-    assert manager.get_request(request.request_id).status == ApprovalStatus.PENDING  # type: ignore[union-attr]
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.submit_request("refund_review", {"order_id": "O1001"})
+    assert manager.get_pending() == []
 
 
-def test_hitl_refund_double_approver_succeeds(tmp_path: Path) -> None:
+def test_hitl_refund_double_approver_cannot_override_permanent_block(tmp_path: Path) -> None:
     manager = HITLManager(audit_logger=_logger(tmp_path))
-    request = manager.submit_request("refund_review", {"order_id": "O1001"})
 
-    approved = manager.approve(request.request_id, approver="lead", second_verifier="owner")
-
-    assert approved.status == ApprovalStatus.APPROVED
-    assert approved.decided_by == "lead+owner"
+    with pytest.raises(ApprovalRejectedError, match="permanently prohibited"):
+        manager.submit_request("refund_review", {"order_id": "O1001"})
+    assert manager.get_pending() == []
 
 
 def test_normal_product_query_is_not_blocked_by_refund_gate(tmp_path: Path) -> None:

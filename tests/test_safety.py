@@ -137,11 +137,29 @@ def test_hitl_rules_auto_pending_critical_and_expiry(tmp_path: Path) -> None:
     assert critical.risk_level == RiskLevel.CRITICAL
     assert critical.requires_second_verification is True
 
-    with pytest.raises(ApprovalRejectedError):
+    first_approval = manager.approve(critical.request_id, approver="lead", reason="First review")
+    assert first_approval.status == ApprovalStatus.AWAITING_SECOND_APPROVAL
+    assert first_approval.first_approver_id == "lead"
+    assert critical in manager.get_pending()
+
+    self_requested = manager.submit_request(
+        "delete_product",
+        {"product_id": "P2001"},
+        requester="lead",
+    )
+    with pytest.raises(ApprovalRejectedError, match="own action"):
+        manager.approve(self_requested.request_id, approver="lead")
+
+    with pytest.raises(ApprovalRejectedError, match="independent"):
         manager.approve(critical.request_id, approver="lead")
 
-    approved = manager.approve(critical.request_id, approver="lead", second_verifier="owner")
+    with pytest.raises(ApprovalRejectedError, match="Requester"):
+        manager.approve(critical.request_id, approver=critical.requester)
+
+    approved = manager.approve(critical.request_id, approver="owner", reason="Second review")
     assert approved.status == ApprovalStatus.APPROVED
+    assert approved.first_approver_id == "lead"
+    assert approved.second_approver_id == "owner"
 
     high.expires_at = datetime.now(UTC) - timedelta(seconds=1)
     manager.expire_overdue()

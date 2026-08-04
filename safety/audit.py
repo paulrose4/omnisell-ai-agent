@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -10,6 +11,29 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_AUDIT_PATH = PROJECT_ROOT / "logs" / "audit.jsonl"
+_SECRET_KEY_MARKERS = ("token", "secret", "password", "authorization", "api_key", "credential")
+_SENSITIVE_CONTENT_KEYS = frozenset({
+    "evidence",
+    "order",
+    "order_context",
+    "external_order_id",
+    "customer_message",
+    "buyer_message",
+    "message_history",
+    "draft_reply",
+    "approved_reply",
+    "actual_reply",
+    "reply",
+    "prompt",
+    "messages",
+    "content",
+    "address",
+    "shipping_address",
+    "billing_address",
+    "buyer_email",
+    "buyer_name",
+    "phone",
+})
 
 
 @dataclass
@@ -41,6 +65,7 @@ class AuditLogger:
         risk_level: str = "low",
     ) -> AuditRecord:
         """Append a single audit record and return it."""
+        sanitized_details = sanitize_audit_details(details or {})
         record = AuditRecord(
             timestamp=datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
             event_type=event_type,
@@ -48,7 +73,7 @@ class AuditLogger:
             action=action,
             risk_level=risk_level,
             status=status,
-            details=details or {},
+            details=sanitized_details,
         )
         with self._lock:
             with self.path.open("a", encoding="utf-8") as handle:
@@ -98,6 +123,34 @@ class AuditLogger:
         if limit is not None:
             return records[-limit:]
         return records
+
+
+def sanitize_audit_details(details: dict[str, Any]) -> dict[str, Any]:
+    return {
+        str(key): _sanitize_audit_value(value, key=str(key).lower())
+        for key, value in details.items()
+    }
+
+
+def _sanitize_audit_value(value: Any, *, key: str) -> Any:
+    normalized_key = key.replace("-", "_").lower()
+    if any(marker in normalized_key for marker in _SECRET_KEY_MARKERS):
+        return "[REDACTED]"
+    if normalized_key in _SENSITIVE_CONTENT_KEYS:
+        serialized = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+        return {
+            "redacted": "[REDACTED]",
+            "length": len(serialized),
+            "sha256": hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+        }
+    if isinstance(value, dict):
+        return {
+            str(child_key): _sanitize_audit_value(child_value, key=str(child_key))
+            for child_key, child_value in value.items()
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [_sanitize_audit_value(item, key=normalized_key) for item in value]
+    return value
 
 
 if __name__ == "__main__":
