@@ -113,7 +113,7 @@ Failover is attempted at most once and only for timeout, connection, rate-limit 
 
 Configure non-zero cost rates and versioned effective timestamps for production estimates. The global token budget must reserve the initial response plus one Schema repair; startup fails if it is incompatible with any Advisor profile. `ModelUsage` persists provider/model, Prompt and Schema versions/hashes, reserved/reported/unattributed costs, token counts, first-pass Schema success, failure categories, initial/repair latency, provider-call count, retry/failover metadata and provider request ID.
 
-`VLLM_BASE_URL`, `VLLM_MODEL_NAME`, and `VLLM_API_KEY` are deprecated compatibility aliases for one release cycle. A legacy-only configuration emits a warning without exposing secrets; conflicting new and legacy values fail startup.
+`VLLM_BASE_URL`, `VLLM_MODEL_NAME`, and `VLLM_API_KEY` are deprecated compatibility aliases scheduled for removal in `2.0.0`. A legacy-only configuration emits a warning without exposing secrets; conflicting new and legacy values fail startup.
 
 ## Local development and tests
 

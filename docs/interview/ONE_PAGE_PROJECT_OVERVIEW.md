@@ -36,9 +36,10 @@ OmniSell 是面向 Amazon 运营团队的安全型只读运营控制塔，不是
 
 | 指标 | 当前结果 | 证据边界 |
 | --- | ---: | --- |
-| 后端全量测试 | 632 passed，8 skipped | 本地 SQLite 与 Mock；PostgreSQL 外部项跳过 |
-| 总分支覆盖率 | 81.90% | 本地全量 coverage |
-| 关键模块门禁 | 全部通过 | evidence、inventory、pricing、profitability、gateway contract、HITL、policy、workflow |
+| 后端全量测试 | 753 passed，8 skipped | 本地 SQLite 与 Mock；PostgreSQL 外部项跳过 |
+| 覆盖率 | branch-aware total 86.62%，diff coverage 90% | statement 89.58%，branch-only 74.21%；13 个关键模块门禁通过 |
+| 关键模块门禁 | 13/13 通过 | adapters、contracts、evidence、release profiles、route catalog、payload audit、deterministic domain、gateway contract、HITL、policy、workflow |
+| 发布面治理 | 136 backend routes | `golden_demo=77`、`read_only_pilot=119`；前端 69 个 BFF 文件/83 个 handler 全部分类 |
 | Agent fixed-fixture | 12/12 structured success | 只证明评测器与契约，不证明真实 provider |
 | 禁止动作拒绝 | 4/4 | fixed fixture，Wilson 区间样本仍小 |
 | clean bootstrap | passed | Windows 中文路径、Python 3.12、hash lock |

@@ -87,7 +87,7 @@ Bootstrap 会校验版本化的 SQLite schema fingerprint，并完成 `upgrade -
 
 如需启用备用中转站，额外填写 `LOCAL_MODEL_FALLBACK_ENABLED=true`、`LOCAL_MODEL_FALLBACK_BASE_URL=https://api.wenrugouai.com/v1`、`LOCAL_MODEL_FALLBACK_MODEL_NAME` 和 `LOCAL_MODEL_FALLBACK_API_KEY`。备用模型只在主模型超时、连接失败、限流或可重试的 5xx 错误时使用一次；安全拒绝、Schema 错误和预算错误不会切换。
 
-填写后执行 `./scripts/start_local.ps1 -NoBuild` 重新创建运行容器，再执行 `python scripts/test_vllm.py` 做基础连通性检查。严格 JSON Schema 和 Advisor 安全边界仍需使用 `scripts/run_real_model_staging_smoke.py` 验证。
+填写后执行 `./scripts/start_local.ps1 -NoBuild` 重新创建运行容器，再执行 `python scripts/test_model_gateway.py` 做基础连通性检查。严格 JSON Schema 和 Advisor 安全边界仍需使用 `scripts/run_real_model_staging_smoke.py` 验证。
 
 ## 不属于本地启动前提的项目
 

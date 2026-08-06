@@ -1,8 +1,8 @@
 # OmniSell 项目优化与面试交付方案
 
-> 文档版本：v1.3  
+> 文档版本：v1.7
 > 审计日期：2026-08-05  
-> 审计对象：`codex/agent-production-hardening`，已提交基线 `00de543`，并单独标注当前未提交工作树进展  
+> 审计对象：`codex/agent-production-hardening`；远端基线 `d533bfa`，并包含当前本地待提交优化批次
 > 文档性质：实施蓝图与验收规范，不等同于完成声明
 
 ## 1. 文档目的
@@ -18,7 +18,7 @@
 - 形成评测报告、威胁模型、ADR、失败复盘和个人贡献说明；
 - 明确 Mock、真实模型、真实 Amazon 和生产写入之间不可混淆的证据边界。
 
-本文档是实施方案，不代表其中工作已经完成。每项优化必须遵守测试先行、租户隔离、确定性业务边界、审批完整性和外部证据真实性要求。任何“完成”状态都必须同时具备代码、自动化验证、可审查提交和证据产物，不能仅依据本地未提交修改判断。
+本文档同时承担当前状态审计和剩余实施蓝图两项职责。每项优化必须遵守测试先行、租户隔离、确定性业务边界、审批完整性和外部证据真实性要求。任何“完成”状态都必须同时具备代码、自动化验证、可审查提交和证据产物；本地测试、Mock、真实基础设施和真实业务证据必须分级陈述。
 
 ## 2. 当前基线
 
@@ -27,24 +27,37 @@
 已提交、可从远端复现的基线：
 
 - 当前分支：`codex/agent-production-hardening`。
-- 当前提交：`00de543`，与 `origin/codex/agent-production-hardening` 一致。
-- 相对 `origin/main`：领先 10 个逻辑提交。
-- 当前优化分支约有 491 个跟踪文件。
-- 相对默认分支约有 460 个文件变化和 4.85 万行新增。
+- 当前提交：`d533bfa`，与 `origin/codex/agent-production-hardening` 一致。
+- 相对 `origin/main`：领先 17 个可审查提交，其中前 10 个构成平台、业务域、Agent、前端、UAT 和发布基线，后 7 个完成审批完整性、Agent 契约与评测、工具链、核心服务、平台、演示导航和面试资料收口。
+- 当前分支有 524 个跟踪文件；相对默认分支有 519 个文件变化、83,961 行新增和 4,142 行删除。该规模说明必须通过提交分组和面试导航控制审查范围，不能要求面试官无差别阅读全仓。
 - `origin/main` 仍停留在 `822d6e0`，因此 GitHub 默认入口尚未展示完整系统。
+- 历史上的 450 个未跟踪文件阻塞已经关闭；但本次审计时工作树仍有 41 个已跟踪文件发生变化和 22 个未跟踪路径，尚未形成新的远端审查证据。必须把它们作为新的可审查批次提交，不能把本地验证结果提前算入远端交付。
 
-2026-08-05 本地工作树现有约 260 个已跟踪文件修改和 36 个未跟踪路径。数量上升的主要原因是全仓 Ruff 格式化、审批执行协议、冻结迁移、评测、环境证据、测试和面试资料仍未拆分提交。当前本地实现状态如下：
+远端 `d533bfa` 已提交实现状态如下：
 
 - 审批语义已分离 `policy_decision` 与 `risk_level`；内存/SQL HITL、Workflow 恢复和数据库约束已统一。任何 `REQUIRE_APPROVAL` 都保持真实人工审批，`ALLOW + non-low` fail closed。
 - 审批内容与实际执行已通过 typed manual execution contract 严格绑定。客户端不能提交 action type 或 quantity，执行端只接受 approval ID、Idempotency-Key、备注和执行证据，并在 side effect 前重验 tenant、connection、marketplace、plan、hash、policy、状态与过期时间。
-- 迁移已采用显式冻结的 `0023_frozen_baseline.py`，并提供 migration ADR、SQLite schema fingerprint 与静态检查；真实 PostgreSQL 空库、RLS catalog、非 owner 权限和旧环境升级仍是外部门禁。
+- 迁移已采用显式冻结的 `0023_frozen_baseline.py`，并提供 migration ADR、SQLite schema fingerprint 与静态检查。独立 PostgreSQL 16 审计库上的空库 `upgrade head`、`alembic check` 和 8 项 RLS/non-owner 测试已经通过；PostgreSQL downgrade/upgrade 往返、catalog fingerprint、固定 `omnisell_app` 运行角色、执行并发和旧环境升级仍是门禁。
 - `cryptography` 已升级为 `50.0.0`，runtime/dev lock 可重复，`pip check` 和两套 `pip-audit` 通过。`bootstrap_dev.ps1` 已在包含中文的 Windows 路径两次完成 clean bootstrap，并生成版本化脱敏证据。
 - Failover 已增加类型化最坏预算契约，Agent 主要输出已改为强类型模型和 discriminated union；版本化数据集、fixed-fixture 报告与 Schema 大小证据已存在，真实 provider 质量仍为 `not_verified`。
-- Legacy AutoGen 已移动到 `legacy/autogen_demo/`，通用配置迁移到 `MODEL_*` 并保留一版 `VLLM_*` 兼容别名；前端已增加 `interview` 发布配置。
-- API/ASGI 级缺货黄金闭环已覆盖重置、同步、认领、双人审批、Mock 执行、事件消费、重新同步、Issue resolved、Execution verified 和 Work Item completed；Compose、OIDC 身份切换和 Playwright 浏览器验收尚未完成。
-- 工具链已完成 `pyproject.toml`、Ruff、Pyright、branch coverage、关键模块门禁和独立 CI coverage job。最终全量结果为 `632 passed, 8 skipped`；最近一次 coverage run 为 `626 passed, 8 skipped`、总分支覆盖率 `81.90%`，Ruff 通过，Pyright 为 `0 errors`。
+- Legacy AutoGen 已移动到 `legacy/autogen_demo/`，通用配置迁移到 `MODEL_*` 并保留一版 `VLLM_*` 兼容别名；前端已增加初版面试导航配置。
+- API/ASGI 级缺货黄金闭环已覆盖重置、同步、认领、双人审批、Mock 执行、事件消费、重新同步、Issue resolved、Execution verified 和 Work Item completed；Compose 首次候选启动已执行但被辅助 `mock-cloud` 依赖解析冲突阻断，OIDC 身份切换和 Playwright 浏览器验收尚未完成。
+- 工具链已完成 `pyproject.toml`、Ruff、Pyright、branch coverage、关键模块门禁和独立 CI coverage job；该远端基线已有可复现的本地质量证据。
 - 正式面试包已新增一页项目说明、Threat Model、三篇核心 ADR、两个失败复盘、API/演示范围和贡献矩阵，并有自动文档门禁。
-- 当前工作树仍不是远端发布证据。最终状态必须以逻辑提交、CI、Draft PR、默认分支合并和外部验证产物为准。
+- 当前分支已经是可从远端复现的审查证据，但尚未等同于默认分支候选发布。最终状态仍必须以 Draft PR、Required Checks、默认分支合并、clean clone 复验和外部验证产物为准。
+
+当前本地待提交批次进一步完成了以下实现：
+
+- 正式定义 `full_development`、`golden_demo`、`read_only_pilot` 三种 Release Profile；旧 `full`、`interview` 仅作为兼容别名并计划在 `2.0.0` 删除。生产环境强制使用 `read_only_pilot`。
+- 后端路由改为由统一 catalog 注册，生成版本化 route inventory。当前稳定口径为 136 个 method/path 条目，其中 `golden_demo` 注册 77 条，`read_only_pilot` 注册 119 条；前端 69 个 BFF 文件导出 83 个 HTTP handler，81 个代理全部映射到已注册后端路由，2 个明确标记为 NextAuth。
+- `EvidenceReference.metadata` 已从开放 `Any` 收紧为递归 `JsonValue`，并增加深度、集合、节点、字符串、key 和有限数上限；Legacy payload 在 `deepcopy` 前执行同类资源预算校验，`NaN/Infinity` 已在复制和持久化前 fail closed。
+- 历史 Agent payload 已增加只读兼容扫描器：必须显式逐租户授权，PostgreSQL 使用只读事务和 `app.current_tenant_id`，报告只输出计数、哈希 tenant ref、稳定原因码和 record ID。版本化 deterministic fixture 已证明分类与脱敏契约，但当前工作区没有可扫描的持久数据库，真实历史数据扫描仍是 Database Owner 外部门禁。
+- Agent metadata 已通过统一 Audit sanitizer 完成递归敏感字段处理；JSONL 与 SQL Audit 对 `api_key`、`Authorization`、buyer message 和列表内嵌 secret 使用相同的 redaction/hash 语义。Advisor workflow 继续禁止把原始 request 和 `analysis_result` 写入阶段审计。
+- `scripts/test_vllm.py` 已删除并由 `scripts/test_model_gateway.py` 取代；生产调用方统一使用 Settings 和 `MODEL_*`，`VLLM_*` 只允许出现在兼容层、测试和迁移文档，明确删除版本为 `2.0.0`。
+- Pyright 和关键覆盖率门禁已扩展到契约 adapter、Agent contracts、Release Profile 与 route catalog；CI 增加后端 route inventory 与前端 BFF inventory 双重漂移检查。
+- CI 已把相对目标分支的 diff coverage `>=90%` 升级为硬门禁，并使用 `fetch-depth: 0` 保证比较基线可用。
+- 本地默认环境最终验证为 `753 passed, 8 skipped`；coverage.py 在启用 branch measurement 后的综合覆盖率为 `86.62%`，其中语句覆盖率 `89.58%`、分支项覆盖率 `74.21%`，相对 `origin/main` 的 diff coverage 为 `90%`。随后在独立 PostgreSQL 16 审计容器中配置 `POSTGRES_RLS_URL`，原来被跳过的 8 项 PostgreSQL RLS/non-owner 用例实际执行并得到 `8 passed`。Critical coverage、Ruff、format、Pyright、`pip check`、compileall、route/OpenAPI/BFF inventory、前端 API types、typecheck 和 production build 均通过。
+- 核心 API、migrate、worker、scheduler 和 frontend 镜像已使用 Public ECR 固定 digest 构建成功，API 的 hash lock 安装在清华镜像下完成；整栈仍为 No-Go，因为 `local_e2e_mock/requirements.txt` 的未锁定依赖在 `mock-cloud` 构建时发生 FastAPI/Starlette/AnyIO 解析冲突，Compose 未进入服务启动阶段。
 
 ### 2.2 当前能力判断
 
@@ -53,20 +66,21 @@
 | 视角 | 当前判断 | 可被面试官直接复现 | 结论 |
 | --- | ---: | --- | --- |
 | GitHub 默认分支 `origin/main` | 约 5.5/10 | 是 | 仍是旧系统，不适合作为最终面试入口 |
-| 已推送优化分支 `00de543` | 约 7.5/10 | 是 | 架构和工程深度可面试，但仍包含已知 P0 |
-| 当前本地工作树 | 约 8.4/10 技术完成度 | 否 | P0/P1 代码与本地证据已显著收口，但发布可信度仍受未提交、未跑远端 CI 和外部门禁限制 |
+| 已推送优化分支 `d533bfa` | 约 8.2/10 技术完成度 | 是，需要直接提供分支链接 | 核心 P0/P1 已提交并有本地证据，适合技术面试审查 |
+| 当前本地候选工作树 | 约 8.4/10 技术完成度 | 否 | Profile、路由治理、契约资源边界、历史 payload 扫描工具、模型配置退场和真实 PostgreSQL RLS 已验证，但尚未提交和推送，Compose 仍被辅助镜像依赖冲突阻断 |
+| 面试候选发布状态 | 约 7.9/10 交付完成度 | 部分 | 缺本批次提交、Draft PR/默认分支入口、远端 Required Checks、Compose/Playwright、剩余 PostgreSQL 迁移门禁和真实 provider 质量门禁 |
 
-当前本地工作树的能力判断如下，分数只表示技术成熟度，不等同于正式交付得分：
+当前已推送分支的能力判断如下，分数只表示技术成熟度，不等同于正式交付得分：
 
-| 维度 | 当前工作树判断 | 主要原因 |
+| 维度 | 当前分支判断 | 主要原因 |
 | --- | ---: | --- |
-| Agent 架构 | 8.8/10 | 有持久化工作流、严格 Schema、证据预算、类型化 Failover 预算、修复、降级和恢复 |
+| Agent 架构 | 8.9/10 | 有持久化工作流、严格 Schema、证据预算、类型化 Failover 预算、修复、降级和恢复；metadata 与 legacy adapter 资源边界已在本地收紧 |
 | 确定性业务边界 | 9.0/10 | 金额、利润、库存、权限、状态和策略仍由代码负责 |
-| 安全与审批 | 9.0/10 | medium 冲突与 approve-A/execute-B 均已在本地修复，负路径、幂等和并发 reservation 已覆盖；真实 PostgreSQL/真实 adapter 待验证 |
-| 工程与测试 | 8.8/10 | lock、clean bootstrap、Ruff、Pyright、全量 branch coverage 和 CI 配置已通过本地验证；远端 CI 与 PostgreSQL 门禁待完成 |
+| 安全与审批 | 9.1/10 | medium 冲突与 approve-A/execute-B 已修复，负路径、幂等、reservation 和 PostgreSQL non-owner RLS 已覆盖；真实执行 adapter 与数据库并发竞争仍待验证 |
+| 工程与测试 | 8.9/10 | lock、clean bootstrap、Ruff、Pyright、branch-aware coverage、90% diff hard gate、route inventory 和 PostgreSQL focused suite 已通过本地验证；远端 CI、Compose 和剩余迁移门禁待完成 |
 | Agent 评测可信度 | 7.3/10 | 已有版本化 synthetic/fixed-fixture 报告且明确 no-go，但真实 provider 和具名人工评分仍缺失 |
 | 真实业务验证 | 5.8/10 | API 级 Golden Mock 与审批执行绑定完整，浏览器/Compose、真实 Amazon 和运营采纳率仍未验证 |
-| Git 与外部交付 | 5.5/10 | 默认分支未更新，当前约 296 个文件状态尚未拆分提交、形成 PR 和通过远端 CI |
+| Git 与外部交付 | 6.9/10 | 17 个远端提交可审查，但当前新增批次仍未提交；默认分支、Draft PR、Required Checks 和候选标签尚未形成 |
 
 ### 2.3 优化后的目标状态
 
@@ -87,21 +101,21 @@
 
 | 优化项 | 当前状态 | 本文档对应章节 |
 | --- | --- | --- |
-| 历史未跟踪文件清理和 10 个提交拆分 | 已完成于远端功能分支；当前新工作仍处于正常未提交状态 | 第 5 章继续完成默认分支交付 |
+| 历史未跟踪文件清理和逻辑提交拆分 | 已完成；当前远端分支共 17 个提交，新增硬化工作拆为 7 个独立提交 | 第 5 章继续完成默认分支交付 |
 | 远端默认分支和正式 PR | 部分完成 | 第 5 章 |
-| medium 审批语义冲突 | 本地实现与全量回归完成；缺 PostgreSQL、提交和 CI 证据 | 第 6 章 |
-| 审批内容与实际执行绑定 | 本地实现、前后端协议和负路径完成；缺真实 adapter、PostgreSQL 并发与提交证据 | 第 6.1 节 |
-| Alembic 不可变历史 | 本地路径 A 已实现；缺 Owner 签字、PostgreSQL 与提交证据 | 第 7 章 |
-| `cryptography` 漏洞 | 本地 pin、lock、两套审计与 clean bootstrap 通过；缺提交和远端 CI 证据 | 第 8 章 |
-| clean development environment | Windows 中文路径 clean bootstrap 与版本化 manifest 完成；缺第二操作系统和远端 CI 证据 | 第 8 章 |
-| Failover Token/费用预检 | 本地类型化实现和 contract 100% branch coverage 完成；缺真实 provider 与提交证据 | 第 9 章 |
-| Agent 输出质量评测 | 本地 deterministic/synthetic 层完成；真实 provider 和人工评分未完成 | 第 10 章 |
+| medium 审批语义冲突 | 已提交修复并通过本地全量回归及真实 PostgreSQL non-owner RLS；数据库执行并发和远端 CI 仍是门禁 | 第 6 章 |
+| 审批内容与实际执行绑定 | 已提交 immutable plan、action hash、幂等、reservation 和篡改拒绝；真实 adapter/PostgreSQL 并发待验证 | 第 6.1 节 |
+| Alembic 不可变历史 | 冻结 `0023` baseline 已提交；PostgreSQL 空库升级、`alembic check`、RLS catalog 和临时 non-owner 隔离已验证，仍缺 Owner 环境声明、downgrade/upgrade、catalog fingerprint、固定 app role 和旧库升级 | 第 7 章 |
+| `cryptography` 漏洞 | `50.0.0`、两套 hash lock、`pip check` 和双审计已提交并通过本地验证；待远端 CI 复核 | 第 8 章 |
+| clean development environment | Windows 中文路径 clean bootstrap 已提交，核心 runtime 镜像已构建；辅助 Mock 镜像仍使用未锁定依赖并导致 Compose No-Go，另缺第二操作系统和远端 CI 证据 | 第 8 章 |
+| Failover Token/费用预检 | 类型化最坏预算实现已提交，contract branch coverage 100%；真实 provider 计费对账未完成 | 第 9 章 |
+| Agent 输出质量评测 | deterministic/synthetic 层和版本化报告已提交；真实 provider 和人工评分未完成 | 第 10 章 |
 | 首次 Schema 成功率和延迟 | 已增加失败分类、Schema 压缩和新契约；真实 provider 指标未重新验证 | 第 11 章 |
-| Agent 强类型契约 | 本地主要输出、adapter、Schema size evidence 和发布检查完成；真实 provider 验证待收口 | 第 12 章 |
-| Legacy AutoGen 隔离 | 本地隔离和全量验证完成；`VLLM_*` 兼容别名仍需后续退场 | 第 13 章 |
-| API 和演示范围收敛 | interview profile、正式演示范围文档完成；机器化 route owner inventory 未完成 | 第 14 章 |
-| 黄金缺货闭环功能 | API/ASGI 与审批执行绑定完成；Compose/OIDC/Playwright 未完成 | 第 15 章补全全栈验收 |
-| Python 工具链治理 | 本地 Ruff、Pyright、全量 branch coverage、关键门禁与 CI coverage job 完成；远端 CI 未执行 | 第 16 章 |
+| Agent 强类型契约 | 主要输出已提交；metadata、legacy adapter 资源边界、`NaN/Infinity` 拒绝、OpenAPI 前端类型、只读历史 payload 扫描器和统一 Audit redaction 已在本地实现并验证；待提交、真实持久数据库扫描和真实 provider 回归 | 第 12 章 |
+| Legacy AutoGen 隔离 | 隔离已提交；通用模型配置退场、脚本重命名和 `2.0.0` 删除策略已在本地实现并验证，待提交和部署迁移 | 第 13 章 |
+| API 和演示范围收敛 | 三种正式 profile、136 条后端 inventory、83 个 BFF handler 映射、逐路由控制、OpenAPI 类型和 middleware deny-by-default 已在本地实现并验证；待提交和 Playwright | 第 14 章 |
+| 黄金缺货闭环功能 | API/ASGI、审批执行绑定和篡改负路径已完成；Compose 构建已定位到辅助依赖冲突，服务启动/OIDC/Playwright 未完成 | 第 15 章补全全栈验收 |
+| Python 工具链治理 | 基础门禁已提交；新增高风险模块、route inventory 和 90% diff coverage hard gate 已在本地配置并验证，待提交和远端 CI | 第 16 章 |
 | 一页项目说明 | 已完成于 `docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md` | 第 17.1 节 |
 | 三张以上核心图 | 已完成 | 第 17.2 节负责统一说明 |
 | 正式 Agent 评测报告 | 已有 synthetic 机器报告；面试版真实模型/人工分栏未完成 | 第 17.3 节 |
@@ -127,13 +141,13 @@
 
 ### 2.6 本次审计的机器证据
 
-本次仅执行只读检查和验证，没有把任何本地实现标记为正式发布完成：
+本次状态以当前远端功能分支和已版本化机器证据为准，不把功能分支成功等同于正式发布完成：
 
 | 检查 | 结果 | 结论 |
 | --- | --- | --- |
-| Git 远端 | `origin/main=822d6e0`，优化分支远端为 `00de543`，领先 10 个提交 | 默认分支交付仍未完成 |
-| 工作树规模 | 约 260 个 tracked 修改、36 个 untracked 路径 | 必须拆分逻辑提交，不得一次性提交 |
-| 路由规模 | 约 123 个后端 HTTP/ASGI decorator、69 个前端 BFF route 文件 | 已形成面试演示范围，机器化 owner inventory 仍有必要 |
+| Git 远端 | `origin/main=822d6e0`，优化分支远端为 `d533bfa`，领先 17 个提交 | 功能分支可审查，默认分支交付仍未完成 |
+| 工作树规模 | 远端基线 524 个 tracked 文件；当前有 41 个 tracked changes 和 22 个 untracked paths | 历史 Git 阻塞已关闭，但本批次必须拆分提交并推送 |
+| 路由规模 | 136 个后端 method/path；`golden_demo=77`、`read_only_pilot=119`；前端 69 个 BFF 文件/83 个 handler | 81 个代理已机器映射到后端，2 个 NextAuth handler 明确分类 |
 | `pip check` | 通过 | 当前 `.venv` 依赖一致性已恢复 |
 | lock reproducibility | 通过 | 两个 lock 与输入文件一致 |
 | `pip-audit` | runtime/dev 均无已知漏洞 | Windows 中文路径 clean bootstrap 已两次通过 |
@@ -141,10 +155,14 @@
 | Ruff | 全仓 check 与 format check 通过 | 本地质量门禁通过 |
 | Schema evidence `--check` | 通过 | 版本化 Schema 大小证据可复现 |
 | Agent eval report `--check` | 通过 | synthetic/fixed-fixture 报告可复现，不代表真实 provider |
-| 全量 pytest/coverage | final pytest `632 passed, 8 skipped`；coverage run `626 passed, 8 skipped`、branch coverage `81.90%` | skipped 为外部 PostgreSQL 测试 |
-| 关键覆盖率 | evidence 100%、inventory 92.86%、pricing 99.44%、profitability 100%、gateway contract 100%、HITL 97.55%、policy 98.77%、workflow 88.24% | 8 个风险门槛全部通过 |
-| clean bootstrap | Windows 中文路径、Python 3.12、hash lock、审计、compileall、迁移往返、fingerprint、66 smoke 均通过 | PostgreSQL RLS 与 Docker 明确未验证 |
+| 全量 pytest/coverage | 默认环境 `753 passed, 8 skipped`；branch-aware total `86.62%`，statement `89.58%`，branch-only `74.21%` | 8 个 skip 是未配置 PostgreSQL URL 时的条件跳过，不再代表这些用例从未执行 |
+| PostgreSQL focused suite | PostgreSQL 16 空库 `upgrade head` 与 `alembic check` 通过；8 项 RLS/catalog/临时 non-owner/tenant isolation/约束用例得到 `8 passed` | 已取得真实数据库证据；downgrade/upgrade、固定 app role、fingerprint、执行并发和旧环境升级仍未完成 |
+| 差异与关键覆盖率 | `origin/main` diff coverage `90%` 且 CI `--fail-under=90`；adapters 97.50%、contracts 97.20%、evidence 100%、release profiles 100%、route catalog 98.55%、payload audit 97.22%、inventory 92.86%、pricing 99.44%、profitability 100%、gateway contract 100%、safety HITL 97.55%、policy 98.77%、workflow 88.24% | 13 个风险门槛全部通过；diff coverage 已是本地配置硬门禁，仍需远端 PR 证明实际阻断生效 |
+| clean bootstrap | Windows 中文路径、Python 3.12、hash lock、审计、compileall、迁移往返、fingerprint、66 smoke 均通过 | 核心 Docker runtime 构建已验证；第二操作系统和 clean clone 仍待复验 |
+| Docker/Compose | API、migrate、worker、scheduler、frontend 镜像构建成功；整栈在 `mock-cloud` 的 FastAPI/Starlette/AnyIO 依赖解析阶段失败 | 当前是可复现 No-Go，不得宣称 Compose/E2E 已完成；必须先锁定所有辅助镜像依赖 |
 | 面试包门禁 | 5 passed | 一页说明、Threat Model、ADR、失败复盘、贡献矩阵与索引齐全 |
+| 前端验证 | typecheck 与 Next.js production build 通过，生成 68 个静态页面批次，保留 69 个 BFF route 文件 | 浏览器 Playwright 与真实 OIDC 尚未验证 |
+| SQLite 迁移链 | 全新数据库 `upgrade head -> check -> downgrade base -> upgrade head -> check` 通过 | 不替代 PostgreSQL downgrade/upgrade、旧环境升级和固定 application role 验证 |
 
 ## 3. 实施原则
 
@@ -219,13 +237,13 @@ P0 完成前不得合并面试候选版本。真实 Amazon Pilot 不阻塞代码
 
 ### 当前问题
 
-本地和远端功能分支已经整理为 10 个逻辑提交，但 GitHub 默认分支仍是旧系统。面试官直接查看仓库时无法看到当前代码、测试和文档。
+远端功能分支已经整理为 17 个可审查提交，其中 `00de543..d533bfa` 的 7 个硬化提交对应审批、Agent、工具链、核心服务、平台、控制台和面试资料；但 GitHub 默认分支仍是旧系统。面试官直接打开仓库首页时仍无法看到当前候选代码、测试和文档。
 
 ### 目标方案
 
 1. 立即创建 Draft PR，基线为 `main`，来源为 `codex/agent-production-hardening`。
-2. PR 描述必须列出 10 个现有提交的责任范围、验证证据和外部缺口。
-3. P0 修复继续以独立提交追加到当前分支，不重新把已推送历史压成单个提交。
+2. PR 描述必须按逻辑主题解释 17 个提交，并重点列出最近 7 个硬化提交的责任范围、验证证据和外部缺口。
+3. 外部验证发现的问题继续以独立提交追加到当前分支，不重新压缩或改写已推送历史。
 4. 为默认分支配置以下 Required Checks：
    - backend test matrix；
    - PostgreSQL migration/RLS；
@@ -259,9 +277,9 @@ P0 完成前不得合并面试候选版本。真实 Amazon Pilot 不阻塞代码
 
 ### 当前问题
 
-Policy Engine 对未知动作返回 `REQUIRE_APPROVAL` 和 `medium`，但内存 HITL 与 SQL HITL 都会将 low/medium 设置为 `AUTO_APPROVED`。这使“要求人工审批”和“自动批准”同时成立。
+历史 Policy Engine 对未知动作返回 `REQUIRE_APPROVAL` 和 `medium`，但内存 HITL 与 SQL HITL 会将 low/medium 设置为 `AUTO_APPROVED`。这曾使“要求人工审批”和“自动批准”同时成立。
 
-当前未提交工作树已完成主要修复：HITL 接收 `policy_decision` 和 `policy_version`，只有显式 `ALLOW + LOW` 可得到 `AUTO_APPROVED`；`REQUIRE_APPROVAL` 会持久化为 Pending，critical 会要求两名独立审批人；SQL 模型增加 policy/risk/status 组合约束，Workflow Resume 会重新核验 policy、hash、计划、证据和资源。该实现已经进入关键回归集合，但仍需要全量 pytest、真实 PostgreSQL/RLS/并发验证、逻辑提交和 CI 审查，因此只能标记为“本地基本完成”。
+该缺陷已在提交 `772174a` 中修复：HITL 接收 `policy_decision` 和 `policy_version`，只有显式 `ALLOW + LOW` 可得到自动放行语义；`REQUIRE_APPROVAL` 会持久化为 Pending，critical 要求两名独立审批人；SQL 模型增加 policy/risk/status 组合约束，Workflow Resume 重新核验 policy、hash、计划、证据和资源。实现已进入全量回归并随远端分支交付；独立 PostgreSQL 16 审计库中的 RLS catalog、跨租户读写阻断和审批记录隔离也已实际通过。剩余门禁是审批/执行 reservation 的真实数据库并发竞争、固定 application role 权限、真实 adapter 和远端 Required Checks。
 
 ### 目标状态模型
 
@@ -311,7 +329,7 @@ stateDiagram-v2
 - `expires_at`；
 - 证据和计划摘要。
 
-最终状态应使用独立、可查询的持久字段和数据库约束。因为迁移历史尚未决策，实施分两阶段：
+最终状态使用独立、可查询的持久字段和数据库约束。当前冻结 baseline 已纳入这些字段和约束；如果 Owner 盘点发现外部旧数据库，兼容处理分两阶段：
 
 1. 兼容阶段：将 `policy_decision` 同时写入不可变 payload，并为历史记录采用保守推断，`AUTO_APPROVED -> ALLOW`，其余状态一律按 `REQUIRE_APPROVAL` 读取。该阶段只用于先关闭安全缺陷。
 2. 正式阶段：迁移决策完成后增加结构化列、规则版本、审批人数和过期时间；回填后进行双读校验，再切换到列为唯一事实来源，最后停止 payload 推断。
@@ -366,15 +384,15 @@ stateDiagram-v2
 
 ### 预计工作量
 
-剩余 0.5 至 1 天，主要用于 PostgreSQL/并发验证、全量回归、证据整理和提交；若发现历史兼容数据问题，另计迁移时间。
+剩余 0.25 至 0.75 天，主要用于 PostgreSQL 并发 reservation、固定 application role、远端 CI 和证据版本化；若发现历史兼容数据问题，另计迁移时间。
 
 ### 6.1 P0-3 审批内容与实际执行绑定完整性
 
 #### 当前问题
 
-审批请求会对 Issue、Recommended Action、before snapshot、proposed changes、evidence、decision context 和 expected outcome 计算 `action_hash`。但当前 `/api/mock-seller-central/execute` 只验证 Issue 已进入 `approved_for_manual_execution`，以及可选的 `recommended_action_id` 属于该 Issue；它没有重新加载对应的已批准请求，也没有证明请求中的 `action_type` 与 `changes` 等于批准内容。
+历史实现只验证 Issue 已进入 `approved_for_manual_execution`，存在“批准 A，执行 B”或修改 `inbound_quantity` 的路径。该完整性缺口已在提交 `772174a` 中关闭：执行接口不再接受客户端业务动作和数量，而是从服务端 canonical approved plan 派生执行参数，并在副作用前重新核验 tenant、连接、marketplace、资源、policy、状态、expiry、contract version 和 action hash。
 
-因此目前存在“批准 A，执行 B”的路径。例如批准 `review_replenishment` 后，调用方仍可能提交另一个 Mock 允许的执行类型，或改变 `inbound_quantity`。这违反仓库对所有 side effect 的 action hash、审批、幂等和恢复语义要求，应在任何候选版本合并前修复。
+当前剩余风险不再是客户端篡改 happy path，而是真实 PostgreSQL 并发 reservation、真实 Amazon adapter 是否复用同一协议，以及失败恢复在外部基础设施下是否保持 exactly-once business effect。这些必须通过数据库和 adapter 级验收关闭。
 
 #### 最佳目标模型
 
@@ -444,7 +462,7 @@ ExecutablePlan   := server_side_projection(approved immutable payload)
 
 `checkfirst=True` 还会掩盖历史缺失：迁移可能因为“表已经存在”而通过，却没有证明列、约束、索引、RLS 和权限与期望一致。因此不能只修 `0001`，必须对整条链做决策。
 
-当前本地工作树已经选择并实现路径 A：删除 active 原型链，保留单一 head `0023`，使用显式 `0023_frozen_baseline.py` 固化表、约束、索引和 RLS registry，并新增 `ADR-001-freeze-alembic-baseline-before-default-branch-merge.md`、静态迁移测试与 SQLite fingerprint。剩余关键工作是由 Owner 对“无持久环境契约”进行书面确认，并在真实 PostgreSQL 上完成空库升级、catalog/RLS、非 owner 隔离和 Alembic check 后再提交。
+提交 `9965f6a` 已选择并实现路径 A：删除 active 原型链，保留单一 head `0023`，使用显式 `0023_frozen_baseline.py` 固化表、约束、索引和 RLS registry，并交付 migration ADR、静态迁移测试与 SQLite fingerprint。独立 PostgreSQL 16 审计库已经完成空库 `upgrade head`、`alembic check` 和 8 项 RLS/catalog/临时 non-owner 验证。剩余关键工作是由 Owner 对“无持久环境契约”进行书面确认，并补齐 PostgreSQL `downgrade base -> upgrade head -> check`、schema/RLS fingerprint、固定 `omnisell_app` NOBYPASSRLS 角色、审批执行并发和旧环境升级；若盘点否定路径 A，必须转入路径 B，不能以当前空库证据替代历史数据升级证据。
 
 ### 第一步：必须先完成环境盘点
 
@@ -499,6 +517,8 @@ ExecutablePlan   := server_side_projection(approved immutable payload)
 | 备份恢复后升级 | PostgreSQL 16 | 恢复与升级路径可重复 |
 | ORM 模型临时增加未迁移字段 | PostgreSQL 16 | 历史建库结果不变，`alembic check` 明确失败 |
 
+当前矩阵进度：路径 A 空库升级、`alembic check`、RLS catalog 和临时 non-owner tenant isolation 已通过；其余行仍按未完成处理。下一次 PostgreSQL 验收必须输出版本化、脱敏的 revision、server version、role attributes、schema/RLS fingerprint、命令状态和测试摘要，不能只在终端保留一次性成功日志。
+
 ### 自动化要求
 
 - CI 增加路径对应的空 PostgreSQL 建库检查。
@@ -522,19 +542,21 @@ ADR 必须说明 Context、已有环境、Decision、Alternatives、Consequences
 
 ### 预计工作量
 
-当前已完成路径 A 的主要实现，剩余预计 0.5 至 1.5 天用于 Owner attestation、PostgreSQL/容器验证、fingerprint 审查和提交。若盘点结果否定路径 A，必须放弃当前 squash 并转入路径 B，额外预计 3 至 5 天。
+当前已完成并提交路径 A 的主要实现，也完成了 PostgreSQL 空库和 RLS focused 验证。剩余预计 0.5 至 1 天用于 Owner attestation、PostgreSQL 往返、固定 app role、并发、fingerprint 和证据审查。若盘点结果否定路径 A，必须放弃当前 squash 并转入路径 B，额外预计 3 至 5 天。
 
 ## 8. P0-5 依赖漏洞与干净开发环境
 
 ### 当前问题
 
-- 已提交基线固定 `cryptography==49.0.0`，存在已知漏洞；当前未提交工作树已改为 `50.0.0`，两个 lock 也已固定到 `50.0.0`。
+- 历史基线固定 `cryptography==49.0.0`，存在已知漏洞；提交 `9965f6a` 已升级到 `50.0.0`，两个 lock 也固定到 `50.0.0`。
 - 当前 `.venv` 已重新同步，`pip check` 输出 `No broken requirements found`，lock reproducibility 检查通过。
 - runtime 和 dev lock 的 `pip-audit` 均报告无已知漏洞；bootstrap 已显式设置 Python 和 Console UTF-8，并在包含中文的仓库路径完成两次重建，未再触发 `pip_api` 解码异常。
 - 旧 `.venv-clean` 仍是历史失效环境，不能作为证据；新的 `.venv-candidate` 已从零重建并生成脱敏 manifest，但仍需在合并后的 clean clone 和 CI runner 再执行一次。
 - `start_local.ps1` 假设宿主机 Python 依赖已经安装，不是完整 bootstrap。
-- 当前 CI 已配置 hash lock、`pip check` 和双 lock `pip-audit`，但尚未提交和在 GitHub runner 上验证。
-- 版本化环境证据位于 `docs/evidence/environments/windows-clean-bootstrap-2026-08-05.json`，明确把 PostgreSQL RLS、Docker 和真实外部系统标为未验证。
+- 当前 CI 已提交 hash lock、`pip check` 和双 lock `pip-audit` 配置，但仍需通过 Draft PR 的 GitHub Required Checks 形成远端发布证据。
+- 版本化环境证据位于 `docs/evidence/environments/windows-clean-bootstrap-2026-08-05.json`，其中 PostgreSQL RLS 和 Docker 状态已经落后于本轮结果，必须更新或追加新 manifest，不能让历史 `not_verified` 覆盖新的分级证据。
+- 核心 API runtime 使用 `requirements.runtime.lock.txt`、`--require-hashes` 和可配置 PyPI 镜像后已经构建成功；Public ECR 基础镜像仍固定原 digest，没有降低镜像可追溯性。
+- `mock_platform/requirements.txt` 仍使用宽范围版本，`local_e2e_mock/requirements.txt` 使用独立 pin 且仍包含 `cryptography==49.0.0`。本轮 Compose 在 `mock-cloud` 安装 FastAPI/Starlette/AnyIO 时解析失败，说明“主应用 lock 已安全”尚不能代表“整个测试栈可复现”。
 
 ### 目标环境
 
@@ -560,10 +582,13 @@ ADR 必须说明 Context、已有环境、Decision、Alternatives、Consequences
 6. 为 runtime lock 增加“不得包含 pytest、pip-audit、lint/type 工具”的静态测试，为 dev lock 增加“必须包含 runtime closure”的一致性检查。
 7. Dependabot 只负责提出升级 PR，不替代 `pip-audit`、lock diff 审查和回归验证。
 8. 每次 lock 更新在 PR 中展示 direct dependency diff、transitive dependency diff、许可证变化和漏洞变化，避免把数百行机械变化作为不可审查噪声。
+9. 为 `mock_platform` 和 `local_e2e_mock` 建立独立的输入文件与 hash lock，或者在依赖闭包兼容时复用主 runtime lock；禁止辅助镜像继续在构建时自由解析 `fastapi>=...` 等宽范围依赖。
+10. 辅助镜像也必须统一 Python minor、基础镜像 digest、`PIP_INDEX_URL`、pip 版本和 `--require-hashes` 语义，并纳入 `pip check`/`pip-audit`；`local_e2e_mock` 的 `cryptography==49.0.0` 必须升级到已批准版本或删除不必要的直接 pin。
+11. 在生成辅助 lock 前先做最小依赖设计：Mock OIDC/JWT 服务只保留 FastAPI、ASGI server、JWT/crypto 和确实使用的 multipart 能力，避免复制主应用依赖；所有 extras 必须展开到可审查的传递闭包。
 
 ### Bootstrap 脚本职责
 
-当前工作树的 `scripts/bootstrap_dev.ps1` 已完成 Python 依赖、审计、迁移和 smoke 主路径。候选版本脚本职责与剩余增强如下：
+已提交的 `scripts/bootstrap_dev.ps1` 已完成 Python 依赖、审计、迁移和 smoke 主路径。候选版本脚本职责与剩余增强如下：
 
 1. 检查 Python 3.12 和 Docker CLI。
 2. 默认在当前仓库创建全新的 `.venv`，或允许显式传入位于安全目录的环境路径；覆盖已有环境必须使用 `-Recreate`。
@@ -601,6 +626,8 @@ ADR 必须说明 Context、已有环境、Decision、Alternatives、Consequences
 - 分别审计 runtime 和 development inputs。
 - CI 校验 lock 与输入文件同步；重新 compile 后有 diff 即失败。
 - Docker build 只复制和安装 `requirements.runtime.lock.txt`，不携带测试工具链。
+- 对每个 Compose build context 分别执行 lock freshness、hash install、`pip check` 和 `pip-audit`；主应用通过不能掩盖辅助镜像失败。
+- 增加 `docker compose build` 的独立 CI job，并在 build 成功后运行 `docker compose config --quiet`、镜像 health smoke 和依赖清单导出；Compose 服务启动与 Playwright 放在后续 integration job。
 - 上传 dependency audit 摘要作为短期 CI artifact。
 - 漏洞数据库更新导致的新失败应作为真实失败处理，不能固定旧漏洞数据库规避。
 
@@ -615,20 +642,22 @@ ADR 必须说明 Context、已有环境、Decision、Alternatives、Consequences
 - `pip check` 输出 `No broken requirements found`。
 - `pip-audit` 对 runtime 和 dev lock 均无已知未豁免漏洞；任何临时豁免必须有 CVE、影响分析、Owner 和到期日期。
 - 全量验证使用 Python 3.12。
-- 当前损坏的 `.venv` 与失效 `.venv-clean` 不再作为证据，clean-room 验证在仓库外全新临时目录完成。
+- 历史损坏的 `.venv` 与失效 `.venv-clean` 不再作为证据，clean-room 验证在仓库外全新临时目录完成。
+- API、worker、scheduler、migrate、frontend、mock-platform 和 mock-cloud 全部从锁定依赖构建；任一辅助镜像解析失败都使 Compose 门禁失败。
+- Compose 构建日志中不存在自由解析的宽范围生产依赖，所有 Python 镜像均可从版本化 lock 重建。
 - 文档结果与当前可重复执行结果一致。
 
 ### 预计工作量
 
-剩余 0.5 至 1 天，包括 bootstrap UTF-8 固化、clean-room 安装、容器验证和文档更新。
+本地 Windows clean-room 和核心 runtime image 已通过。剩余预计 0.5 至 1 天用于辅助 Mock lock、Compose 重建、clean clone/远端 CI 复验和环境证据更新；第二操作系统仍作为外部复验门禁。
 
 ## 9. P1-1 Failover Token 与费用预算契约
 
 ### 当前问题
 
-已提交基线中的 `StructuredBoundedAdvisor` 使用 `getattr` 获取 gateway 的 Token 上限和费率，开启 fallback 后可能把预检退化为 `None` Token 上限和 0 费率。当前本地工作树已新增 `ModelBudgetRequest`、`ModelAttemptBudget`、`ModelBudgetEstimate` 和 `estimate_worst_case()` 协议，Failover 会聚合 primary 与 fallback 的最坏调用和一次 Schema repair，Runtime 也开始持久化 reserved/actual/unattributed usage。
+历史基线中的 `StructuredBoundedAdvisor` 使用 `getattr` 获取 gateway 的 Token 上限和费率，开启 fallback 后可能把预检退化为 `None` Token 上限和 0 费率。提交 `877df7a` 已新增 `ModelBudgetRequest`、`ModelAttemptBudget`、`ModelBudgetEstimate` 和 `estimate_worst_case()` 协议，Failover 会聚合 primary 与 fallback 的最坏调用和一次 Schema repair，Runtime 也开始持久化 reserved/actual/unattributed usage。
 
-剩余风险是：该实现尚未经过全量、真实 provider、tenant 并发配额和失败计费对账验证，也尚未提交。当前 `aggregate_provider_token_limit` 等字段需要在 review 中明确“供应商各自上限之和”只是解释字段，真正的 admission control 必须同时校验每个 attempt 的 provider limit、workflow 总预算和 tenant 配额，不能通过一个聚合数字掩盖单个 fallback cap 不足。
+该实现已经通过全量本地回归和 contract 100% branch coverage。剩余风险是尚未完成真实 provider、tenant 并发配额和失败计费对账验证；`aggregate_provider_token_limit` 等字段必须继续明确“供应商各自上限之和”只是解释字段，真正的 admission control 同时校验每个 attempt 的 provider limit、workflow 总预算和 tenant 配额，不能通过一个聚合数字掩盖单个 fallback cap 不足。
 
 ### 目标设计
 
@@ -710,13 +739,13 @@ Fallback 只能由明确的可重试 provider 错误触发，例如 timeout、42
 
 ### 预计工作量
 
-剩余 0.5 至 1 天；若补齐持久化预算 reservation ledger 和并发配额事务，预计 1.5 至 2 天。
+类型化预算实现已经提交。剩余 0.5 至 1 天用于真实 provider usage 对账和远端 CI；若补齐持久化预算 reservation ledger 和并发配额事务，预计 1.5 至 2 天。
 
 ## 10. P1-2 Agent 评测体系
 
 ### 当前问题
 
-已提交基线中的 40 个安全案例主要检查 Prompt 是否包含概念，不能证明模型输出质量。当前本地工作树已经新增五个版本化 JSONL 数据集、固定模型输出 fixture、deterministic scorer、机器可读报告、Markdown 摘要和 operator review template；`--check` 可以复现当前报告。
+历史基线中的 40 个安全案例主要检查 Prompt 是否包含概念，不能证明模型输出质量。提交 `877df7a` 已新增五个版本化 JSONL 数据集、固定模型输出 fixture、deterministic scorer、机器可读报告、Markdown 摘要和 operator review template；`--check` 可以复现当前报告。
 
 现有版本化报告只有 12 个 synthetic fixed-fixture 案例，安全与引用指标虽然为 100%，Wilson 区间仍很宽，报告也正确标记 `release decision: no_go`、`real provider quality: not_verified`。因此当前成果证明了评测框架和 validator，不证明当前 provider 的真实质量，也不能替代具名 operator 采纳率。
 
@@ -841,7 +870,7 @@ evals/datasets/
 
 ### 当前问题
 
-历史真实模型记录中的四个正常案例全部需要一次 repair，延迟约 35.8 至 89.3 秒。当前本地工作树已经增加 first-pass/repair latency、错误分类和 provider call accounting，并通过强类型契约、transport schema 压缩和新 Prompt 版本缩小输出空间；Schema 证据检查可以复现。
+历史真实模型记录中的四个正常案例全部需要一次 repair，延迟约 35.8 至 89.3 秒。当前分支已经增加 first-pass/repair latency、错误分类和 provider call accounting，并通过强类型契约、transport schema 压缩和新 Prompt 版本缩小输出空间；Schema 证据检查可以复现，但尚未用真实 provider 重新建立优化后基线。
 
 但尚未使用同一真实 provider 数据集重新跑 baseline/candidate 对比，因此不能声称首次成功率或 P95 已改善。当前 synthetic fixture 的 100% first-pass 只能证明 fixture 与 Schema 一致，不能用于覆盖历史真实模型结果。
 
@@ -923,9 +952,15 @@ evals/datasets/
 
 ### 当前问题
 
-已提交基线中的 `internal_task_drafts`、`proposed_changes`、`difference_clusters`、`read_only_checks`、`internal_investigation_tasks` 和通用 action arguments 使用开放 `dict[str, Any]`。当前本地工作树已把主要 Advisor 输出改为显式 Pydantic 模型，action arguments 使用 discriminated union，字符串和集合增加边界，并新增 v1 -> v2 contract adapter 和 Schema 大小证据。
+历史基线中的 `internal_task_drafts`、`proposed_changes`、`difference_clusters`、`read_only_checks`、`internal_investigation_tasks` 和通用 action arguments 使用开放 `dict[str, Any]`。提交 `877df7a` 已把主要 Advisor 输出改为显式 Pydantic 模型，action arguments 使用 discriminated union，字符串和集合增加边界，并新增 v1 -> v2 contract adapter 和 Schema 大小证据。
 
-当前 `agents/contracts.py` 中仅保留 evidence `metadata: dict[str, Any]` 作为受控 provider metadata 边界，adapter 内仍使用开放 map 解析旧 payload。剩余工作是把 metadata 收紧为递归 `JsonValue`/白名单字段、为 adapter 增加资源和深度上限、生成前端/OpenAPI 类型，并通过真实 provider 指标确认强类型化没有放大 Schema 或降低首次成功率。
+当前本地批次已经继续关闭两个剩余边界：`EvidenceReference.metadata` 改为 `dict[Identifier, JsonValue]`，并对最大深度 6、单集合 128、总节点 256、字符串 2000 字符和 key 长度实施 fail-closed 校验；Legacy payload 在 `deepcopy` 前执行最大深度 12、单集合 500、总节点 5000、字符串 20000 字符的资源预算校验。operations、customer、listing、reconciliation 四类 v1 -> v2 迁移和非 JSON、深度、节点、超长输入负路径均已有测试。
+
+该项现在属于“本地实现和门禁已完成、尚未形成远端提交”。失败回归先证明 `metadata={"x": float("nan")}` 和 legacy payload 中的非有限数会通过资源校验，随后两个递归校验器统一增加 `math.isfinite`；`NaN`、正负 Infinity 的 6 个回归全部通过。`full_development` OpenAPI 已版本化，并通过 `openapi-typescript` 生成不可变、排序、支持路径参数类型的前端声明。兼容 adapter 仍可在解析阶段使用 `Any` 接收入站对象，但必须在复制、迁移、持久化和 Policy 消费之前完成预算与类型收敛。
+
+历史 payload 盘点所需的代码侧能力也已完成：`application/agent_payload_audit.py` 和 `scripts/scan_agent_payload_compatibility.py` 只接受显式重复提供的 `--tenant-id`，不会隐式发现或横扫全部租户；PostgreSQL 查询使用 `SET TRANSACTION READ ONLY` 并绑定 `app.current_tenant_id`；报告区分 `deterministic_fixture` 与 `persisted_database`，只包含计数、哈希 tenant ref、原因码和 record ID，不包含原始 payload、Prompt 或 tenant ID。拒绝原因稳定分类为 `unsupported_workflow`、`unsupported_schema_version`、`non_json_value`、`resource_budget_exceeded` 和 `invalid_payload`。版本化 fixture 已证明扫描、分类和脱敏契约；由于工作区不存在本地持久数据库，真实历史记录扫描尚未执行，不能据此声明历史数据全部兼容。
+
+metadata 敏感字段不再需要单独实现一套 sanitizer。现有 `sanitize_audit_details()` 已由 JSONL Audit 和 SQL Audit 共用，并递归覆盖 token、secret、password、authorization、api_key、credential、evidence、buyer message、order、address 和 Prompt 等内容。回归测试已显式覆盖 `metadata.api_key`、大小写不同的 `metadata.Authorization`、`metadata.buyer_message` 和列表内嵌 secret；Advisor workflow 另有断言保证阶段审计不记录原始 request 或 `analysis_result`。剩余工程工作仅包括真实持久数据库兼容扫描及 Database Owner 签字，以及通过真实 provider 对比 Schema token、首次成功率和 repair rate。
 
 ### 目标模型
 
@@ -962,11 +997,13 @@ evals/datasets/
 2. 按 Advisor 分批替换，不进行一次性全仓大改。
 3. 首先替换 Policy 会消费的 action arguments。
 4. 再替换 Listing 和 reconciliation 的开放 dict。
-5. 最后收紧通用 metadata，并增加统一 redaction。
+5. 收紧通用 metadata，并增加统一 redaction；资源预算必须在 `deepcopy` 或日志序列化之前执行。
 6. 前端类型从 OpenAPI 或共享类型生成，减少手工漂移。
 7. 对已持久化旧输出提供显式 adapter：`v1 payload -> v2 typed model`。读取兼容与新写入分离，新写入只允许最新 schema。
 8. 在 Policy 前增加 exhaustiveness check；新增 action type 时，如果没有对应参数模型、Policy rule、审计 redaction 和测试，构建直接失败。
 9. 比较迁移前后的 JSON Schema 大小和 Prompt Token；如果强类型化显著扩大 schema，按 Advisor 拆分专用 union，而不是重新退回开放 dict。
+10. 对历史持久化 payload 运行离线兼容扫描，输出总记录数、成功迁移数、拒绝原因分布和需要人工处理的 record IDs；扫描只读，不静默改写历史。
+11. 对真实数据库扫描必须要求 Database Owner 明确批准 tenant allowlist；保存未修改前后的记录数与 payload hash，版本化报告只保留脱敏汇总，原始报告进入受控证据存储。
 
 ### 对抗测试
 
@@ -975,7 +1012,7 @@ evals/datasets/
 - 递归大对象；
 - 未知 action type；
 - 在字符串内嵌工具调用 JSON；
-- 非有限 Decimal；
+- 非有限 Decimal 和 float `NaN/Infinity`；
 - 非 ISO currency、naive timestamp 和超大精度数字；
 - 跨租户 resource ID；
 - 不支持的 Listing 字段；
@@ -988,18 +1025,25 @@ evals/datasets/
 - Policy 消费的每个 action 都有确定的参数模型。
 - 旧持久化 payload 可通过版本化 adapter 读取，新 payload 不能以 `Any` 绕过限制。
 - Schema 大小、Prompt Token 和首次成功率均有前后对比。
+- 资源预算在 `deepcopy`、日志展开和 Pydantic 构造之前生效，深度或节点炸弹不会造成明显内存放大。
+- metadata 和 legacy payload 中的所有数值都可被标准 JSON 序列化，`NaN`、`Infinity` 和 `-Infinity` 必须 fail closed。
+- 前端或 OpenAPI 消费方不再手写重复的 action/task/change 类型。
+- 历史扫描器不得隐式跨租户枚举，不得写回、删除或静默修复 payload；真实数据库存在拒绝记录时必须 quarantine 为 `legacy_incompatible` 并进入人工处置。
+- JSONL 与 SQL Audit 对 Agent metadata 使用同一套递归 redaction；审计记录中不得出现原始 Prompt、buyer message、密钥或完整 `analysis_result`。
 
 ### 预计工作量
 
-2 至 3 天。
+本地契约、adapter 资源边界、严格 JSON 有限数检查、OpenAPI 前端类型、只读 payload scanner 和统一 Audit redaction 已通过 focused 回归与漂移门禁。剩余本地工作约 0.25 天，用于拆分提交和证据索引更新；真实持久数据库扫描取决于 Database Owner 与可用环境，真实 provider 回归计入第 11 章，两者都不得用 deterministic fixture 代替。
 
 ## 13. P1-5 Legacy AutoGen 与模型配置命名
 
 ### 当前问题
 
-已提交基线中生产 bounded advisors 与旧 AutoGen GroupChat 同时位于顶层 `agents/`，`agents/__init__.py` 默认暴露 GroupChat，管理路由依赖 `agents.base`，通用 provider 又使用 `VLLM_*` 命名。当前本地工作树已经把 AutoGen 移入 `legacy/autogen_demo/`，生产 import graph 增加静态边界测试，runtime requirements 不再安装 legacy AutoGen，`agents/__init__.py` 不再导出 GroupChat。
+历史基线中生产 bounded advisors 与旧 AutoGen GroupChat 同时位于顶层 `agents/`，`agents/__init__.py` 默认暴露 GroupChat，管理路由依赖 `agents.base`，通用 provider 又使用 `VLLM_*` 命名。当前分支已经把 AutoGen 移入 `legacy/autogen_demo/`，生产 import graph 增加静态边界测试，runtime requirements 不再安装 legacy AutoGen，`agents/__init__.py` 不再导出 GroupChat。
 
-通用配置已迁移为 `MODEL_*`，旧 `VLLM_*` 只保留一个版本周期的兼容 alias，新旧值冲突时 fail closed，并有迁移文档。剩余工作是完成全量启动/部署验证、清理脚本名称中的 `test_vllm.py` 等误导表达，并在候选版本 manifest 中写明 alias 的明确删除版本。
+通用配置已迁移为 `MODEL_*`，旧 `VLLM_*` 只保留兼容 alias，新旧值冲突时 fail closed，并有迁移文档。当前本地批次已删除 `scripts/test_vllm.py`，新增 provider-neutral 的 `scripts/test_model_gateway.py`；真实模型 smoke 与 vision tool 统一读取 Settings；`VLLM_*` 只允许出现在 `api/config.py` 兼容层、测试和迁移说明中；兼容 alias 明确在 `2.0.0` 删除。
+
+本地全量测试会因为机器 `.env` 仍配置旧变量而出现一次预期 `DeprecationWarning`。该 warning 证明兼容层生效，但不代表部署环境已经完成迁移；不得读取或修改可能含密钥的本地 `.env`。剩余工作是提交该批次、验证 clean environment 仅使用 `MODEL_*` 启动、逐环境迁移 Secret/Compose/Kubernetes 配置，并在 `2.0.0` 前完成使用量盘点。
 
 ### 目录方案
 
@@ -1032,7 +1076,7 @@ infrastructure/
    - `MODEL_NAME`；
    - `MODEL_API_KEY`；
    - `MODEL_PROVIDER`。
-7. `VLLM_*` 作为一个版本周期的 deprecated aliases。若新旧变量同时存在且值冲突，启动失败；只使用旧变量时输出不含密钥的弃用警告和移除版本。
+7. `VLLM_*` 作为 deprecated aliases 保留到 `2.0.0`。若新旧变量同时存在且值冲突，启动失败；只使用旧变量时输出不含密钥的弃用警告和移除版本。
 8. Ollama 配置只出现在本地 adapter 和本地文档中。
 9. README、OpenAPI 和主架构入口只描述 bounded advisor runtime。
 10. 分两次提交：先断开生产 import 并验证，再移动 Legacy 文件。这样回归定位更清晰。
@@ -1043,22 +1087,26 @@ infrastructure/
 - production import graph 不包含 `legacy.autogen_demo`。
 - `rg "VLLM_"` 只出现在兼容 alias、迁移说明或 legacy 文档中。
 - production health 不依赖 `agents.base`。
-- 新旧模型环境变量冲突时 fail fast，兼容 alias 有明确删除日期和测试。
+- 新旧模型环境变量冲突时 fail fast，兼容 alias 的明确删除版本为 `2.0.0`，并有测试。
 - Legacy demo 仍可在明确的非生产入口运行，或被完整移除并记录原因。
+- clean environment 在不设置任何 `VLLM_*` 的条件下完成 API startup、真实模型 smoke 配置解析和前端/Compose 配置检查。
+- 发布前生成旧变量使用清单；`2.0.0` 删除时，没有部署或 runbook 仍依赖兼容 alias。
 
 ### 预计工作量
 
-剩余 0.5 至 1 天，包括全量 import/startup 回归、兼容 alias 退场计划和提交整理。
+本地代码和测试已完成。剩余预计 0.25 至 0.5 天用于提交整理、clean environment 启动验证和部署配置清单；各环境 Secret 迁移依赖实际部署 owner，`2.0.0` 删除动作进入后续版本计划。
 
 ## 14. P1-6 API 范围与演示收敛
 
 ### 当前问题
 
-当前约有 135 个后端路由装饰器和 68 个前端 BFF route。功能丰富，但会稀释“高级智能体工程项目”的核心叙事，也增加面试时被追问未完成业务面的概率。
+历史审计依赖搜索表达式估算后端路由数量，结果曾在 119 至 135 之间漂移。当前本地批次已经用实际 FastAPI `APIRoute` 注册结果生成版本化 inventory，稳定口径为 136 个 method/path 条目；前端 69 个 BFF route 文件导出 83 个 HTTP handler。数量本身不是缺陷，真正风险是能力没有 owner、发布状态、来源和写入边界，导致面试范围失焦并增加误暴露概率。
 
-路由数量是近似审计值，不能长期手工维护。不同搜索表达式对 decorator、webhook 和动态注册的统计会不同，因此优化目标不是追求一个更小的数字，而是让每条暴露能力都有 owner、风险、profile 和证据。
+当前本地实现正式定义 `full_development`、`golden_demo`、`read_only_pilot`，旧 `full`、`interview` 仅作为到 `2.0.0` 的兼容别名。`api/main.py` 不再手工散列 `include_router`，而由统一 route catalog 根据 profile 和 environment 注册；生产环境强制 `read_only_pilot`，Mock 与 legacy route 不会在生产注册；`golden_demo` 同时在后端路由、前端导航和 middleware 阻止扩展能力直接访问。版本化 inventory 当前记录 owner、auth scope、tenant scope、risk、stability、data provenance、write capability、profile 和 environment，并已接入 CI `--check`。
 
-当前本地工作树已增加 `NEXT_PUBLIC_RELEASE_PROFILE=interview`，面试导航只暴露 Overview、Issues、Approvals、Mock Seller Central 和 Agent Monitoring，扩展页面仍保留实现。该改动解决了“演示叙事过散”的一部分问题，但没有形成后端 route inventory，也没有防止面试 profile 直接访问未展示的扩展 API；发布 profile 必须被定义为展示收敛，不得被误当成授权边界。
+当前实现已补齐 route group 之外的逐 method 控制字段：`side_effect_class`、`idempotency`、`policy_required`、`approval_required`、`audit_required`、`recovery_strategy`、`external_write_status` 和分类来源。高风险批准计划执行、Listing 手工执行、审批创建/决策等路径使用显式 override；GET/HEAD/OPTIONS 强制为无副作用。TypeScript AST 生成器从 69 个 BFF 文件提取 83 个 handler，81 个代理全部映射到后端 method/path 并证明 OIDC Bearer 传播，2 个 NextAuth handler 独立分类；生成的 profile manifest 由 middleware 在代理前 deny-by-default。
+
+完整 `full_development` OpenAPI schema 已版本化，并生成前端 `api-schema.d.ts`；测试逐 method/path 比对 OpenAPI 与 136 条 catalog，CI 同时执行 backend inventory、OpenAPI、BFF inventory 和 API type `--check`。仍需保持边界清醒：Release Profile 是发布面控制，不替代授权、RLS、Policy 或 action hash；静态 manifest 也不能替代真实浏览器、OIDC 会话和代理运行时验证。该项现在应标记为“代码与静态治理本地完成，提交和 Playwright 运行时证据待完成”。
 
 ### 最佳策略
 
@@ -1070,16 +1118,19 @@ infrastructure/
 
 ### 路由治理
 
-1. 从 FastAPI OpenAPI 和 Next route manifest 自动生成 route inventory，记录 method、path、owner、auth scope、tenant scope、release profile、stability、data provenance 和 write capability。
+1. 保留当前 FastAPI catalog 生成的 inventory，记录 method、path、owner、auth scope、tenant scope、release profile、stability、data provenance 和 write capability。
 2. 将 legacy、Mock 和 experimental routes 分别标记。
 3. 生产配置不得注册 Mock 和 legacy routes。
-4. 面试配置可以保留后端完整能力，但前端导航只展示黄金闭环。
+4. `golden_demo` 同时限制后端注册、前端导航和 middleware 访问，不只做视觉隐藏；扩展能力使用 `full_development`。
 5. OpenAPI tag 和 README 只把核心流程标为候选能力。
 6. CI 生成 route count 和新增 route diff，防止范围无意识增长。
 7. 所有写相关路由注明 `manual_only`、`blocked_read_only` 或未来 approval-gated 状态。
 8. profile 在路由注册和前端构建/运行配置两层同时生效；仅隐藏导航不算隔离。
 9. 对 `golden_demo` 和 `read_only_pilot` 运行 route allowlist 测试，发现未分类或意外写路由时构建失败。
 10. Mock route 的响应和 UI 必须显示 machine-readable provenance，避免只依赖页面文案区分真假数据。
+11. 已为 group metadata 增加逐路由 override，并记录 `side_effect_class`、`idempotency`、`policy_required`、`approval_required`、`audit_required`、`recovery_strategy` 和 `external_write_status`。
+12. 已生成 Next BFF inventory，并验证每个 BFF upstream target、method、auth propagation、tenant propagation 和允许 profile；BFF 不重建 approved plan，也不拥有业务事实。
+13. 已版本化 FastAPI OpenAPI schema 并生成前端类型，使 catalog、OpenAPI、BFF manifest 三方漂移检查完整；任何新增路由或契约未分类时 CI fail closed。
 
 ### 面试演示范围
 
@@ -1101,18 +1152,31 @@ infrastructure/
 - 生产 profile 不注册 Mock 或 legacy routes。
 - `read_only_pilot` 对写方法和写 capability 采用 deny-by-default；新增路由未分类时 CI 失败。
 - route inventory 由实际应用注册结果生成，与 OpenAPI 和前端代理映射无漂移。
+- `read_only_pilot` 的“只读”明确指禁止外部 Amazon 写入；为同步、审批、审计等内部控制产生的数据库写入必须单独分类，不能用 HTTP method 粗暴判断。
+- 每个 BFF route 都有已验证的 backend target 或被明确标记为 NextAuth/internal；不存在未登记代理。
 
 ### 预计工作量
 
-1 至 2 天。
+后端 profile、逐路由 controls、BFF AST inventory、OpenAPI 前端类型、middleware profile gate 和 CI 漂移检查已在本地完成。剩余预计 0.25 至 0.5 天用于文档同步和拆分提交；Playwright 访问控制复验计入第 15 章。
 
 ## 15. P1-7 黄金缺货闭环全栈自动验收
 
 ### 当前问题
 
-当前本地 `tests/test_golden_stockout_acceptance.py` 已经使用 ASGI/API 完整串联重置、同步、Issue/Action/Work Item、Operator 认领、双人审批、Mock Seller Central 执行、Inbox 事件消费、重新同步、Issue resolved、Execution verified 和 Work Item completed，并持续断言 Mock provenance 不能变成 verified Amazon data。相关 focused 集合为 `6 passed`。
+已提交的 `tests/test_golden_stockout_acceptance.py` 使用 ASGI/API 完整串联重置、同步、Issue/Action/Work Item、Operator 认领、双人审批、Mock Seller Central 执行、Inbox 事件消费、重新同步、Issue resolved、Execution verified 和 Work Item completed，并持续断言 Mock provenance 不能变成 verified Amazon data。相关 focused 集合为 `6 passed`。
 
-它仍不是最终“全栈”证据：身份通过测试 header 构造，基础设施使用进程内 ASGI/SQLite/内存任务模式，没有覆盖真实 OIDC 会话、PostgreSQL 非 owner role、Redis/Celery、Compose 和 Playwright。更重要的是，第 6.1 节描述的批准计划与实际执行参数强绑定尚未实现，因此当前 happy path 能通过，但篡改路径仍是 P0。
+它仍不是最终“全栈”证据：身份通过测试 header 构造，基础设施使用进程内 ASGI/SQLite/内存任务模式，没有覆盖真实 OIDC 会话、Redis/Celery、完整 Compose 和 Playwright。PostgreSQL non-owner RLS 已在独立审计库 focused suite 中通过，但尚未与整栈、固定 app role 和浏览器身份链结合。第 6.1 节的批准计划与实际执行参数强绑定已经实现，并由篡改、跨租户、幂等和并发 reservation 负路径保护；剩余差距是把同一协议放到真实基础设施和浏览器身份链路中复验。
+
+本轮已实际执行 `start_local.ps1 -ReleaseProfile golden_demo -SkipSmoke`。API、migrate、worker、scheduler 和 frontend 镜像完成构建，但 `mock-cloud` 在安装 `local_e2e_mock/requirements.txt` 时因 FastAPI/Starlette/AnyIO 解析冲突失败，`mock-platform` 构建被连带取消，所有服务均未启动。因此当前状态是“构建链路已触达并定位阻塞”，不是“Compose 已验证”。
+
+最佳处理顺序必须把基础设施可复现性放在 Playwright 之前：
+
+1. 先为两个辅助 Mock 服务生成独立 hash lock，统一 Python 3.12、基础镜像 digest、PyPI mirror 和安全版本；删除 `cryptography==49.0.0`，并避免宽范围 FastAPI/Uvicorn 依赖在镜像构建时自由求解。
+2. 为每个辅助服务增加最小 import/health 测试和 `pip check`/`pip-audit`；测试先复现当前 resolver failure，再修改依赖。
+3. 单独执行 `docker compose build mock-cloud mock-platform`，通过后再构建全栈；失败日志必须能定位到具体镜像，而不是只由 `start_local.ps1` 返回总括错误。
+4. 全部镜像构建通过后启动 Compose，先验证 PostgreSQL/Redis/OIDC/mock-cloud/mock-platform 健康，再启动 API、worker、scheduler 和 frontend。
+5. 运行现有 API 与 frontend auth smoke，确认 `golden_demo` 只暴露批准的 route catalog，`read_only_pilot` deny-by-default，且 Mock UI 不会在只读生产 profile 出现。
+6. 基础 smoke 稳定后再引入 Playwright 身份切换和完整业务闭环，避免同时调试依赖、容器网络、OIDC、异步任务和 UI 五类问题。
 
 ### 黄金场景
 
@@ -1150,6 +1214,8 @@ infrastructure/
 - OIDC 会话分别属于 Owner、Operator、Approver 1、Approver 2；测试必须断言 subject 不同，不能只换显示名称。
 - 所有轮询基于业务状态和 correlation ID，不使用固定长 `sleep`；超时时输出最后状态和未消费事件。
 - Agent/provider 不是该闭环成功的硬依赖：预置或回放的 Advisor 草稿必须明确标记为 synthetic/Mock，确定性 issue、审批和验证链仍可独立运行。
+- 所有 Compose Python 镜像使用版本化 hash lock；不得只锁主 API 而让 OIDC/Mock 辅助服务自由解析依赖。
+- Compose 启动分为 `build -> infrastructure health -> application health -> auth smoke -> business e2e` 五个阶段，每个阶段有独立超时和诊断输出。
 
 ### 必须覆盖的失败分支
 
@@ -1183,18 +1249,22 @@ infrastructure/
 - 失败截图不会包含 token、PII 或业务密钥。
 - 同一测试连续运行两次均通过，第二次不受第一次残留状态影响。
 - 演示模式关闭实时 Amazon 写入，并在 UI/API provenance 中明确显示 Mock Seller Central。
+- 所有 Compose 镜像先通过 dependency lock、`pip check` 和漏洞门禁；辅助镜像失败不得被标记为“非核心可忽略”。
+- `golden_demo` 和 `read_only_pilot` 分别完成允许路径与拒绝路径的浏览器验证。
 
 ### 预计工作量
 
-1.5 至 2.5 天。
+2 至 3 天，其中约 0.5 天用于辅助镜像依赖锁和 Compose preflight，1 至 1.5 天用于 OIDC/Playwright 主闭环，剩余时间用于失败分支、脱敏产物和重复运行稳定性。
 
 ## 16. P1-8 Python 工具链与质量门禁
 
 ### 当前问题
 
-已提交基线已有 pytest markers、CI matrix、compileall、Alembic、frontend typecheck/build、container scan 和 secret scan。当前本地工作树进一步新增统一 `pyproject.toml`、Ruff、Pyright、pytest-cov、diff-cover、branch coverage 和关键文件门禁脚本，`pytest.ini` 配置已迁移到 `pyproject.toml`，CI 已有 `pip check`。
+原基线已有 pytest markers、CI matrix、compileall、Alembic、frontend typecheck/build、container scan 和 secret scan。提交 `9965f6a` 进一步新增统一 `pyproject.toml`、Ruff、Pyright、pytest-cov、diff-cover、branch coverage 和关键文件门禁脚本，`pytest.ini` 配置已迁移到 `pyproject.toml`，CI 已有 `pip check`。
 
-当前本地验证结果是：Ruff check/format 通过，Pyright 为 `0 errors`；最终全量测试为 `632 passed, 8 skipped`，最近一次 coverage run 的总 branch coverage 为 `81.90%`；8 个高风险文件分别达到 88.24% 至 100%，全部越过既定门槛。CI 已接入 Ruff、Pyright、Schema/eval `--check`、独立 coverage artifact 和 critical coverage；diff coverage 尚未设为阻断，远端 CI 也尚未执行。因此该项应标记为“本地完成、远端交付待验证”，不能把未提交配置称为正式门禁。
+当前本地最终结果是：Ruff check/format 通过，337 个文件格式一致；Pyright 为 `0 errors, 0 warnings`；全量为 `753 passed, 8 skipped`，coverage.py branch-aware total `86.62%`，statement `89.58%`，branch-only `74.21%`。相对 `origin/main` 的 diff coverage 为 `90%`。关键门禁已扩展到 13 个高风险文件：contract adapters 97.50%、contracts 97.20%、evidence 100%、release profiles 100%、route catalog 98.55%、payload audit 97.22%、inventory 92.86%、pricing 99.44%、profitability 100%、gateway contract 100%、safety HITL 97.55%、policy 98.77%、workflow 88.24%。compileall、route/OpenAPI/BFF inventory、前端 API types、typecheck/build 和 `pip check` 均通过。
+
+这仍不是完整的“工具链已发布”：新增高风险模块的 Pyright/coverage 门禁、route inventory check 和 diff coverage hard gate 尚未提交；Pyright 仍采用 `basic` 且只覆盖高风险文件，不代表全仓静态类型通过；远端 Draft PR Required Checks、Compose 和第二操作系统尚未执行。PostgreSQL focused suite 已从 skip 升级为真实 `8 passed`，但数据库往返、固定 app role 和并发仍需独立 job。因此准确状态是“本地扩展门禁已验证，远端发布门禁待完成”。
 
 ### 工具选择
 
@@ -1226,6 +1296,8 @@ infrastructure/
 
 Ruff 建议先启用 `E/F/I/UP/B/SIM` 中低争议规则，再逐步加入安全和复杂度规则。Pyright 对高风险模块从 `basic` 收敛到 `strict`；`# type: ignore` 必须带错误码和理由。格式化与 lint 分成独立命令，避免 CI 自动修改工作树。
 
+当前下一批静态类型扩展应优先覆盖 `application/manual_execution_contract.py`、`infrastructure/repositories/hitl.py`、`infrastructure/repositories/manual_execution.py`、`api/config.py` 和生成 route inventory 的脚本。每批先修正真实错误，再扩大 include；不得通过降低全局规则、加入宽泛 `Any` 或整目录 exclude 让数字变绿。
+
 ### 覆盖率策略
 
 不追求单一漂亮总覆盖率。采用风险分层：
@@ -1237,7 +1309,7 @@ Ruff 建议先启用 `E/F/I/UP/B/SIM` 中低争议规则，再逐步加入安全
 
 覆盖率不替代 PostgreSQL、并发、RLS 和真实 provider 测试。
 
-同时启用 branch coverage 和 diff coverage。全仓阈值用于防止整体回退，diff coverage 建议 >= 90%，确保新增安全分支得到测试。模块级阈值通过独立 coverage report 或脚本校验，不依赖一个总百分比掩盖关键目录缺口。
+同时启用 branch coverage 和 diff coverage。全仓阈值用于防止整体回退，diff coverage 已按 `>=90%` 配置为 CI 阻断门禁，确保新增安全分支得到测试；checkout 必须保留完整目标分支历史，比较基线不可用时应失败而不是跳过。模块级阈值通过独立 coverage report 或脚本校验，不依赖一个总百分比掩盖关键目录缺口。
 
 ### CI 顺序
 
@@ -1260,10 +1332,13 @@ CI 应拆为可并行且名称稳定的 jobs；`quality`、`unit`、`postgres-in
 - 关键安全模块达到风险覆盖率门槛。
 - branch/diff coverage 达到批准门槛，排除项有 owner 和失效日期。
 - CI 失败信息可以定位到具体门禁，而不是一个超长综合命令。
+- `scripts/check_critical_coverage.py` 的阈值删除或降低会被生产质量测试阻止；调整必须附风险说明和 reviewer。
+- Pyright 覆盖范围和模式在版本化清单中可见，面试材料不得把受控子集表述为“全仓 strict typing”。
+- 路由、Agent Schema 和 eval 证据发生变化时，CI 能检测版本化产物漂移。
 
 ### 预计工作量
 
-本地实现与门禁已完成。剩余工作是拆分提交、运行远端 CI、审查 diff coverage 是否适合作为阻断项，并在 PostgreSQL/容器环境补齐外部证据；任何门槛调整必须记录理由，不得仅为通过 CI。
+本地扩展实现和 90% diff coverage hard gate 已完成。剩余预计 0.25 至 0.5 天用于拆分提交、在 Draft PR 运行稳定命名的 Required Checks，并确认目标分支比较、HTML artifact 和失败注释都按预期工作；Compose、剩余 PostgreSQL 矩阵和第二操作系统证据计入后续门禁。任何门槛调整必须记录理由，不得仅为通过 CI。
 
 ## 17. P2-1 正式面试资料包
 
@@ -1364,7 +1439,7 @@ Migration 工程 ADR 继续独立保留，不占上述三篇产品架构 ADR 名
 
 必须明确：
 
-- 9 个个人作者提交和 1 个上游作者提交的边界；
+- 当前候选分支 17 个提交的作者、来源和责任边界，特别是上游作者提交与候选人主导提交的区别；
 - 哪些设计由本人提出和取舍；
 - 哪些代码由 AI 辅助生成；
 - 哪些测试、故障定位和外部验证由本人完成；
@@ -1379,7 +1454,7 @@ Migration 工程 ADR 继续独立保留，不占上述三篇产品架构 ADR 名
 
 ### 预计工作量
 
-2 至 3 天，不包含真实运营人员评分。
+资料主体和自动门禁已完成。剩余预计 0.5 至 1.5 天用于候选人签字、PR/CI 链接回填、数字复核和演示排练，不包含真实运营人员评分。
 
 ## 18. P2-2 真实业务与外部验证
 
@@ -1440,23 +1515,38 @@ AMAZON_PILOT_READ_ONLY=true
 
 真实只读 Pilot 完成也不代表可以开启写入。任何写动作还必须单独完成 owner、权限、策略、审批、幂等、action hash、审计、回滚、canary 和结果验证。退款、支付逆转、自主取消和跨租户操作继续永久阻断。
 
-## 19. 建议提交序列
+## 19. 已完成提交序列与剩余交付
 
-在现有 10 个提交之后建议追加以下可审查提交：
+`00de543` 之前的 10 个提交构成平台、确定性业务域、治理、Agent Runtime、前端、UAT 和发布基线。其后的硬化工作已经收口为以下 7 个提交：
 
-1. `fix(approval): align policy decisions with persistent HITL states`
-2. `fix(execution): bind manual side effects to approved plans`
-3. `fix(migrations): establish immutable PostgreSQL baseline`
-4. `chore(deps): secure and reproduce the Python environment`
-5. `fix(model-gateway): preserve budgets across provider failover`
-6. `refactor(agent-contracts): replace open output maps with typed models`
-7. `test(evals): add versioned output quality and safety datasets`
-8. `test(e2e): automate the golden stockout workflow and demo profile`
-9. `refactor(runtime): isolate legacy agents and migrate model configuration`
-10. `chore(quality): add lint type coverage and dependency gates`
-11. `docs(interview): publish evidence-backed interview materials`
+| 提交 | 责任范围 |
+| --- | --- |
+| `772174a` | 审批语义、immutable execution plan、action hash、幂等、并发 reservation 和篡改拒绝 |
+| `877df7a` | 类型化 Failover 预算、强类型 Agent 契约、版本化评测和 Schema 证据 |
+| `9965f6a` | 冻结迁移、依赖锁、clean bootstrap、Ruff、Pyright、coverage 和 CI 门禁 |
+| `25d4066` | 确定性核心服务、repository 和租户边界硬化 |
+| `1f85f06` | Auth Mock、平台配置和本地验证收口 |
+| `54fef73` | 面试导航 profile 和前端演示范围 |
+| `d533bfa` | 项目优化总方案、Threat Model、ADR、失败复盘、评测证据和贡献矩阵 |
 
-当前本地工作树跨越 160 个文件状态，上述顺序必须通过明确 pathspec、提交清单和逐提交 diff 审查精确拆分，并在每个提交后运行对应 focused suite。若某项修改过大，应按 migration、application compatibility 和 tests 再拆分。不要把所有 P0/P1 重新合成一个提交，也不要重写已经被他人审查或引用的远端历史。
+后续不得重写或压缩这 7 个已推送提交。剩余变更只按实际验收结果追加：
+
+当前本地待提交批次建议拆为以下 4 个提交，保持代码责任和评审证据清晰：
+
+1. `feat(platform): enforce release profiles and route ownership`：Release Profile、route catalog、136 条 inventory、后端注册、前端导航/middleware、Compose/Docker 配置、CI inventory check 和 profile 测试。
+2. `refactor(agents): bound metadata and legacy payload migration`：递归 `JsonValue`、metadata/legacy payload 资源预算、四类 adapter 迁移、逐租户只读历史 payload scanner、Audit metadata redaction 回归和新增静态/覆盖率门禁。
+3. `chore(models): complete generic model configuration migration`：统一 Settings、删除 `test_vllm.py`、新增 provider-neutral smoke、`2.0.0` 退场策略和环境示例。
+4. `docs(interview): update optimization evidence`：更新优化总方案、API/演示范围、配置迁移说明、面试索引和最终验证数字。
+
+完成上述批次后，外部验收继续按以下提交追加：
+
+1. `fix(test-infra): lock auxiliary mock service dependencies`，先用失败构建回归固定当前 resolver conflict，再交付独立 hash lock、统一镜像参数、`pip check`/`pip-audit` 和 Compose build smoke。
+2. `test(postgres): verify frozen baseline rls and execution concurrency`，包含已完成的真实 RLS fixture 修正，并在 downgrade/upgrade、fixed app role、fingerprint 和 concurrency 证据完成后创建。
+3. `test(e2e): verify compose oidc and browser golden loop`，仅在 Compose/Playwright 验收完成后创建。
+4. `test(evals): publish controlled real-provider candidate report`，必须保留失败样例和 `Go/No-Go` 原结论。
+5. `docs(release): record pr ci external gates and candidate decision`，汇总 PR、CI、签字和外部门禁，不混入功能代码。
+
+每个新增提交都必须包含 focused suite、全量影响说明和证据等级。不要为了得到整齐的提交数量而制造无实质内容的提交，也不要把外部未验证项写成已完成。
 
 ## 20. 分阶段排期
 
@@ -1475,38 +1565,38 @@ AMAZON_PILOT_READ_ONLY=true
 
 每个阶段结束召开一次短 Go/No-Go 审查，输入是机器证据和明确缺口，不是口头“基本完成”。No-Go 项必须保留 owner、下一动作和复核日期。
 
-### 阶段 A：P0 安全与可复现，当前路径 A 剩余预计 3 至 5 个工程日
+### 阶段 A：P0 发布与真实基础设施复验，剩余预计 1 至 3 个工程日
 
+- 将当前本地批次按第 19 章拆分提交并推送，不改写已有 7 个远端硬化提交；
 - Draft PR 和 required checks；
-- 审批语义；
-- 审批计划与执行动作强绑定；
-- migration decision 和实现；
-- dependency/security；
-- clean bootstrap；
-- 全量回归和 PostgreSQL 验证。
+- 在 Draft PR 上执行稳定命名的 Required Checks；
+- 由 Owner 签字确认 migration 路径 A 的环境前提；
+- 保留已通过的 PostgreSQL 16 空库升级、`alembic check`、RLS catalog 和临时 non-owner 证据，并补齐 downgrade/upgrade、固定 `omnisell_app` NOBYPASSRLS 角色、schema/RLS fingerprint 和 execution concurrency；
+- 锁定 `mock-cloud`/`mock-platform` 辅助依赖并让 `docker compose build` 通过，关闭当前可复现 resolver No-Go；
+- 在 clean clone/CI runner 复验 hash 安装、`pip check`、双 `pip-audit`、全量回归和前端构建；
+- 根据验证结果决定 Ready/No-Go，不在门禁失败时合并或打标签。
 
 阶段出口：代码可以安全进入默认分支，项目约达到 8.0/10 的工程候选状态；Agent 质量、完整演示和外部业务价值仍是 Conditional。
 
-### 阶段 B：Agent 质量与黄金闭环，当前剩余预计 7 至 12 个工程日
+### 阶段 B：Agent 质量与黄金闭环，剩余预计 3 至 6 个工程日
 
-- Failover 预算；
-- 强类型契约；
-- 评测数据集和报告；
-- Schema/latency 优化；
-- 全栈黄金闭环；
-- Legacy/API/tooling 收敛。
+- 使用当前强类型契约和 Prompt/Schema 版本重新运行两批真实 provider 评测；
+- 优化并证明 first-pass Schema、repair rate、P50/P95、Token 和成本，而不是只展示兼容性 smoke；
+- 在依赖 preflight 通过后启动 PostgreSQL、Redis、OIDC、Mock services、API、worker、scheduler 和 frontend，并先完成 health/auth smoke；
+- 使用 PostgreSQL、Redis/Celery、OIDC 和 Playwright 完成浏览器黄金闭环；
+- 在 Compose/Playwright 中验证 catalog/OpenAPI/BFF 已声明的 profile 访问控制和真实 OIDC 传播；
+- 在真实浏览器和 production-like startup 中验证 `golden_demo`/`read_only_pilot` 的 deny-by-default 行为；
+- 完成部署环境从 `VLLM_*` 到 `MODEL_*` 的迁移清单，保持 `2.0.0` 删除门槛；
+- 将真实 provider、Mock、deterministic 和人工结果分栏发布。
 
 阶段出口：核心技术证据达到约 8.2 至 8.3/10；完成阶段 C 的材料化和可讲述性验证后，才可标记为约 8.5/10。
 
-### 阶段 C：面试材料，预计 2 至 3 天
+### 阶段 C：面试材料签字与演练，剩余预计 0.5 至 1.5 天
 
-- 项目 brief；
-- 四张图；
-- Threat Model；
-- ADR；
-- failure cases；
-- contribution matrix；
-- 10 分钟演示和备用问答。
+- 候选人签字确认 contribution matrix、AI 辅助范围和个人验证责任；
+- 将 Draft PR、CI、commit 和外部证据链接补入索引；
+- 对现有 brief、四张图、Threat Model、ADR 和 failure cases 做数字一致性复核；
+- 完成 10 分钟演示、30 分钟深挖问答和 provider 不可用时的降级演练。
 
 阶段出口：候选标签、演示脚本、数字来源和个人贡献边界全部可审查，达到约 8.5/10 的高级 Agent 工程面试候选水平。
 
@@ -1519,7 +1609,7 @@ AMAZON_PILOT_READ_ONLY=true
 
 该阶段可以与求职面试并行，但未完成前必须保持准确表述。
 
-以上为单人净工程日估算，不含等待外部凭证、GitHub 审查、provider 限流和具名运营人员排期。基于当前本地实现，阶段 A-C 剩余约 12 至 20 个工程日；若 PostgreSQL 验证否定 migration 路径 A，或真实 provider 仍保持高 repair/高延迟，应按对应章节追加时间。部分工具链、材料和评测准备可以交错进行，但不得通过并行掩盖 P0 依赖关系。
+以上为单人净工程日估算，不含等待外部凭证、GitHub 审查、Docker 环境恢复、provider 限流和具名运营人员排期。基于当前远端基线与本地已验证批次，阶段 A-C 剩余约 5 至 11 个工程日；若 PostgreSQL 验证否定 migration 路径 A，或真实 provider 仍保持高 repair/高延迟，应按对应章节追加时间。部分材料和评测准备可以交错进行，但不得通过并行掩盖 P0 依赖关系。
 
 ## 21. 全项目验收矩阵
 
@@ -1558,6 +1648,10 @@ AMAZON_PILOT_READ_ONLY=true
 | 演示依赖实时 provider | 现场不可控 | 黄金闭环确定性可运行，模型结果预留降级路径 |
 | 批准 A 后执行 B 或修改参数 | 审批完整性失效并产生未授权副作用 | 执行从服务端 immutable approved plan 派生，执行前重算 hash |
 | Windows 中文路径导致审计工具异常 | clean bootstrap 在候选机器失败 | bootstrap 固化 UTF-8 子进程环境并增加非 ASCII 路径 smoke |
+| 把 Release Profile 当成授权边界 | 隐藏页面后仍可能越权调用 API | profile 只控制注册和展示，auth/RLS/Policy/action hash 保持独立硬门禁 |
+| route group 元数据覆盖同 router 的不同 method | 写路由风险、幂等或恢复要求被误分类 | 已增加逐路由 override；继续与 OpenAPI/BFF manifest 三方校验 |
+| `NaN/Infinity` 进入 JSON metadata | 跨语言序列化失败、签名漂移或证据 hash 不稳定 | 已在复制、持久化和 hash 前执行有限数校验并增加 6 个回归测试 |
+| 主应用依赖已锁定但辅助 Mock 服务仍自由解析 | Compose 构建在面试前或 CI 中随机失败，并可能重新引入已修复漏洞 | 为每个 build context 生成 hash lock，统一 Python/digest/index，逐镜像执行 `pip check`/`pip-audit`，整栈 build 作为 Hard gate |
 
 ## 23. 面试表述边界
 
@@ -1597,22 +1691,22 @@ AMAZON_PILOT_READ_ONLY=true
 
 ## 25. 当前项目证据索引
 
-以下索引用于实施前复核。当前工作树包含大量未提交实现，表格明确区分“已提交基线缺陷”“本地实现”和“剩余门禁”。行号可能随代码修改发生变化，开始每项工作前应使用 `rg` 重新定位。
+以下索引用于实施和面试前复核。当前工作树包含待提交优化批次，表格区分“历史缺陷”“远端已提交实现”“本地已验证实现”和“剩余外部门禁”。行号可能随代码修改发生变化，开始每项工作前应使用 `rg` 重新定位。
 
 | 主题 | 证据与状态 |
 | --- | --- |
-| committed baseline 的审批冲突 | `git show 00de543:infrastructure/repositories/hitl.py` 与 `git show 00de543:safety/hitl.py` |
-| 当前 worktree 审批实现 | `safety/hitl.py`、`infrastructure/repositories/hitl.py`、`infrastructure/database/models.py`、`workflows/engine.py` |
-| 当前 worktree 审批回归 | `tests/test_safety.py`、`tests/test_workflow_approval_integrity.py`、`tests/test_postgres_rls.py`；最终全量为 632 passed、8 个 PostgreSQL 外部项 skipped |
+| 历史审批冲突 | `git show 00de543:infrastructure/repositories/hitl.py` 与 `git show 00de543:safety/hitl.py` |
+| 当前已提交审批实现 | `safety/hitl.py`、`infrastructure/repositories/hitl.py`、`infrastructure/database/models.py`、`workflows/engine.py`；主修复提交 `772174a` |
+| 当前审批回归 | `tests/test_safety.py`、`tests/test_workflow_approval_integrity.py`、`tests/test_postgres_rls.py`；默认环境全量为 753 passed/8 conditional skipped，独立 PostgreSQL 16 审计容器中相关 8 项实际为 `8 passed` |
 | 审批执行绑定 | `application/manual_execution_contract.py`、`infrastructure/repositories/manual_execution.py`、operations/admin/mock routes 与前端 approved-plans BFF |
 | 审批 hash 创建位置 | `api/routes/operations_routes.py` 的 approval request 构造和 `canonical_action_hash` |
 | 当前 frozen migration | `alembic/versions/0023_frozen_baseline.py`；单一 head、显式 DDL 和 literal `FROZEN_RLS_TABLES` |
 | migration 决策 | `docs/adr/ADR-001-freeze-alembic-baseline-before-default-branch-merge.md` |
 | migration 自动检查 | `tests/test_migrations.py`、`scripts/capture_schema_fingerprint.py`、`docs/evidence/migrations/0023_sqlite_schema_fingerprint.json` |
-| migration 外部门禁 | PostgreSQL 空库升级、non-owner RLS、catalog fingerprint 和容器验证尚未执行 |
+| migration 外部门禁 | PostgreSQL 空库 `upgrade head`、`alembic check`、RLS catalog 和临时 non-owner isolation 已通过；downgrade/upgrade、固定 app role、catalog fingerprint、execution concurrency 和旧库升级尚未执行 |
 | 依赖 pin 与 lock | `requirements.runtime.txt`、`requirements.runtime.lock.txt`、`requirements.lock.txt`；`cryptography==50.0.0` |
 | 依赖可复现入口 | `scripts/bootstrap_dev.ps1`、`scripts/check_dependency_locks.py`、`.github/workflows/ci.yml` |
-| 当前依赖验证 | `pip check`、lock check、runtime/dev `pip-audit` 和中文路径 clean bootstrap 均通过 |
+| 当前依赖验证 | 主应用 `pip check`、lock check、runtime/dev `pip-audit`、中文路径 clean bootstrap 和核心 runtime image build 均通过；辅助 Mock services 尚无 hash lock，Compose 因 resolver conflict 失败 |
 | Windows 环境证据 | `docs/evidence/environments/windows-clean-bootstrap-2026-08-05.json`；UTF-8 enabled，绝对路径与凭证未入库 |
 | Failover 预算契约 | `model_gateway/contracts.py`、`model_gateway/gateway.py`、`agents/runtime.py` |
 | Failover 回归 | `tests/test_model_gateway.py`、`tests/test_agent_runtime.py`；contract branch coverage 100%，仍缺真实 provider 验证 |
@@ -1620,16 +1714,22 @@ AMAZON_PILOT_READ_ONLY=true
 | 当前评测报告 | `docs/evidence/agent-evals/EVALUATION_REPORT.md` 与 `evaluation-report-v1.json`；结论为 `no_go`、真实 provider `not_verified` |
 | 历史真实模型 repair/延迟 | `docs/EXTERNAL_STAGING_VERIFICATION_RUNBOOK.md`；四个案例均 repair，约 35.8-89.3 秒 |
 | 强类型 Agent 契约 | `agents/contracts.py`、`agents/contract_adapters.py`、`docs/evidence/agent-contracts/schema-size-v1-v2.json` |
-| 仍保留的开放边界 | `EvidenceReference.metadata` 和 legacy payload adapter 内的 `dict[str, Any]` |
+| 本地契约资源边界 | metadata 为递归 `JsonValue`，深度/集合/节点/字符串/有限数上限；legacy payload 在 `deepcopy` 前验证资源预算；`NaN/Infinity` 6 个回归通过 |
+| 历史 payload 扫描 | `application/agent_payload_audit.py`、`scripts/scan_agent_payload_compatibility.py`、`tests/test_agent_payload_audit.py`、`docs/evidence/agent-contracts/PAYLOAD_COMPATIBILITY_SCAN.md` 和 fixture JSON；代码与 deterministic fixture 已完成，真实持久数据库扫描及 Owner 签字未完成 |
+| Agent metadata 脱敏 | `safety/audit.py`、`infrastructure/repositories/audit.py`、`tests/test_audit_redaction.py`、`tests/test_bounded_advisor_workflow.py`；JSONL/SQL 共用 sanitizer，原始 request/analysis_result 不进入阶段审计 |
+| 仍保留的开放边界 | adapter 入站解析仍接收 `dict[str, Any]`，但必须先做资源预算并迁移到 v2 typed model；真实持久数据库兼容性与真实 provider Schema/repair 对比未完成 |
 | Legacy 隔离 | `legacy/autogen_demo/`、`agents/__init__.py`、`tests/test_legacy_agent_runtime_boundaries.py` |
-| 模型配置迁移 | `api/config.py`、`docs/MODEL_CONFIGURATION_MIGRATION.md`、`.env*.example` |
-| interview 导航 profile | `frontend/components/app-shell.tsx`、`frontend/app/layout.tsx`、`frontend/Dockerfile` |
+| 模型配置迁移 | `api/config.py`、`scripts/test_model_gateway.py`、`docs/MODEL_CONFIGURATION_MIGRATION.md`、`.env*.example`；`VLLM_*` 删除版本为 `2.0.0` |
+| Release Profile | `api/release_profiles.py`、`api/route_catalog.py`、`api/main.py`、`tests/test_release_profiles.py`；正式 profile 为 `full_development/golden_demo/read_only_pilot` |
+| 路由 inventory | 后端 `route-inventory-v1.json` 为 136 个 method/path；前端 `bff-route-inventory-v1.json` 为 69 个文件/83 个 handler，另有 runtime profile manifest |
+| 演示导航 profile | `frontend/components/app-shell.tsx`、`frontend/app/layout.tsx`、`frontend/middleware.ts`、`frontend/Dockerfile` |
 | API 级黄金闭环 | `tests/test_golden_stockout_acceptance.py`；覆盖双人审批、事件消费和最终 resolved/verified/completed |
 | Mock 执行与 UI | `api/routes/mock_scenario_routes.py`、`frontend/components/mock/mock-seller-central-workbench.tsx`；客户端不再拥有 action/quantity |
-| 全栈黄金闭环缺口 | Docker/Compose、PostgreSQL non-owner、Redis/Celery、真实 OIDC、Playwright identity switching |
+| 全栈黄金闭环缺口 | PostgreSQL non-owner focused suite 已通过；Compose 仍被 `mock-cloud` 依赖冲突阻断，Redis/Celery、真实 OIDC、Playwright identity switching 和浏览器业务闭环尚未执行 |
 | 工具链配置 | `pyproject.toml`、`scripts/check_critical_coverage.py`、`.github/workflows/ci.yml` |
 | 当前静态检查 | Ruff check/format 通过；Pyright `0 errors, 0 warnings` |
-| 当前覆盖率 | 总 branch coverage 81.90%；8 个关键文件为 88.24%-100%，critical gate passed |
+| 当前覆盖率 | `753 passed, 8 skipped`；branch-aware total 86.62%，statement 89.58%，branch-only 74.21%，diff coverage 90%；13 个关键文件为 88.24%-100%，critical gate passed，CI 已配置 `diff-cover --fail-under=90` |
+| 当前 Compose 证据 | API/migrate/worker/scheduler/frontend 镜像成功；`mock-cloud` 在 `local_e2e_mock/requirements.txt` 的 FastAPI/Starlette/AnyIO 解析阶段失败，服务未启动 |
 | 面试图与演示底稿 | `docs/INTERVIEW_DEMO_RUNBOOK.md`、`docs/product/amazon_operations_control_tower.md` |
 | 正式面试资料 | `docs/interview/INTERVIEW_PACKAGE_INDEX.md` 统一索引一页说明、Threat Model、演示范围、失败复盘和贡献矩阵；三篇产品 ADR 已交付 |
 | 运营 Pilot 指标和门槛 | `docs/OPERATOR_PRODUCTION_ACCEPTANCE.md`；尚无具名 operator 签字和真实采纳率 |

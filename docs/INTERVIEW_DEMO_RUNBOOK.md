@@ -122,7 +122,7 @@ Repository 条件和 PostgreSQL RLS 是两层防线。跨租户资源查询不�
 ## 演示前准备
 
 1. 启动 Docker Desktop。
-2. 运行 `./scripts/start_local.ps1 -NoBuild`；镜像变化后去掉 `-NoBuild`。
+2. 运行 `./scripts/start_local.ps1 -ReleaseProfile golden_demo -NoBuild`；镜像变化后去掉 `-NoBuild`。
 3. 打开 `http://localhost:3000`，使用 Owner 登录。
 4. 在“场景控制台”点击“重置演示租户”。
 5. 完成 Mock Amazon 只读同步并生成今日简报。

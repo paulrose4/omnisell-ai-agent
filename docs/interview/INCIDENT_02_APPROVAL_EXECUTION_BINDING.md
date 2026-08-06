@@ -35,7 +35,7 @@
 
 ## 验证结果
 
-新增 manual execution contract、repository 和 API 测试，覆盖计划篡改、跨租户、pending、expired、awaiting second approval、相同/不同幂等 key、provider failure 和并发 reservation。最终全量后端测试为 632 passed、8 skipped。Decimal 在数据库往返时由 1 变为 1.000000 的 hash 漂移也被发现并通过 canonical normalization 修复。
+新增 manual execution contract、repository 和 API 测试，覆盖计划篡改、跨租户、pending、expired、awaiting second approval、相同/不同幂等 key、provider failure 和并发 reservation。修复提交形成时的全量结果为 632 passed、8 skipped；当前候选工作树的最新全量结果见面试资料索引。Decimal 在数据库往返时由 1 变为 1.000000 的 hash 漂移也被发现并通过 canonical normalization 修复。
 
 ## 残余风险
 
