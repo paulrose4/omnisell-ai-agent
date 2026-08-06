@@ -1126,6 +1126,7 @@ def test_frontend_public_runtime_flags_are_available_during_next_build():
     local_compose = Path("docker-compose.local.yml").read_text(encoding="utf-8")
     production_compose = Path("docker-compose.production.yml").read_text(encoding="utf-8")
 
+    local_frontend_build = local_compose.split("  frontend:", 1)[1].split("    environment:", 1)[0]
     for key in (
         "NEXT_PUBLIC_ENVIRONMENT",
         "NEXT_PUBLIC_MOCK_DRILL_ENABLED",
@@ -1134,7 +1135,7 @@ def test_frontend_public_runtime_flags_are_available_during_next_build():
     ):
         assert f"ARG {key}" in dockerfile
         assert f"{key}=${{{key}}}" in dockerfile
-        assert f"{key}:" in local_compose.split("    build:", 1)[1].split("    environment:", 1)[0]
+        assert f"{key}:" in local_frontend_build
 
     production_build = production_compose.split("  frontend:", 1)[1].split("    env_file:", 1)[0]
     assert 'NEXT_PUBLIC_ENVIRONMENT: "production"' in production_build
