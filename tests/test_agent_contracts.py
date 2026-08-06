@@ -13,6 +13,7 @@ from agents.contracts import (
     CustomerCaseAnalysisDraft,
     DifferenceCluster,
     EvidenceBundle,
+    EvidencePreparationManifest,
     EvidenceReference,
     InternalTaskDraft,
     ListingFieldChange,
@@ -21,8 +22,10 @@ from agents.contracts import (
     OperationsBriefAnalysisDraft,
     ReadOnlyCheck,
     ReconciliationInvestigationDraft,
+    analysis_draft_schema,
 )
 from agents.validators.evidence import EvidenceValidationError, EvidenceValidator
+from model_gateway.contracts import ModelBudgetRequest, estimate_single_provider_budget
 
 NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
 
@@ -94,6 +97,122 @@ def test_evidence_datetime_must_be_timezone_aware() -> None:
 def test_mock_evidence_cannot_claim_verified_amazon_data() -> None:
     with pytest.raises(ValidationError, match="verified Amazon"):
         evidence(source="mock", verified_amazon_data=True)
+
+
+def test_evidence_metadata_rejects_non_json_values() -> None:
+    with pytest.raises(ValidationError, match="JSON-compatible"):
+        evidence(metadata={"unsafe": {"not", "json"}})
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_evidence_metadata_rejects_non_finite_json_numbers(value: float) -> None:
+    with pytest.raises(ValidationError, match="finite JSON number"):
+        evidence(metadata={"unsafe_number": value})
+
+
+def test_evidence_metadata_rejects_excessive_depth() -> None:
+    nested: object = "leaf"
+    for _ in range(8):
+        nested = {"child": nested}
+
+    with pytest.raises(ValidationError, match="depth"):
+        evidence(metadata={"root": nested})
+
+
+def test_evidence_metadata_rejects_oversized_text_and_collections() -> None:
+    with pytest.raises(ValidationError, match="string"):
+        evidence(metadata={"summary": "x" * 2001})
+
+    with pytest.raises(ValidationError, match="items"):
+        evidence(metadata={"values": list(range(129))})
+
+
+def test_evidence_metadata_rejects_invalid_keys_and_node_bombs() -> None:
+    for metadata in ({"": "empty"}, {1: "non-string"}, {"x" * 101: "too-long"}):
+        with pytest.raises(ValidationError, match="keys"):
+            evidence(metadata=metadata)  # type: ignore[arg-type]
+
+    with pytest.raises(ValidationError, match="total nodes"):
+        evidence(metadata={"values": [{"left": index, "right": index} for index in range(100)]})
+
+
+def test_evidence_preparation_manifest_counts_are_internally_consistent() -> None:
+    estimate = estimate_single_provider_budget(
+        request=ModelBudgetRequest(estimated_prompt_tokens=100, max_completion_tokens=50),
+        provider="provider-a",
+        model="model-a",
+        provider_token_limit=1000,
+        input_cost_per_million=Decimal("1"),
+        output_cost_per_million=Decimal("2"),
+        timeout_seconds=30,
+        pricing_version="test-v1",
+    )
+    common = {
+        "original_evidence_count": 2,
+        "selected_evidence_count": 1,
+        "omitted_evidence_count": 1,
+        "original_serialized_chars": 200,
+        "selected_serialized_chars": 100,
+        "request_bytes": 300,
+        "estimated_prompt_tokens": 100,
+        "max_prompt_tokens": 200,
+        "max_total_evidence_chars": 1000,
+        "selected_evidence_ids": ("evidence-1",),
+        "omitted_evidence_ids": ("evidence-2",),
+        "model_budget_estimate": estimate,
+    }
+    assert EvidencePreparationManifest(**common).original_evidence_count == 2
+
+    for changes, message in (
+        ({"selected_evidence_count": 2}, "selected evidence count"),
+        ({"omitted_evidence_count": 2}, "omitted evidence count"),
+        ({"original_evidence_count": 3}, "original evidence count"),
+    ):
+        with pytest.raises(ValidationError, match=message):
+            EvidencePreparationManifest(**(common | changes))
+
+
+def test_remaining_contract_invariants_fail_closed() -> None:
+    with pytest.raises(ValidationError, match="supporting evidence"):
+        AgentHypothesis(
+            hypothesis_id="hyp-unsupported",
+            statement="This hypothesis has no support.",
+            confidence=Decimal("0.50"),
+            status="hypothesis",
+        )
+
+    with pytest.raises(ValidationError, match="prohibited_reason"):
+        AgentProposedAction(
+            action_type="refund",
+            resource_type="operational_issue",
+            resource_id="issue-1",
+            arguments={"argument_type": "none"},
+            reason="Record the permanent block.",
+            evidence_ids=("issue-1",),
+            expected_outcome="No side effect.",
+            risk_level="critical",
+            requires_approval=True,
+            prohibited=True,
+        )
+
+    with pytest.raises(ValidationError, match="proposed_text is required"):
+        ListingFieldChange(
+            field="title",
+            operation="replace",
+            reason="A replacement requires exact text.",
+            evidence_ids=("issue-1",),
+        )
+    with pytest.raises(ValidationError, match="must not include proposed_text"):
+        ListingFieldChange(
+            field="title",
+            operation="remove",
+            proposed_text="should not be present",
+            reason="A removal cannot contain replacement text.",
+            evidence_ids=("issue-1",),
+        )
+
+    with pytest.raises(ValueError, match="No model-facing draft schema"):
+        analysis_draft_schema(type("UnknownEnvelope", (), {}))  # type: ignore[arg-type]
 
 
 def test_unknown_evidence_reference_is_rejected() -> None:
