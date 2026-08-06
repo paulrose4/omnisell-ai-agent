@@ -8,7 +8,8 @@ from infrastructure.repositories.tenants import TenantRepository
 PERSONAS = (
     ("local-owner", "owner@local.omnisell.test", "Local Owner", Role.OWNER),
     ("local-operator", "operator@local.omnisell.test", "Local Operator", Role.OPERATOR),
-    ("local-approver", "approver@local.omnisell.test", "Local Approver", Role.APPROVER),
+    ("local-approver", "approver@local.omnisell.test", "Local Approver A", Role.APPROVER),
+    ("local-approver-2", "approver-b@local.omnisell.test", "Local Approver B", Role.APPROVER),
     ("local-viewer", "viewer@local.omnisell.test", "Local Viewer", Role.VIEWER),
 )
 
@@ -24,7 +25,7 @@ def main() -> None:
             user = repository.create_user(User(email=email, display_name=display_name, oidc_subject=subject))
         if repository.find_membership(tenant_id="local-demo", user_id=user.id) is None:
             repository.add_membership(Membership(tenant_id="local-demo", user_id=user.id, role=role))
-    print("local-demo tenant and owner/operator/approver/viewer personas ready")
+    print("local-demo tenant and owner/operator/two-approver/viewer personas ready")
 
 
 if __name__ == "__main__":

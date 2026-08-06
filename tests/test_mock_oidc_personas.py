@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import jwt
@@ -14,6 +15,20 @@ from local_e2e_mock.server import AUTHORIZATION_CODES, app
 def _challenge(verifier: str) -> str:
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def test_mock_oidc_exposes_two_distinct_approver_identities_for_critical_actions() -> None:
+    first = mock_server.PERSONAS["local-approver"]
+    second = mock_server.PERSONAS["local-approver-2"]
+
+    assert first["role"] == second["role"] == "approver"
+    assert first["subject"] != second["subject"]
+    assert first["email"] != second["email"]
+
+    bootstrap = Path("local_e2e_mock/bootstrap_tenant.py").read_text(encoding="utf-8")
+    sign_in = Path("frontend/app/signin/page.tsx").read_text(encoding="utf-8")
+    assert '"local-approver-2"' in bootstrap
+    assert 'id: "local-approver-2"' in sign_in
 
 
 def test_mock_oidc_authorization_selects_approver_persona() -> None:

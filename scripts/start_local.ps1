@@ -1,6 +1,8 @@
 param(
     [switch]$SkipSmoke,
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    [ValidateSet("full_development", "golden_demo", "read_only_pilot")]
+    [string]$ReleaseProfile = "full_development"
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,8 +40,22 @@ $notificationToken = Get-LocalEnvValue "E2E_NOTIFICATION_TOKEN" "local-notificat
 
 $composeArgs = @("compose", "--env-file", $envFile, "-f", "docker-compose.e2e.yml", "-f", "docker-compose.local.yml", "up", "-d")
 if (-not $NoBuild) { $composeArgs += "--build" }
-& docker $composeArgs
-if ($LASTEXITCODE -ne 0) { throw "The OmniSell local stack failed to start." }
+$previousReleaseProfile = $env:OMNISELL_LOCAL_RELEASE_PROFILE
+try {
+    $env:OMNISELL_LOCAL_RELEASE_PROFILE = $ReleaseProfile
+    & docker $composeArgs
+    if ($LASTEXITCODE -ne 0) { throw "The OmniSell local stack failed to start." }
+} finally {
+    if ($null -eq $previousReleaseProfile) {
+        Remove-Item Env:OMNISELL_LOCAL_RELEASE_PROFILE -ErrorAction SilentlyContinue
+    } else {
+        $env:OMNISELL_LOCAL_RELEASE_PROFILE = $previousReleaseProfile
+    }
+}
+
+if (-not ("System.Net.Http.HttpClient" -as [type])) {
+    Add-Type -AssemblyName "System.Net.Http"
+}
 
 function Wait-ForHttp([string]$Name, [string]$Url, [int]$Attempts = 90) {
     $handler = [System.Net.Http.HttpClientHandler]::new()
@@ -66,11 +82,15 @@ Wait-ForHttp "API" "http://localhost:$apiPort/api/admin/health"
 Wait-ForHttp "Frontend" "http://localhost:$frontendPort/signin"
 
 if (-not $SkipSmoke) {
+    $pythonExecutable = Join-Path $projectRoot ".venv/Scripts/python.exe"
+    if (-not (Test-Path -LiteralPath $pythonExecutable)) {
+        throw "The project virtual environment is missing. Run ./scripts/bootstrap_dev.ps1 before local smoke tests."
+    }
     $smokeArgs = @("scripts/run_local_e2e.py", "--api", "http://localhost:$apiPort", "--mock-cloud", "http://localhost:$mockCloudPort", "--database", "postgresql://omnisell:$postgresPassword@localhost:$postgresPort/omnisell", "--notification-token", $notificationToken)
-    & python $smokeArgs
+    & $pythonExecutable $smokeArgs
     if ($LASTEXITCODE -ne 0) { throw "The local integration smoke test failed." }
-    $frontendSmokeArgs = @("scripts/run_local_frontend_auth_smoke.py", "--frontend", "http://localhost:$frontendPort")
-    & python $frontendSmokeArgs
+    $frontendSmokeArgs = @("scripts/run_local_frontend_auth_smoke.py", "--frontend", "http://localhost:$frontendPort", "--release-profile", $ReleaseProfile)
+    & $pythonExecutable $frontendSmokeArgs
     if ($LASTEXITCODE -ne 0) { throw "The local frontend OIDC smoke test failed." }
 }
 
@@ -80,7 +100,8 @@ Write-Host "  Web UI:     http://localhost:$frontendPort"
 Write-Host "  API:        http://localhost:$apiPort"
 Write-Host "  Mock OIDC:  http://localhost:$mockCloudPort"
 Write-Host "  PostgreSQL: localhost:$postgresPort"
+Write-Host "  Profile:    $ReleaseProfile"
 Write-Host ""
-Write-Host "Use one of the four local personas on the sign-in page."
+Write-Host "Use one of the five local personas on the sign-in page."
 Write-Host "Amazon writes remain blocked by the read-only pilot gate."
 Write-Host "Stop with: ./scripts/stop_local.ps1"

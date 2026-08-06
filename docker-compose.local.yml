@@ -1,4 +1,40 @@
 services:
+  mock-platform:
+    build:
+      args:
+        PIP_INDEX_URL: ${LOCAL_PIP_INDEX_URL:-https://pypi.org/simple}
+
+  mock-cloud:
+    build:
+      args:
+        PIP_INDEX_URL: ${LOCAL_PIP_INDEX_URL:-https://pypi.org/simple}
+
+  migrate:
+    build:
+      args:
+        PIP_INDEX_URL: ${LOCAL_PIP_INDEX_URL:-https://pypi.org/simple}
+
+  api:
+    build:
+      args:
+        PIP_INDEX_URL: ${LOCAL_PIP_INDEX_URL:-https://pypi.org/simple}
+    environment:
+      RELEASE_PROFILE: ${OMNISELL_LOCAL_RELEASE_PROFILE:-full_development}
+
+  worker:
+    build:
+      args:
+        PIP_INDEX_URL: ${LOCAL_PIP_INDEX_URL:-https://pypi.org/simple}
+    environment:
+      RELEASE_PROFILE: ${OMNISELL_LOCAL_RELEASE_PROFILE:-full_development}
+
+  scheduler:
+    build:
+      args:
+        PIP_INDEX_URL: ${LOCAL_PIP_INDEX_URL:-https://pypi.org/simple}
+    environment:
+      RELEASE_PROFILE: ${OMNISELL_LOCAL_RELEASE_PROFILE:-full_development}
+
   frontend:
     build:
       context: ./frontend
@@ -6,6 +42,7 @@ services:
       args:
         NEXT_PUBLIC_ENVIRONMENT: "local"
         NEXT_PUBLIC_MOCK_DRILL_ENABLED: "true"
+        NEXT_PUBLIC_RELEASE_PROFILE: ${OMNISELL_LOCAL_RELEASE_PROFILE:-full_development}
         NEXT_PUBLIC_SELLER_CENTRAL_URL: http://localhost:${E2E_MOCK_CLOUD_PORT:-9000}
         NEXT_PUBLIC_REFRESH_INTERVAL_MS: "5000"
     environment:
@@ -21,6 +58,7 @@ services:
       BACKEND_API_URL: http://api:8000
       NEXT_PUBLIC_ENVIRONMENT: local
       NEXT_PUBLIC_MOCK_DRILL_ENABLED: "true"
+      NEXT_PUBLIC_RELEASE_PROFILE: ${OMNISELL_LOCAL_RELEASE_PROFILE:-full_development}
       NEXT_PUBLIC_SELLER_CENTRAL_URL: http://localhost:${E2E_MOCK_CLOUD_PORT:-9000}
       NEXT_PUBLIC_REFRESH_INTERVAL_MS: "5000"
     ports: ["${LOCAL_FRONTEND_PORT:-3000}:3000"]

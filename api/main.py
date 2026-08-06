@@ -21,28 +21,7 @@ from api.middleware import RateLimiterMiddleware, RequestTelemetryMiddleware
 from api.oauth_client import OAuthClient
 from api.oauth_state import OAuthStateManager
 from api.rag_service import RAGService
-from api.routes import (
-    admin_routes,
-    agent_run_routes,
-    amazon_routes,
-    briefing_routes,
-    customer_case_routes,
-    customer_routes,
-    intelligence_routes,
-    inventory_routes,
-    learning_routes,
-    listing_quality_routes,
-    mock_scenario_routes,
-    operations_routes,
-    price_routes,
-    product_routes,
-    profitability_routes,
-    rag_routes,
-    reconciliation_routes,
-    sync_routes,
-    task_routes,
-    work_item_routes,
-)
+from api.route_catalog import register_profile_routes
 from api.task_queue import InMemoryTaskQueue, MetricsRegistry
 from application.agent_dispatch import QueuedAgentWorkflow
 from application.agent_services import AgentRunService
@@ -429,35 +408,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             },
         )
 
-    app.include_router(admin_routes.router)
-    app.include_router(admin_routes.protected_router)
-    app.include_router(agent_run_routes.router)
-    app.include_router(amazon_routes.callback_router)
-    app.include_router(amazon_routes.router)
-    app.include_router(product_routes.router)
-    if resolved_settings.environment != "production":
-        app.include_router(customer_routes.router)
-        app.include_router(rag_routes.router)
-    app.include_router(customer_case_routes.router)
-    if resolved_settings.environment != "production" and resolved_settings.mock_drill_enabled:
-        app.include_router(customer_case_routes.mock_router)
-    app.include_router(price_routes.router)
-    app.include_router(profitability_routes.router)
-    app.include_router(inventory_routes.router)
-    app.include_router(learning_routes.router)
-    app.include_router(listing_quality_routes.router)
-    app.include_router(operations_routes.router)
-    if resolved_settings.environment != "production" and resolved_settings.mock_drill_enabled:
-        app.include_router(mock_scenario_routes.router)
-        app.include_router(mock_scenario_routes.seller_central_router)
-    app.include_router(mock_scenario_routes.manual_execution_router)
-    app.include_router(briefing_routes.router)
-    app.include_router(task_routes.router)
-    app.include_router(work_item_routes.router)
-    app.include_router(intelligence_routes.router)
-    app.include_router(reconciliation_routes.router)
-    app.include_router(sync_routes.router)
-    app.include_router(sync_routes.data_quality_router)
+    register_profile_routes(
+        app,
+        profile=resolved_settings.release_profile,
+        environment=resolved_settings.environment,
+        mock_drill_enabled=resolved_settings.mock_drill_enabled,
+    )
     return app
 
 

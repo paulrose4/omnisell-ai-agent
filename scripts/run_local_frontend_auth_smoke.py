@@ -27,6 +27,11 @@ def main() -> int:
     parser.add_argument("--frontend", default="http://localhost:3000")
     parser.add_argument("--persona", default="local-owner")
     parser.add_argument("--expected-email", default="owner@local.omnisell.test")
+    parser.add_argument(
+        "--release-profile",
+        choices=("full_development", "golden_demo", "read_only_pilot"),
+        default="full_development",
+    )
     args = parser.parse_args()
 
     with httpx.Client(follow_redirects=False, trust_env=False, timeout=15.0) as client:
@@ -58,12 +63,32 @@ def main() -> int:
             raise RuntimeError(f"Unexpected local OIDC identity: {session.get('user')}")
         if not session.get("accessToken"):
             raise RuntimeError("Auth.js session does not contain the OIDC access token")
-        snapshots_response = require_status(client.get(f"{args.frontend}/api/listing-quality/snapshots"), 200)
-        snapshots = snapshots_response.json()
-        if not isinstance(snapshots, dict) or not isinstance(snapshots.get("items"), list):
-            raise RuntimeError("Authenticated Listing BFF returned an invalid response contract")
+        issues_response = require_status(client.get(f"{args.frontend}/api/issues"), 200)
+        issues = issues_response.json()
+        if not isinstance(issues, dict) or not isinstance(issues.get("items"), list):
+            raise RuntimeError("Authenticated core Issues BFF returned an invalid response contract")
 
-    print(json.dumps({"status": "ok", "persona": args.persona, "email": args.expected_email, "dashboard": True}))
+        extension_response = client.get(f"{args.frontend}/api/listing-quality/snapshots")
+        if args.release_profile == "golden_demo":
+            require_status(extension_response, 404)
+        else:
+            snapshots = require_status(extension_response, 200).json()
+            if not isinstance(snapshots, dict) or not isinstance(snapshots.get("items"), list):
+                raise RuntimeError("Authenticated Listing BFF returned an invalid response contract")
+
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "persona": args.persona,
+                "email": args.expected_email,
+                "dashboard": True,
+                "release_profile": args.release_profile,
+                "core_bff": "ok",
+                "extension_route": "blocked" if args.release_profile == "golden_demo" else "allowed",
+            }
+        )
+    )
     return 0
 
 

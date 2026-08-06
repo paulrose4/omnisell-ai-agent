@@ -53,8 +53,15 @@ PERSONAS: dict[str, dict[str, str]] = {
     "local-approver": {
         "subject": "local-approver",
         "role": "approver",
-        "name": "Local Approver",
+        "name": "Local Approver A",
         "email": "approver@local.omnisell.test",
+        "scope": "read write",
+    },
+    "local-approver-2": {
+        "subject": "local-approver-2",
+        "role": "approver",
+        "name": "Local Approver B",
+        "email": "approver-b@local.omnisell.test",
         "scope": "read write",
     },
     "local-viewer": {

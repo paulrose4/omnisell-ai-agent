@@ -308,19 +308,20 @@ async def _run(args: argparse.Namespace) -> int:
     if os.getenv("ENVIRONMENT", "development").lower() == "production":
         raise SystemExit("Real-model smoke refuses ENVIRONMENT=production.")
 
-    base_url = os.getenv("MODEL_BASE_URL") or os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
-    model = os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
-    api_key = os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
-    budget_profiles = Settings().agent_budget_profiles
+    settings = Settings(_env_file=None)
+    base_url = settings.model_base_url
+    model = settings.model_name
+    api_key = settings.model_api_key
+    budget_profiles = settings.agent_budget_profiles
     default_provider_timeout = max(int(profile["timeout_seconds"]) for profile in budget_profiles.values())
     gateway = OpenAICompatibleGateway(
         base_url=base_url,
         api_key=api_key,
         default_model=model,
-        max_tokens_per_task=int(os.getenv("MODEL_MAX_TOKENS_PER_TASK", "36000")),
-        timeout=float(os.getenv("MODEL_TIMEOUT_SECONDS", str(default_provider_timeout))),
-        input_cost_per_million=Decimal(os.getenv("MODEL_INPUT_COST_PER_MILLION", "0")),
-        output_cost_per_million=Decimal(os.getenv("MODEL_OUTPUT_COST_PER_MILLION", "0")),
+        max_tokens_per_task=settings.model_max_tokens_per_task,
+        timeout=settings.model_timeout_seconds or float(default_provider_timeout),
+        input_cost_per_million=settings.model_input_cost_per_million,
+        output_cost_per_million=settings.model_output_cost_per_million,
     )
     advisors = {
         "operations_brief_analyst": create_operations_brief_advisor(gateway=gateway, model=model),

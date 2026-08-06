@@ -1,4 +1,8 @@
-FROM python:3.12.13-slim-trixie@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+ARG PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.12.13-slim-trixie@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+
+FROM ${PYTHON_IMAGE}
+
+ARG PIP_INDEX_URL=https://pypi.org/simple
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,7 +11,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN useradd --create-home --uid 10001 omnisell
 WORKDIR /app
 COPY requirements.runtime.lock.txt .
-RUN pip install --require-hashes --requirement requirements.runtime.lock.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    PIP_NO_CACHE_DIR=0 pip install --index-url "${PIP_INDEX_URL}" --require-hashes --requirement requirements.runtime.lock.txt
 # Perl is not an application runtime dependency and currently carries an unfixed Critical CVE.
 RUN apt-get purge --yes --allow-remove-essential perl-base \
     && rm -rf /var/lib/apt/lists/*

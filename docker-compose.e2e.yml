@@ -1,6 +1,7 @@
 x-runtime-env: &runtime-env
   APP_NAME: OmniSell Local E2E
   ENVIRONMENT: local
+  RELEASE_PROFILE: golden_demo
   AUTH_MODE: oidc
   API_KEY: ""
   ALLOWED_ORIGINS: http://localhost:${LOCAL_FRONTEND_PORT:-3000},http://localhost:8080
@@ -71,7 +72,7 @@ services:
       POSTGRES_USER: omnisell
       POSTGRES_PASSWORD: ${E2E_POSTGRES_PASSWORD:-local-postgres-password}
     ports: ["${E2E_POSTGRES_PORT:-55432}:5432"]
-    volumes: ["e2e-postgres-data:/var/lib/postgresql/data"]
+    volumes: ["e2e-postgres-frozen-0023-data:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U omnisell -d omnisell"]
       interval: 5s
@@ -127,7 +128,7 @@ services:
       MIGRATION_DATABASE_URL: postgresql+psycopg://omnisell:${E2E_POSTGRES_PASSWORD:-local-postgres-password}@postgres:5432/omnisell
       DATABASE_APP_USER: omnisell_app
       DATABASE_APP_PASSWORD: ${E2E_DATABASE_APP_PASSWORD:-local-app-password}
-    command: ["/bin/sh", "-c", "alembic upgrade head && PYTHONPATH=/app python scripts/configure_postgres_app_role.py && PYTHONPATH=/app python local_e2e_mock/bootstrap_tenant.py && PYTHONPATH=/app python scripts/seed_golden_mock_tenant.py"]
+    command: ["/bin/sh", "-c", "alembic upgrade head && alembic check && PYTHONPATH=/app python scripts/configure_postgres_app_role.py && PYTHONPATH=/app python local_e2e_mock/bootstrap_tenant.py && PYTHONPATH=/app python scripts/seed_golden_mock_tenant.py"]
     depends_on:
       postgres: {condition: service_healthy}
       mock-cloud: {condition: service_healthy}
@@ -171,7 +172,7 @@ services:
     networks: [e2e-net]
 
 volumes:
-  e2e-postgres-data:
+  e2e-postgres-frozen-0023-data:
   e2e-redis-data:
 
 networks:
