@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
@@ -12,6 +15,7 @@ from sqlalchemy.exc import DBAPIError
 from infrastructure.database.models import OperationalIssueRow, OperationalWorkItemRow, RecommendedActionRow
 from infrastructure.database.session import create_session_factory, tenant_context
 from infrastructure.repositories.audit import SQLAuditLogger
+from infrastructure.repositories.manual_execution import ManualExecutionRepository
 
 
 @pytest.mark.skipif(not os.getenv("POSTGRES_RLS_URL"), reason="real PostgreSQL RLS URL not configured")
@@ -56,6 +60,193 @@ def test_all_tenant_tables_have_postgresql_rls_and_isolation_policy() -> None:
             assert "app.current_tenant_id" in str(policy["with_check"])
     finally:
         engine.dispose()
+
+
+@pytest.mark.skipif(
+    not os.getenv("POSTGRES_RLS_URL") or not os.getenv("POSTGRES_APP_URL"),
+    reason="fixed PostgreSQL application role URLs not configured",
+)
+def test_fixed_postgresql_application_role_is_non_owner_nobypassrls_and_tenant_isolated() -> None:
+    admin = create_engine(os.environ["POSTGRES_RLS_URL"])
+    app_url = os.environ["POSTGRES_APP_URL"]
+    app_role = make_url(app_url).username
+    assert app_role
+    suffix = uuid4().hex[:8]
+    tenant_a = f"fixed-role-a-{suffix}"
+    tenant_b = f"fixed-role-b-{suffix}"
+    with admin.begin() as connection:
+        role = (
+            connection.execute(
+                text("SELECT rolsuper, rolcreatedb, rolcreaterole, rolbypassrls FROM pg_roles WHERE rolname=:role"),
+                {"role": app_role},
+            )
+            .mappings()
+            .one()
+        )
+        assert role == {
+            "rolsuper": False,
+            "rolcreatedb": False,
+            "rolcreaterole": False,
+            "rolbypassrls": False,
+        }
+        assert (
+            connection.scalar(
+                text(
+                    "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+                    "JOIN pg_roles r ON r.oid=c.relowner "
+                    "WHERE n.nspname=current_schema() AND c.relkind='r' AND r.rolname=:role"
+                ),
+                {"role": app_role},
+            )
+            == 0
+        )
+        connection.execute(
+            text(
+                "INSERT INTO tenants(id,name,slug,amazon_writes_enabled) "
+                "VALUES (:a,'Fixed Role A',:a,false),(:b,'Fixed Role B',:b,false)"
+            ),
+            {"a": tenant_a, "b": tenant_b},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) "
+                "VALUES (:a,:tenant_a,'test','qa','read','low','success','{}'),"
+                "(:b,:tenant_b,'test','qa','read','low','success','{}')"
+            ),
+            {"a": str(uuid4()), "b": str(uuid4()), "tenant_a": tenant_a, "tenant_b": tenant_b},
+        )
+
+    app = create_engine(app_url)
+    try:
+        with app.begin() as connection:
+            assert connection.scalar(text("SELECT current_user")) == app_role
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM audit_events WHERE tenant_id=:tenant"), {"tenant": tenant_a}
+                )
+                == 1
+            )
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM audit_events WHERE tenant_id=:tenant"), {"tenant": tenant_b}
+                )
+                == 0
+            )
+        with pytest.raises(DBAPIError), app.begin() as connection:
+            connection.execute(text("SELECT set_config('app.current_tenant_id',:tenant,true)"), {"tenant": tenant_a})
+            connection.execute(
+                text(
+                    "INSERT INTO audit_events(id,tenant_id,event_type,actor,action,risk_level,status,details) "
+                    "VALUES (:id,:tenant,'test','qa','cross_write','low','success','{}')"
+                ),
+                {"id": str(uuid4()), "tenant": tenant_b},
+            )
+    finally:
+        app.dispose()
+        with admin.begin() as connection:
+            connection.execute(
+                text("DELETE FROM audit_events WHERE tenant_id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b}
+            )
+            connection.execute(text("DELETE FROM tenants WHERE id IN (:a,:b)"), {"a": tenant_a, "b": tenant_b})
+        admin.dispose()
+
+
+@pytest.mark.skipif(
+    not os.getenv("POSTGRES_RLS_URL") or not os.getenv("POSTGRES_APP_URL"),
+    reason="fixed PostgreSQL application role URLs not configured",
+)
+def test_manual_execution_concurrent_reservations_use_fixed_postgresql_app_role() -> None:
+    admin_url = os.environ["POSTGRES_RLS_URL"]
+    app_url = os.environ["POSTGRES_APP_URL"]
+    admin = create_engine(admin_url)
+    suffix = uuid4().hex[:8]
+    tenant_id = f"execution-race-{suffix}"
+    issue_id = str(uuid4())
+    approval_id = str(uuid4())
+    action_hash = "a" * 64
+    now = datetime.now(UTC)
+    with admin.begin() as connection:
+        connection.execute(
+            text("INSERT INTO tenants(id,name,slug,amazon_writes_enabled) VALUES (:id,'Execution Race',:id,false)"),
+            {"id": tenant_id},
+        )
+    admin_factory = create_session_factory(admin_url)
+    with admin_factory.begin() as session:
+        session.add(
+            OperationalIssueRow(
+                id=issue_id,
+                tenant_id=tenant_id,
+                seller_sku="SKU-RACE",
+                marketplace_id="ATVPDKIKX0DER",
+                issue_type="inventory_stockout_risk",
+                severity="high",
+                title="Concurrent execution",
+                summary="Only one reservation may own the approved plan.",
+                status="approved_for_manual_execution",
+                dedupe_key=f"race-{suffix}",
+                confidence=Decimal("1"),
+                data_freshness_at=now,
+                evidence=[],
+                missing_data=[],
+                occurrence_count=1,
+                detected_at=now,
+                last_detected_at=now,
+                created_at=now,
+                updated_at=now,
+                priority_score=Decimal("10"),
+            )
+        )
+    with admin.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO approval_requests("
+                "id,tenant_id,actor_id,action,action_hash,policy_decision,policy_version,policy_reason,"
+                "required_approval_count,risk_level,before_snapshot,proposed_changes,execution_plan,status,created_at"
+                ") VALUES ("
+                ":id,:tenant,'operator','manual_execute_recommended_action',:hash,'require_approval',"
+                "'policy-engine-v1','Approved plan is immutable.',1,'high','{}','{}','{}','approved',:created_at)"
+            ),
+            {"id": approval_id, "tenant": tenant_id, "hash": action_hash, "created_at": now},
+        )
+
+    repository = ManualExecutionRepository(create_session_factory(app_url))
+    barrier = Barrier(2)
+
+    def reserve(idempotency_key: str):
+        with tenant_context(tenant_id):
+            barrier.wait(timeout=10)
+            return repository.reserve(
+                tenant_id=tenant_id,
+                issue_id=issue_id,
+                approval_request_id=approval_id,
+                recommended_action_id=f"action-{suffix}",
+                action_hash=action_hash,
+                execution_contract_version="manual-execution-v1",
+                idempotency_key=idempotency_key,
+                action_type="create_replenishment_plan",
+                approved_change={"inbound_quantity": 600},
+                executed_by="operator-2",
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(reserve, (f"race-a-{suffix}", f"race-b-{suffix}")))
+        assert sum(1 for _, created in results if created) == 1
+        assert len({row.id for row, _ in results}) == 1
+        with tenant_context(tenant_id):
+            persisted = repository.get_by_approval(tenant_id=tenant_id, approval_request_id=approval_id)
+        assert persisted is not None
+        assert persisted.status == "executing"
+    finally:
+        with admin.begin() as connection:
+            connection.execute(
+                text("DELETE FROM manual_execution_results WHERE tenant_id=:tenant"), {"tenant": tenant_id}
+            )
+            connection.execute(text("DELETE FROM approval_requests WHERE tenant_id=:tenant"), {"tenant": tenant_id})
+            connection.execute(text("DELETE FROM operational_issues WHERE tenant_id=:tenant"), {"tenant": tenant_id})
+            connection.execute(text("DELETE FROM tenants WHERE id=:tenant"), {"tenant": tenant_id})
+        admin.dispose()
 
 
 @pytest.mark.skipif(not os.getenv("POSTGRES_RLS_URL"), reason="real PostgreSQL RLS URL not configured")
@@ -343,10 +534,10 @@ def test_approval_decisions_rls_and_sequence_constraint() -> None:
     insert_request = text("""
         INSERT INTO approval_requests(
             id,tenant_id,actor_id,action,action_hash,policy_decision,policy_version,
-            policy_reason,required_approval_count,risk_level,before_snapshot,proposed_changes,status,created_at
+            policy_reason,required_approval_count,risk_level,before_snapshot,proposed_changes,execution_plan,status,created_at
         ) VALUES (
             :id,:tenant,'requester','delete_listing',:hash,'require_approval','policy-engine-v1',
-            'Critical commerce write requires explicit approval.',2,'critical','{}','{}','pending',now()
+            'Critical commerce write requires explicit approval.',2,'critical','{}','{}','{}','pending',now()
         )
     """)
     insert_decision = text("""

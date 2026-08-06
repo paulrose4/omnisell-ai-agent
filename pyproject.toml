@@ -39,10 +39,15 @@ venvPath = "."
 venv = ".venv"
 typeCheckingMode = "basic"
 include = [
+  "agents/contract_adapters.py",
   "agents/contracts.py",
   "agents/validators/evidence.py",
+  "api/release_profiles.py",
+  "api/route_catalog.py",
+  "application/agent_payload_audit.py",
   "model_gateway/contracts.py",
   "model_gateway/gateway.py",
+  "scripts/generate_openapi_schema.py",
   "safety/hitl.py",
   "safety/policy_engine.py",
   "safety/refund_gate.py",

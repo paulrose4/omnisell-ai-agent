@@ -12,6 +12,9 @@ from sqlalchemy import create_engine, inspect, text
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 VERSIONS_ROOT = REPOSITORY_ROOT / "alembic" / "versions"
 SQLITE_FINGERPRINT_PATH = REPOSITORY_ROOT / "docs" / "evidence" / "migrations" / "0023_sqlite_schema_fingerprint.json"
+POSTGRES_FINGERPRINT_PATH = (
+    REPOSITORY_ROOT / "docs" / "evidence" / "migrations" / "0023_postgresql16_schema_rls_fingerprint.json"
+)
 FROZEN_RLS_TABLES_PATTERN = re.compile(
     r"FROZEN_RLS_TABLES\s*=\s*\((?P<body>.*?)\)\s*\n",
     re.DOTALL,
@@ -71,6 +74,28 @@ def test_committed_sqlite_schema_fingerprint_matches_frozen_baseline(tmp_path: P
 
     committed = json.loads(SQLITE_FINGERPRINT_PATH.read_text(encoding="utf-8"))
     assert committed == build_schema_evidence(database_url, repository_root=REPOSITORY_ROOT)
+
+
+def test_committed_postgresql_fingerprint_is_authoritative_sanitized_rls_evidence() -> None:
+    evidence = json.loads(POSTGRES_FINGERPRINT_PATH.read_text(encoding="utf-8"))
+
+    assert evidence["evidence_class"] == "postgresql_schema_and_rls"
+    assert evidence["authoritative_for_postgresql_rls"] is True
+    assert evidence["schema"]["dialect"] == "postgresql"
+    assert evidence["schema"]["revision"] == "0023"
+    assert "database_url" not in evidence
+
+    tenant_tables = {
+        table["name"]
+        for table in evidence["schema"]["tables"]
+        if any(column["name"] == "tenant_id" for column in table["columns"])
+    }
+    rls_tables = {table["table_name"] for table in evidence["schema"]["rls"]["tables"] if table["rls_enabled"]}
+    policy_tables = {policy["table_name"] for policy in evidence["schema"]["rls"]["policies"]}
+
+    assert tenant_tables
+    assert rls_tables == tenant_tables
+    assert policy_tables == tenant_tables
 
 
 def test_empty_database_upgrades_to_alembic_head(tmp_path: Path) -> None:

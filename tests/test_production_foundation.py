@@ -800,6 +800,16 @@ def test_postgres_app_role_password_sql_is_literal_and_escaped():
     assert statement.as_string() == "CREATE ROLE \"tenant_role\" LOGIN PASSWORD 'p''assword' NOBYPASSRLS"
 
 
+def test_postgres_app_role_script_supports_direct_repository_execution():
+    from pathlib import Path
+
+    script = Path("scripts/configure_postgres_app_role.py").read_text(encoding="utf-8")
+    path_index = script.index("sys.path.insert")
+    api_import_index = script.index("from api.config import get_settings")
+
+    assert path_index < api_import_index
+
+
 def test_runtime_container_has_writable_state_paths():
     from pathlib import Path
 
@@ -850,15 +860,24 @@ def test_interview_release_profile_limits_navigation_without_removing_extensions
     layout = (root / "frontend" / "app" / "layout.tsx").read_text(encoding="utf-8")
     dockerfile = (root / "frontend" / "Dockerfile").read_text(encoding="utf-8")
 
-    assert 'releaseProfile === "interview"' in shell
+    assert 'normalizedReleaseProfile === "golden_demo"' in shell
     assert 'href: "/dashboard"' in shell
     assert 'href: "/issues"' in shell
     assert 'href: "/approvals"' in shell
     assert 'href: "/mock-seller-central"' in shell
     assert 'href: "/agents"' in shell
     assert 'href: "/customer-cases"' in shell
-    assert 'process.env.NEXT_PUBLIC_RELEASE_PROFILE ?? "full"' in layout
-    assert "ARG NEXT_PUBLIC_RELEASE_PROFILE=full" in dockerfile
+    assert 'process.env.NEXT_PUBLIC_RELEASE_PROFILE ?? "full_development"' in layout
+    assert "ARG NEXT_PUBLIC_RELEASE_PROFILE=full_development" in dockerfile
+    middleware = (root / "frontend" / "middleware.ts").read_text(encoding="utf-8")
+    profile_routes = (root / "frontend" / "lib" / "api" / "release-profile-routes.ts").read_text(encoding="utf-8")
+    assert "normalizeFrontendReleaseProfile(releaseProfile)" in shell
+    assert 'normalizedReleaseProfile !== "read_only_pilot"' in shell
+    assert "normalizeFrontendReleaseProfile(configuredProfile)" in middleware
+    assert "isPageRouteAllowed(releaseProfile, pathname)" in middleware
+    assert "isBffRouteAllowed(releaseProfile, request.method, pathname)" in middleware
+    assert "export function isPageRouteAllowed" in profile_routes
+    assert '"/customer-cases"' not in middleware
 
 
 def test_mock_pilot_waits_for_api_and_uses_isolated_postgres_port():
@@ -972,6 +991,7 @@ def test_example_environment_disables_llm_content_capture_by_default():
 def _valid_production_settings() -> dict[str, object]:
     return {
         "environment": "production",
+        "release_profile": "read_only_pilot",
         "auth_mode": "oidc",
         "oidc_issuer": "https://identity.example.com",
         "oidc_jwks_url": "https://identity.example.com/.well-known/jwks.json",
@@ -1038,6 +1058,8 @@ def test_production_settings_accept_fail_closed_configuration():
         ("mock_drill_enabled", True),
         ("telemetry_capture_llm_content", True),
         ("amazon_writes_enabled", True),
+        ("release_profile", "full_development"),
+        ("release_profile", "golden_demo"),
         ("model_input_cost_per_million", "0"),
         ("model_output_cost_per_million", "0"),
     ],
@@ -1638,7 +1660,30 @@ def test_local_launcher_starts_backend_and_frontend_layers():
     assert "docker-compose.local.yml" in launcher
     assert "http://localhost:$frontendPort/signin" in launcher
     assert "scripts/run_local_e2e.py" in launcher
-    assert "& python $smokeArgs" in launcher
+    assert "& $pythonExecutable $smokeArgs" in launcher
+
+
+def test_local_launcher_uses_the_bootstrapped_virtualenv_for_smoke_scripts():
+    from pathlib import Path
+
+    launcher = Path("scripts/start_local.ps1").read_text(encoding="utf-8")
+
+    assert 'Join-Path $projectRoot ".venv/Scripts/python.exe"' in launcher
+    assert "scripts/bootstrap_dev.ps1" in launcher
+    assert "& python $smokeArgs" not in launcher
+
+
+def test_local_launcher_supports_explicit_release_profile_without_editing_env_files():
+    from pathlib import Path
+
+    launcher = Path("scripts/start_local.ps1").read_text(encoding="utf-8")
+    compose = Path("docker-compose.local.yml").read_text(encoding="utf-8")
+
+    assert 'ValidateSet("full_development", "golden_demo", "read_only_pilot")' in launcher
+    assert "$env:OMNISELL_LOCAL_RELEASE_PROFILE = $ReleaseProfile" in launcher
+    assert "OMNISELL_LOCAL_RELEASE_PROFILE" in compose
+    assert "${OMNISELL_LOCAL_RELEASE_PROFILE:-full_development}" in compose
+    assert "LOCAL_PIP_INDEX_URL" in compose
 
 
 def test_local_e2e_notification_token_uses_request_header():
@@ -1657,12 +1702,31 @@ def test_local_stack_does_not_bypass_production_https_validation():
     assert "ENVIRONMENT: production" not in compose
 
 
+def test_local_postgres_uses_frozen_baseline_volume_and_fails_closed_on_schema_drift():
+    from pathlib import Path
+
+    compose = Path("docker-compose.e2e.yml").read_text(encoding="utf-8")
+
+    assert "e2e-postgres-frozen-0023-data" in compose
+    assert "alembic upgrade head && alembic check &&" in compose
+
+
 def test_local_launcher_health_checks_bypass_system_proxy():
     from pathlib import Path
 
     launcher = Path("scripts/start_local.ps1").read_text(encoding="utf-8")
     assert "HttpClientHandler" in launcher
     assert "UseProxy = $false" in launcher
+
+
+def test_local_launcher_loads_system_net_http_for_windows_powershell():
+    from pathlib import Path
+
+    launcher = Path("scripts/start_local.ps1").read_text(encoding="utf-8")
+    load_index = launcher.index('Add-Type -AssemblyName "System.Net.Http"')
+    handler_index = launcher.index("[System.Net.Http.HttpClientHandler]::new()")
+
+    assert load_index < handler_index
 
 
 def test_local_e2e_smoke_accepts_seeded_superset_for_repeat_runs():
@@ -1691,10 +1755,14 @@ def test_local_launcher_runs_frontend_oidc_session_smoke():
     launcher = Path("scripts/start_local.ps1").read_text(encoding="utf-8")
     smoke = Path("scripts/run_local_frontend_auth_smoke.py").read_text(encoding="utf-8")
     assert "scripts/run_local_frontend_auth_smoke.py" in launcher
+    assert '"--release-profile", $ReleaseProfile' in launcher
     assert "/api/auth/csrf" in smoke
     assert "/api/auth/signin/oidc" in smoke
     assert "/api/auth/session" in smoke
+    assert "/api/issues" in smoke
     assert "/api/listing-quality/snapshots" in smoke
+    assert 'args.release_profile == "golden_demo"' in smoke
+    assert "require_status(extension_response, 404)" in smoke
     assert "accessToken" not in smoke.split("print", 1)[-1]
 
 
@@ -1777,12 +1845,28 @@ def test_model_configuration_prefers_generic_names_and_supports_one_legacy_cycle
     monkeypatch.setenv("VLLM_API_KEY", "legacy-secret")
     monkeypatch.setattr(config, "_LEGACY_MODEL_WARNING_EMITTED", False)
 
-    with pytest.warns(DeprecationWarning, match="VLLM_\\*"):
+    with pytest.warns(DeprecationWarning, match="removed in 2.0.0"):
         settings = Settings(_env_file=None)
 
     assert settings.model_base_url == "https://legacy-provider.example/v1"
     assert settings.model_name == "legacy-model"
     assert settings.model_api_key == "legacy-secret"
+
+
+def test_production_model_callers_do_not_read_legacy_vllm_environment_directly() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    production_callers = (
+        root / "agents" / "tools" / "vision_tool.py",
+        root / "scripts" / "run_real_model_staging_smoke.py",
+        root / "scripts" / "test_model_gateway.py",
+    )
+
+    assert not (root / "scripts" / "test_vllm.py").exists()
+    for path in production_callers:
+        assert path.exists()
+        assert "VLLM_" not in path.read_text(encoding="utf-8")
 
 
 def test_conflicting_generic_and_legacy_model_configuration_fails_closed(monkeypatch) -> None:

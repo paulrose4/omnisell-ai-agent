@@ -5,7 +5,12 @@ import json
 from pathlib import Path
 
 DEFAULT_THRESHOLDS = {
+    "agents/contract_adapters.py": 90.0,
+    "agents/contracts.py": 95.0,
     "agents/validators/evidence.py": 95.0,
+    "api/release_profiles.py": 95.0,
+    "api/route_catalog.py": 90.0,
+    "application/agent_payload_audit.py": 95.0,
     "domain/inventory.py": 90.0,
     "domain/pricing.py": 90.0,
     "domain/profitability.py": 90.0,

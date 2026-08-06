@@ -22,36 +22,42 @@ jobs:
             require_postgres: "false"
             database_url: sqlite:////tmp/omnisell-unit-contract.sqlite
             postgres_rls_url: ""
+            postgres_app_url: ""
           - suite: sqlite-integration-a
             marker: sqlite_integration and ci_shard_a
             workers: ""
             require_postgres: "false"
             database_url: sqlite:////tmp/omnisell-integration-a.sqlite
             postgres_rls_url: ""
+            postgres_app_url: ""
           - suite: sqlite-integration-b
             marker: sqlite_integration and ci_shard_b
             workers: ""
             require_postgres: "false"
             database_url: sqlite:////tmp/omnisell-integration-b.sqlite
             postgres_rls_url: ""
+            postgres_app_url: ""
           - suite: postgres-integration
             marker: postgres_integration
             workers: ""
             require_postgres: "true"
             database_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
             postgres_rls_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+            postgres_app_url: postgresql+psycopg://omnisell_app:omnisell-app@localhost:5432/omnisell
           - suite: e2e
             marker: e2e
             workers: ""
             require_postgres: "false"
             database_url: sqlite:////tmp/omnisell-e2e.sqlite
             postgres_rls_url: ""
+            postgres_app_url: ""
           - suite: security
             marker: security
             workers: ""
             require_postgres: "false"
             database_url: sqlite:////tmp/omnisell-security.sqlite
             postgres_rls_url: ""
+            postgres_app_url: ""
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -66,6 +72,7 @@ jobs:
     env:
       DATABASE_URL: ${{ matrix.database_url }}
       POSTGRES_RLS_URL: ${{ matrix.postgres_rls_url }}
+      POSTGRES_APP_URL: ${{ matrix.postgres_app_url }}
       OMNISELL_REQUIRE_POSTGRES_TESTS: ${{ matrix.require_postgres }}
     steps:
       - uses: actions/checkout@v4
@@ -75,9 +82,22 @@ jobs:
           cache: pip
       - run: python -m pip install --require-hashes -r requirements.lock.txt
       - run: python -m pip check
-      - name: Apply PostgreSQL migrations
+      - name: Verify PostgreSQL migration roundtrip and fixed application role
         if: matrix.require_postgres == 'true'
-        run: alembic upgrade head
+        env:
+          MIGRATION_DATABASE_URL: ${{ matrix.postgres_rls_url }}
+          DATABASE_APP_USER: omnisell_app
+          DATABASE_APP_PASSWORD: omnisell-app
+        run: |
+          alembic upgrade head
+          python scripts/configure_postgres_app_role.py
+          alembic check
+          python scripts/capture_schema_fingerprint.py --database-url "$POSTGRES_RLS_URL" --output test-results/postgres-schema-fingerprint-before-roundtrip.json
+          alembic downgrade base
+          alembic upgrade head
+          python scripts/configure_postgres_app_role.py
+          alembic check
+          python scripts/capture_schema_fingerprint.py --database-url "$POSTGRES_RLS_URL" --output test-results/postgres-schema-fingerprint-before-roundtrip.json --check
       - name: Run bounded test suite
         run: >-
           pytest -m "${{ matrix.marker }}" ${{ matrix.workers }}
@@ -102,6 +122,8 @@ jobs:
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -117,6 +139,12 @@ jobs:
           --durations=50
       - name: Enforce critical module coverage
         run: python scripts/check_critical_coverage.py --coverage-json test-results/coverage.json
+      - name: Enforce changed-line coverage
+        run: >-
+          diff-cover test-results/coverage.xml
+          --compare-branch="origin/${{ github.base_ref || github.event.repository.default_branch }}"
+          --fail-under=90
+          --html-report test-results/diff-coverage.html
       - name: Upload coverage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,6 +170,11 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+      MIGRATION_DATABASE_URL: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+      POSTGRES_RLS_URL: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
+      POSTGRES_APP_URL: postgresql+psycopg://omnisell_app:omnisell-app@localhost:5432/omnisell
+      DATABASE_APP_USER: omnisell_app
+      DATABASE_APP_PASSWORD: omnisell-app
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
@@ -162,25 +195,44 @@ jobs:
         run: |
           python scripts/measure_agent_contract_schemas.py --check
           python scripts/run_agent_quality_eval.py --check
+      - name: Verify route ownership and release-profile inventory
+        run: |
+          python scripts/generate_route_inventory.py --check
+          python scripts/generate_openapi_schema.py --check
       - run: python -m compileall api application commerce domain infrastructure model_gateway workflows safety agents rag scripts
-      - run: alembic upgrade head
-      - run: alembic check
-      - name: Capture PostgreSQL schema and RLS evidence
-        run: python scripts/capture_schema_fingerprint.py --database-url "$DATABASE_URL" --output test-results/postgres-schema-fingerprint.json
+      - name: Verify PostgreSQL migration roundtrip and fixed application role
+        run: |
+          alembic upgrade head
+          python scripts/configure_postgres_app_role.py
+          alembic check
+          python scripts/capture_schema_fingerprint.py --database-url "$DATABASE_URL" --output test-results/postgres-schema-fingerprint-before-roundtrip.json
+          alembic downgrade base
+          alembic upgrade head
+          python scripts/configure_postgres_app_role.py
+          alembic check
+          python scripts/capture_schema_fingerprint.py --database-url "$DATABASE_URL" --output test-results/postgres-schema-fingerprint-before-roundtrip.json --check
       - run: pip-audit -r requirements.runtime.lock.txt
       - run: pip-audit -r requirements.lock.txt
+      - run: pip-audit -r mock_platform/requirements.lock.txt
+      - run: pip-audit -r local_e2e_mock/requirements.lock.txt
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: api/Dockerfile
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: frontend/Dockerfile
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: mock_platform/Dockerfile
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: local_e2e_mock/Dockerfile
       - name: Upload migration evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: postgres-schema-fingerprint
-          path: test-results/postgres-schema-fingerprint.json
+          path: test-results/postgres-schema-fingerprint-before-roundtrip.json
           if-no-files-found: error
           retention-days: 30
 
@@ -200,8 +252,71 @@ jobs:
       - run: npm ci
       - run: npm audit signatures
       - run: npm audit --omit=dev --audit-level=high
+      - run: npm run check:bff-inventory
+      - run: npm run check:api-types
       - run: npm run typecheck
       - run: npm run build
+
+  golden-demo-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      OMNISELL_LOCAL_RELEASE_PROFILE: golden_demo
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      PLAYWRIGHT_API_BASE_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.1"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Start golden demo stack
+        run: >-
+          docker compose --env-file .env.local.example
+          -f docker-compose.e2e.yml -f docker-compose.local.yml
+          up -d --build
+      - name: Wait for API and frontend
+        run: |
+          for attempt in {1..90}; do
+            if curl --fail --silent http://localhost:8080/api/admin/health >/dev/null \
+              && curl --fail --silent http://localhost:3000/signin >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose --env-file .env.local.example -f docker-compose.e2e.yml -f docker-compose.local.yml ps
+          exit 1
+      - name: Run Playwright OIDC golden stockout acceptance
+        run: npm run test:e2e:golden
+        working-directory: frontend
+      - name: Capture Compose evidence
+        if: always()
+        run: |
+          mkdir -p test-results
+          docker compose --env-file .env.local.example -f docker-compose.e2e.yml -f docker-compose.local.yml ps > test-results/compose-ps.txt
+          docker compose --env-file .env.local.example -f docker-compose.e2e.yml -f docker-compose.local.yml logs --no-color > test-results/compose.log
+      - name: Upload golden demo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-demo-e2e
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop golden demo stack
+        if: always()
+        run: >-
+          docker compose --env-file .env.local.example
+          -f docker-compose.e2e.yml -f docker-compose.local.yml
+          down -v
 
   container-security:
     runs-on: ubuntu-latest
@@ -223,6 +338,24 @@ jobs:
           file: frontend/Dockerfile
           load: true
           tags: omnisell-frontend:ci
+      - name: Build Mock Seller Central image
+        uses: docker/build-push-action@v6
+        with:
+          context: mock_platform
+          file: mock_platform/Dockerfile
+          load: true
+          tags: omnisell-mock-platform:ci
+          cache-from: type=gha,scope=mock-platform
+          cache-to: type=gha,mode=max,scope=mock-platform
+      - name: Build local OIDC and Amazon mock image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: local_e2e_mock/Dockerfile
+          load: true
+          tags: omnisell-mock-cloud:ci
+          cache-from: type=gha,scope=mock-cloud
+          cache-to: type=gha,mode=max,scope=mock-cloud
       - name: Generate API SBOM
         uses: anchore/sbom-action@v0
         with:
@@ -235,6 +368,18 @@ jobs:
           image: omnisell-frontend:ci
           format: spdx-json
           output-file: sbom-frontend.spdx.json
+      - name: Generate Mock Seller Central SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: omnisell-mock-platform:ci
+          format: spdx-json
+          output-file: sbom-mock-platform.spdx.json
+      - name: Generate local mock cloud SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: omnisell-mock-cloud:ci
+          format: spdx-json
+          output-file: sbom-mock-cloud.spdx.json
       - name: Scan API image
         uses: aquasecurity/trivy-action@0.32.0
         with:
@@ -247,6 +392,22 @@ jobs:
         uses: aquasecurity/trivy-action@0.32.0
         with:
           image-ref: omnisell-frontend:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Scan Mock Seller Central image
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: omnisell-mock-platform:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Scan local mock cloud image
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: omnisell-mock-cloud:ci
           format: table
           severity: HIGH,CRITICAL
           ignore-unfixed: true

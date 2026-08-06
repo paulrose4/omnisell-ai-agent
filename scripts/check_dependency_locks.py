@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCKS = (
     ("requirements.runtime.txt", "requirements.runtime.lock.txt"),
     ("requirements.txt", "requirements.lock.txt"),
+    ("mock_platform/requirements.txt", "mock_platform/requirements.lock.txt"),
+    ("local_e2e_mock/requirements.txt", "local_e2e_mock/requirements.lock.txt"),
 )
 
 
@@ -38,6 +40,7 @@ def main() -> int:
         temp_root = Path(temp_dir)
         for source, target in LOCKS:
             generated = temp_root / target
+            generated.parent.mkdir(parents=True, exist_ok=True)
             # uv treats an existing output file as the preferred locked solution.
             # Seed the temporary output so the check validates reproducibility
             # without silently upgrading unrelated transitive dependencies.
