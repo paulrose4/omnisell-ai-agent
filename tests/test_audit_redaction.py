@@ -26,6 +26,12 @@ def _details() -> dict:
             },
             "headers": {"Authorization": "Bearer secret-token"},
         },
+        "metadata": {
+            "api_key": "metadata-api-key",
+            "Authorization": "Bearer metadata-token",
+            "buyer_message": "metadata-buyer-message",
+            "provider_events": [{"secret": "nested-list-secret"}],
+        },
     }
 
 
@@ -36,6 +42,10 @@ def _assert_redacted(details: dict) -> None:
     assert SENSITIVE_VALUE not in serialized
     assert "secret-access-token" not in serialized
     assert "secret-token" not in serialized
+    assert "metadata-api-key" not in serialized
+    assert "metadata-token" not in serialized
+    assert "metadata-buyer-message" not in serialized
+    assert "nested-list-secret" not in serialized
     assert "1 Private Street" not in serialized
     assert "ORDER-PRIVATE-1" not in serialized
     assert "[REDACTED]" in serialized

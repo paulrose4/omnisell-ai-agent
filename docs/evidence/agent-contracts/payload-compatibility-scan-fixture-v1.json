@@ -1,0 +1,49 @@
+{
+  "evidence_class": "deterministic_fixture",
+  "generated_at": "2026-08-05T09:00:00+00:00",
+  "manual_review_records": [
+    {
+      "reason_code": "unsupported_schema_version",
+      "record_id": "run-bad-version",
+      "source_schema_version": "3.0",
+      "tenant_ref": "80a707af7dc77ee1",
+      "workflow_type": "operations_brief_analysis"
+    },
+    {
+      "reason_code": "unsupported_workflow",
+      "record_id": "run-unsupported",
+      "source_schema_version": "1.0",
+      "tenant_ref": "80a707af7dc77ee1",
+      "workflow_type": "unknown_workflow"
+    }
+  ],
+  "payload_content_included": false,
+  "rejections_by_reason": [
+    {
+      "count": 1,
+      "reason_code": "unsupported_schema_version"
+    },
+    {
+      "count": 1,
+      "reason_code": "unsupported_workflow"
+    }
+  ],
+  "scan_mode": "read_only",
+  "schema_version": "1.0",
+  "tenant_scope": {
+    "raw_tenant_ids_included": false,
+    "tenant_count": 1,
+    "tenant_refs": [
+      "80a707af7dc77ee1"
+    ]
+  },
+  "totals": {
+    "adapted_v1_records": 1,
+    "compatible_records": 2,
+    "empty_payload_records": 1,
+    "payload_records": 4,
+    "records_scanned": 5,
+    "rejected_records": 2,
+    "validated_v2_records": 1
+  }
+}
