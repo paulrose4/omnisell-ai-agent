@@ -28,6 +28,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api/client";
+import { normalizeFrontendReleaseProfile } from "@/lib/api/release-profile-routes";
 
 type SessionContext = {
   tenant_id: string;
@@ -61,7 +62,7 @@ const mockNav = [
   { href: "/mock-customer-service", label: "Mock 客服场景", icon: MessageSquareMore },
 ];
 
-const interviewNav = [
+const goldenDemoNav = [
   { href: "/dashboard", label: "经营总览", icon: Gauge },
   { href: "/issues", label: "异常处理", icon: TriangleAlert },
   { href: "/approvals", label: "审批工作台", icon: ClipboardCheck },
@@ -74,9 +75,12 @@ export function AppShell({ children, email, mockEnabled, environment, releasePro
   const [open, setOpen] = useState(false);
   const firstLink = useRef<HTMLAnchorElement>(null);
   const context = useQuery({ queryKey: ["session-context"], queryFn: () => apiFetch<SessionContext>("/api/session-context"), staleTime: 60_000 });
-  const nav = releaseProfile === "interview"
-    ? interviewNav.filter((item) => item.href !== "/mock-seller-central" || mockEnabled)
-    : (mockEnabled ? [...baseNav, ...mockNav] : baseNav);
+  const normalizedReleaseProfile = normalizeFrontendReleaseProfile(releaseProfile);
+  const goldenDemo = normalizedReleaseProfile === "golden_demo";
+  const mockAvailable = mockEnabled && normalizedReleaseProfile !== "read_only_pilot";
+  const nav = goldenDemo
+    ? goldenDemoNav.filter((item) => item.href !== "/mock-seller-central" || mockAvailable)
+    : (mockAvailable ? [...baseNav, ...mockNav] : baseNav);
   const production = environment === "production";
   const readOnly = context.data?.amazon_pilot_read_only !== false || context.data?.amazon_writes_enabled !== true;
 

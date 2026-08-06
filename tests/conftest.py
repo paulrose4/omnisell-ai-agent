@@ -83,9 +83,10 @@ SQLITE_SHARD_A_TEST_MODULES = {
 
 def pytest_configure() -> None:
     require_postgres = os.getenv("OMNISELL_REQUIRE_POSTGRES_TESTS", "").lower() in {"1", "true", "yes"}
-    if require_postgres and not os.getenv("POSTGRES_RLS_URL"):
+    missing_urls = [name for name in ("POSTGRES_RLS_URL", "POSTGRES_APP_URL") if not os.getenv(name)]
+    if require_postgres and missing_urls:
         raise pytest.UsageError(
-            "POSTGRES_RLS_URL is required when OMNISELL_REQUIRE_POSTGRES_TESTS=true; "
+            f"{', '.join(missing_urls)} are required when OMNISELL_REQUIRE_POSTGRES_TESTS=true; "
             "PostgreSQL/RLS tests must not be silently skipped in a production gate."
         )
 

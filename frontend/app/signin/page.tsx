@@ -13,8 +13,13 @@ const mockPersonas = [
   },
   {
     id: "local-approver",
-    title: "Approver",
-    description: "独立复核并批准或拒绝高风险建议",
+    title: "Approver A",
+    description: "第一位独立复核人，批准或拒绝高风险建议",
+  },
+  {
+    id: "local-approver-2",
+    title: "Approver B",
+    description: "第二位独立复核人，用于 critical 双人审批",
   },
   {
     id: "local-viewer",

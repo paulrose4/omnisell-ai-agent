@@ -5,6 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "check:bff-inventory": "node scripts/generate-bff-route-inventory.mjs --check",
+    "check:api-types": "openapi-typescript ../docs/evidence/openapi/full-development-v1.json --output generated/api-schema.d.ts --immutable --alphabetize --path-params-as-types --check",
+    "generate:bff-inventory": "node scripts/generate-bff-route-inventory.mjs",
+    "generate:api-types": "openapi-typescript ../docs/evidence/openapi/full-development-v1.json --output generated/api-schema.d.ts --immutable --alphabetize --path-params-as-types",
+    "test:e2e:golden": "playwright test e2e/golden-stockout.spec.ts",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
@@ -21,10 +26,12 @@
     "tailwind-merge": "2.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/node": "22.10.7",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
     "autoprefixer": "10.4.20",
+    "openapi-typescript": "7.13.0",
     "postcss": "8.5.23",
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3"
