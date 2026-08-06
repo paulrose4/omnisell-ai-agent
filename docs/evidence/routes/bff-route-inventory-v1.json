@@ -1,0 +1,1286 @@
+{
+  "schema_version": "1.0",
+  "generator": "frontend/scripts/generate-bff-route-inventory.mjs",
+  "route_file_count": 69,
+  "route_count": 83,
+  "routes": [
+    {
+      "file": "frontend/app/api/advertising/diagnostics/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/advertising/diagnostics",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/advertising/diagnostics",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/advertising/search-terms/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/advertising/search-terms",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/advertising/search-terms",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/advertising/search-terms/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/advertising/search-terms",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/advertising/search-terms",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/advertising/snapshots/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/advertising/snapshots",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/advertising/snapshots",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/advertising/snapshots/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/advertising/snapshots",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/advertising/snapshots",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/agent-runs/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/agent-runs",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/agent-runs",
+      "backend_group": "agent_monitoring",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/agent-runs/[runId]/resume/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/agent-runs/{runId}/resume",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/agent-runs/{runId}/resume",
+      "backend_group": "agent_monitoring",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/agent-runs/operations-brief-analysis/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/agent-runs/operations-brief-analysis",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/agent-runs/operations-brief-analysis",
+      "backend_group": "agent_monitoring",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/agent-runs/operations-recommendations/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/agent-runs/operations-recommendations",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/agent-runs/operations-recommendations",
+      "backend_group": "agent_monitoring",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/agent-runs/reconciliation-investigation/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/agent-runs/reconciliation-investigation",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/agent-runs/reconciliation-investigation",
+      "backend_group": "agent_monitoring",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/amazon/signals/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/amazon/signals",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/amazon/signals",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/approvals/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/approvals",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/admin/approvals",
+      "backend_group": "platform_admin",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/approvals/[requestId]/approve/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/approvals/{requestId}/approve",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/admin/approvals/{requestId}/approve",
+      "backend_group": "platform_admin",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/approvals/[requestId]/reject/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/approvals/{requestId}/reject",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/admin/approvals/{requestId}/reject",
+      "backend_group": "platform_admin",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/auth/[...nextauth]/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/auth/{...nextauth}",
+      "kind": "nextauth",
+      "backend_method": null,
+      "backend_path": null,
+      "auth_propagation": "nextauth_session",
+      "tenant_propagation": "session_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/auth/[...nextauth]/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/auth/{...nextauth}",
+      "kind": "nextauth",
+      "backend_method": null,
+      "backend_path": null,
+      "auth_propagation": "nextauth_session",
+      "tenant_propagation": "session_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/connections/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/connections",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/channels/amazon/connections",
+      "backend_group": "amazon_connections",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/cost-profiles/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/cost-profiles",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/profitability/cost-profiles",
+      "backend_group": "profitability",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/cost-profiles/import/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/cost-profiles/import",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/profitability/cost-profiles/import",
+      "backend_group": "profitability",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/customer-cases/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/customer-cases",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/customer-cases",
+      "backend_group": "customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/customer-cases/[caseId]/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/customer-cases/{caseId}",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/customer-cases/{caseId}",
+      "backend_group": "customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/customer-cases/[caseId]/route.ts",
+      "frontend_method": "PATCH",
+      "frontend_path": "/api/customer-cases/{caseId}",
+      "kind": "backend_proxy",
+      "backend_method": "PATCH",
+      "backend_path": "/api/customer-cases/{caseId}",
+      "backend_group": "customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/customer-cases/[caseId]/resolve/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/customer-cases/{caseId}/resolve",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/customer-cases/{caseId}/resolve",
+      "backend_group": "customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/customer-cases/[caseId]/send/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/customer-cases/{caseId}/send",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/customer-cases/{caseId}/send",
+      "backend_group": "customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/data-quality/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/data-quality",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/data-quality/issues",
+      "backend_group": "sync",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/inventory-policies/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/inventory-policies",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/inventory/policies",
+      "backend_group": "inventory",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/inventory-policies/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/inventory-policies",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/inventory/policies",
+      "backend_group": "inventory",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/issues/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/issues",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/operations/issues",
+      "backend_group": "operations",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/issues/[issueId]/route.ts",
+      "frontend_method": "PATCH",
+      "frontend_path": "/api/issues/{issueId}",
+      "kind": "backend_proxy",
+      "backend_method": "PATCH",
+      "backend_path": "/api/operations/issues/{issueId}",
+      "backend_group": "operations",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/issues/[issueId]/approval-requests/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/issues/{issueId}/approval-requests",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/operations/issues/{issueId}/approval-requests",
+      "backend_group": "operations",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/issues/[issueId]/detail/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/issues/{issueId}/detail",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/operations/issues/{issueId}/detail",
+      "backend_group": "operations",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/activities/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/learning/activities",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/learning/activities",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/activities/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/activities",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/activities",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/attribution-plans/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/learning/attribution-plans",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/learning/attribution-plans",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/attribution-plans/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/attribution-plans",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/attribution-plans",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/business-contexts/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/business-contexts",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/business-contexts",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/execution-authorizations/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/learning/execution-authorizations",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/learning/execution-authorizations",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/execution-authorizations/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/execution-authorizations",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/execution-authorizations",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/execution-authorizations/[authorizationId]/approve/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/execution-authorizations/{authorizationId}/approve",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/execution-authorizations/{authorizationId}/approve",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/executions/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/executions",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/executions",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/issues/[issueId]/feedback/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/issues/{issueId}/feedback",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/issues/{issueId}/feedback",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/metrics/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/learning/metrics",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/learning/metrics",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/missed-issues/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/learning/missed-issues",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/learning/missed-issues",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/missed-issues/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/missed-issues",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/missed-issues",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/outcomes/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/learning/outcomes",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/learning/outcomes",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/learning/outcomes/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/learning/outcomes",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/learning/outcomes",
+      "backend_group": "operations_learning",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/experiments/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/listing-quality/experiments",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/listing-quality/experiments",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/experiments/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/listing-quality/experiments",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/listing-quality/experiments",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/experiments/[experimentId]/decision/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/listing-quality/experiments/{experimentId}/decision",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/listing-quality/experiments/{experimentId}/decision",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/experiments/[experimentId]/evaluate/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/listing-quality/experiments/{experimentId}/evaluate",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/listing-quality/experiments/{experimentId}/evaluate",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/experiments/[experimentId]/execution/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/listing-quality/experiments/{experimentId}/execution",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/listing-quality/experiments/{experimentId}/execution",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/snapshots/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/listing-quality/snapshots",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/listing-quality/snapshots",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/snapshots/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/listing-quality/snapshots",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/listing-quality/snapshots/calculate",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/listing-quality/snapshots/from-listing/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/listing-quality/snapshots/from-listing",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/listing-quality/snapshots/calculate-from-listing",
+      "backend_group": "listing_quality",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-customer-service/scenarios/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/mock-customer-service/scenarios",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/mock-customer-service/scenarios",
+      "backend_group": "mock_customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-customer-service/scenarios/[scenarioId]/trigger/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/mock-customer-service/scenarios/{scenarioId}/trigger",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/mock-customer-service/scenarios/{scenarioId}/trigger",
+      "backend_group": "mock_customer_cases",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-scenarios/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/mock-scenarios",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/mock-scenarios",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-scenarios/[scenarioId]/trigger/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/mock-scenarios/{scenarioId}/trigger",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/mock-scenarios/{scenarioId}/trigger",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-scenarios/high-fidelity/seed/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/mock-scenarios/high-fidelity/seed",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/mock-scenarios/high-fidelity/seed",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-scenarios/high-fidelity/tasks/[taskId]/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/mock-scenarios/high-fidelity/tasks/{taskId}",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/mock-scenarios/high-fidelity/tasks/{taskId}",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-scenarios/operations-learning/seed/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/mock-scenarios/operations-learning/seed",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/mock-scenarios/operations-learning/seed",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-scenarios/reset/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/mock-scenarios/reset",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/mock-scenarios/reset",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-seller-central/approved-plans/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/mock-seller-central/approved-plans",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/mock-seller-central/approved-plans",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/mock-seller-central/execute/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/mock-seller-central/execute",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/mock-seller-central/execute",
+      "backend_group": "mock_stockout_drill",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo"
+      ]
+    },
+    {
+      "file": "frontend/app/api/operations/briefs/generate/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/operations/briefs/generate",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/operations/briefs/generate",
+      "backend_group": "operations_briefing",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/operations/dashboard/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/operations/dashboard",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/operations/dashboard",
+      "backend_group": "operations_briefing",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/operations/sku-health/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/operations/sku-health",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/operations/sku-health",
+      "backend_group": "operations_briefing",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/reconciliation/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/reconciliation",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/reconciliation/runs",
+      "backend_group": "reconciliation",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/reconciliation/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/reconciliation",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/reconciliation/runs",
+      "backend_group": "reconciliation",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/session-context/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/session-context",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/admin/session-context",
+      "backend_group": "platform_admin",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/sync/jobs/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/sync/jobs",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/sync/jobs",
+      "backend_group": "sync",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/sync/status/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/sync/status",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/sync/status",
+      "backend_group": "sync",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/tasks/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/tasks",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/tasks",
+      "backend_group": "tasks",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/tasks/[taskId]/close/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/tasks/{taskId}/close",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/tasks/{taskId}/close",
+      "backend_group": "tasks",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/tasks/[taskId]/replay/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/tasks/{taskId}/replay",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/tasks/{taskId}/replay",
+      "backend_group": "tasks",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/voc/summaries/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/voc/summaries",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/voc/summaries",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/voc/summaries/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/voc/summaries",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/voc/summaries",
+      "backend_group": "operational_intelligence",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/work-items/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/work-items",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/work-items",
+      "backend_group": "work_items",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/work-items/[workItemId]/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/work-items/{workItemId}",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/work-items/{workItemId}",
+      "backend_group": "work_items",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/work-items/[workItemId]/customer-case-context/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/work-items/{workItemId}/customer-case-context",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/work-items/{workItemId}/customer-case-context",
+      "backend_group": "work_items",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/work-items/bulk/route.ts",
+      "frontend_method": "POST",
+      "frontend_path": "/api/work-items/bulk",
+      "kind": "backend_proxy",
+      "backend_method": "POST",
+      "backend_path": "/api/work-items/bulk",
+      "backend_group": "work_items",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/work-items/handoff-packet/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/work-items/handoff-packet",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/work-items/handoff-packet",
+      "backend_group": "work_items",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    },
+    {
+      "file": "frontend/app/api/work-items/workload/route.ts",
+      "frontend_method": "GET",
+      "frontend_path": "/api/work-items/workload",
+      "kind": "backend_proxy",
+      "backend_method": "GET",
+      "backend_path": "/api/work-items/workload",
+      "backend_group": "work_items",
+      "auth_propagation": "oidc_bearer",
+      "tenant_propagation": "backend_token_claim",
+      "profiles": [
+        "full_development",
+        "golden_demo",
+        "read_only_pilot"
+      ]
+    }
+  ]
+}
