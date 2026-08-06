@@ -65,3 +65,8 @@ frontend/.env*
 
 # Local prompt backups
 /提示词.txt
+
+# Playwright generated reports and trace artifacts
+frontend/playwright-report/
+frontend/test-results/
+
