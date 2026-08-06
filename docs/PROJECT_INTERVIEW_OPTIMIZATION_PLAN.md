@@ -1735,3 +1735,22 @@ AMAZON_PILOT_READ_ONLY=true
 | 运营 Pilot 指标和门槛 | `docs/OPERATOR_PRODUCTION_ACCEPTANCE.md`；尚无具名 operator 签字和真实采纳率 |
 
 实施人员应在每个 PR 中更新对应证据链接、测试结果和剩余外部门禁，避免本文档在代码变化后继续引用失效结论。
+
+## 9. 2026-08-06 Verification Snapshot
+- `ruff check .` / `ruff format --check .`: clean (0 violations)
+- `pyright agents api safety workflows application model_gateway`: 0 errors, 0 warnings
+- `python -m pip check`: No broken requirements found
+- `python -m pytest` 核心路径 (sqlite + mock + golden): **763 passed, 0 failed**
+- `python scripts/check_critical_coverage.py`: Critical coverage gate passed (≥ 90% on critical paths)
+- `python scripts/check_dependency_locks.py`: auxiliary image lockfiles reproducible
+- PostgreSQL 16 real evidence: 
+  - non-owner `omnisell_app` `NOBYPASSRLS` role verified across 10 RLS tests (`tests/test_postgres_rls.py`)
+  - `alembic upgrade head → downgrade base → upgrade head` roundtrip on real PG produces identical `schema_sha256=8063394e78a59e7774d441a5498595f4d1454ae662315979843b7ca52540ea92`
+  - `alembic check` passes against fresh database (`docs/evidence/migrations/0023_postgresql16_schema_rls_fingerprint.md`)
+- Playwright golden stockout (4 independent OIDC personas) passes deterministically (`frontend/e2e/golden-stockout.spec.ts`, ≈ 32 s wall time)
+- Frontend `npm run typecheck` + `npm run build`: clean
+- Real Amazon SP-API writes: **NOT** exercised; explicit `read_only_pilot` block remains.
+- Real LLM provider, real OIDC issuer and named human operator adoption: external environment still required.
+
+Remaining external gates explicitly retained: real Amazon SP-API, real model provider quality,
+real OIDC issuer and operator sign-off, plus a 2–4 week read-only operator pilot.
