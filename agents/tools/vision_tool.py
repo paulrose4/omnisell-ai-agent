@@ -11,6 +11,8 @@ import httpx
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
 
+from api.config import get_settings
+
 try:
     from .rag_tool import answer_customer_question
 except ImportError:
@@ -36,8 +38,7 @@ def _ollama_base_url(base_url: str | None = None) -> str:
             base_url
             or os.getenv("VISION_BASE_URL")
             or os.getenv("OLLAMA_BASE_URL")
-            or os.getenv("MODEL_BASE_URL")
-            or os.getenv("VLLM_BASE_URL")
+            or get_settings().model_base_url
             or DEFAULT_VISION_BASE_URL
         )
         .strip()
@@ -77,11 +78,11 @@ def _max_image_bytes(max_image_bytes: int | None = None) -> int:
 
 
 def _text_base_url() -> str:
-    return (os.getenv("MODEL_BASE_URL") or os.getenv("VLLM_BASE_URL") or DEFAULT_TEXT_BASE_URL).strip()
+    return (get_settings().model_base_url or DEFAULT_TEXT_BASE_URL).strip()
 
 
 def _text_model_name() -> str:
-    return (os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME") or DEFAULT_TEXT_MODEL_NAME).strip()
+    return (get_settings().model_name or DEFAULT_TEXT_MODEL_NAME).strip()
 
 
 def normalize_image_base64(image_base64: str, max_image_bytes: int | None = None) -> str:
@@ -239,7 +240,7 @@ Knowledge-base answer:
     try:
         client = OpenAI(
             base_url=_text_base_url(),
-            api_key=os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed"),
+            api_key=get_settings().model_api_key,
             timeout=90.0,
         )
         response = client.chat.completions.create(

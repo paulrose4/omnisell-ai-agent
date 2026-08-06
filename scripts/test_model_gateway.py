@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import time
 from pathlib import Path
@@ -5,20 +7,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import APIConnectionError, APIStatusError, OpenAI, OpenAIError
 
+from api.config import Settings
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
     load_dotenv(PROJECT_ROOT / ".env.local")
     load_dotenv(PROJECT_ROOT / ".env")
+    settings = Settings(_env_file=None)
 
-    base_url = (
-        os.getenv("LOCAL_MODEL_BASE_URL")
-        or os.getenv("MODEL_BASE_URL")
-        or os.getenv("VLLM_BASE_URL", "http://localhost:11434/v1")
-    )
-    model_name = os.getenv("LOCAL_MODEL_NAME") or os.getenv("MODEL_NAME") or os.getenv("VLLM_MODEL_NAME", "qwen2.5:3b")
-    api_key = os.getenv("LOCAL_MODEL_API_KEY") or os.getenv("MODEL_API_KEY") or os.getenv("VLLM_API_KEY", "not-needed")
+    base_url = os.getenv("LOCAL_MODEL_BASE_URL") or settings.model_base_url
+    model_name = os.getenv("LOCAL_MODEL_NAME") or settings.model_name
+    api_key = os.getenv("LOCAL_MODEL_API_KEY") or settings.model_api_key
 
     client = OpenAI(
         base_url=base_url,
@@ -29,7 +30,6 @@ def main() -> None:
     prompt = "用中文回答：什么是电商智能体？"
     print(f"正在连接 OpenAI-compatible provider: {base_url}")
     print(f"模型名称: {model_name}")
-
     started_at = time.perf_counter()
 
     try:

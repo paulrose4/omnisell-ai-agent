@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from math import isfinite
 from typing import Any
 
 from pydantic import ValidationError
@@ -14,6 +15,11 @@ from agents.contracts import (
     ReconciliationInvestigationEnvelope,
     ReconciliationProposedAction,
 )
+
+MAX_LEGACY_PAYLOAD_DEPTH = 12
+MAX_LEGACY_PAYLOAD_COLLECTION_ITEMS = 500
+MAX_LEGACY_PAYLOAD_NODES = 5000
+MAX_LEGACY_PAYLOAD_STRING_CHARS = 20000
 
 
 class LegacyAgentPayloadError(ValueError):
@@ -41,6 +47,7 @@ def adapt_persisted_analysis(*, workflow_type: str, payload: dict[str, Any]) -> 
         raise LegacyAgentPayloadError(f"Unsupported workflow_type for agent payload: {workflow_type}")
     if not isinstance(payload, dict) or not payload:
         raise LegacyAgentPayloadError("Persisted agent analysis payload must be a non-empty object")
+    _validate_legacy_payload_resources(payload)
 
     source_version = str(payload.get("schema_version") or "1.0")
     candidate = deepcopy(payload)
@@ -273,3 +280,45 @@ def _reject_unknown(value: dict[str, Any], allowed: set[str], *, path: str) -> N
     unknown = sorted(set(value) - allowed)
     if unknown:
         raise LegacyAgentPayloadError(f"Unsupported legacy field at {path}: {', '.join(unknown)}")
+
+
+def _validate_legacy_payload_resources(value: Any, *, path: str = "payload", depth: int = 0) -> int:
+    if depth > MAX_LEGACY_PAYLOAD_DEPTH:
+        raise LegacyAgentPayloadError(f"Legacy payload exceeds maximum depth {MAX_LEGACY_PAYLOAD_DEPTH} at {path}")
+    if value is None or isinstance(value, (bool, int)):
+        return 1
+    if isinstance(value, float):
+        if not isfinite(value):
+            raise LegacyAgentPayloadError(f"Legacy payload values must be finite JSON numbers at {path}")
+        return 1
+    if isinstance(value, str):
+        if len(value) > MAX_LEGACY_PAYLOAD_STRING_CHARS:
+            raise LegacyAgentPayloadError(
+                f"Legacy payload string length exceeds {MAX_LEGACY_PAYLOAD_STRING_CHARS} at {path}"
+            )
+        return 1
+    if isinstance(value, (list, tuple)):
+        if len(value) > MAX_LEGACY_PAYLOAD_COLLECTION_ITEMS:
+            raise LegacyAgentPayloadError(
+                f"Legacy payload collection size exceeds {MAX_LEGACY_PAYLOAD_COLLECTION_ITEMS} at {path}"
+            )
+        nodes = 1
+        for index, item in enumerate(value):
+            nodes += _validate_legacy_payload_resources(item, path=f"{path}[{index}]", depth=depth + 1)
+            if nodes > MAX_LEGACY_PAYLOAD_NODES:
+                raise LegacyAgentPayloadError(f"Legacy payload exceeds {MAX_LEGACY_PAYLOAD_NODES} total nodes")
+        return nodes
+    if isinstance(value, dict):
+        if len(value) > MAX_LEGACY_PAYLOAD_COLLECTION_ITEMS:
+            raise LegacyAgentPayloadError(
+                f"Legacy payload collection size exceeds {MAX_LEGACY_PAYLOAD_COLLECTION_ITEMS} at {path}"
+            )
+        nodes = 1
+        for key, item in value.items():
+            if not isinstance(key, str) or not key or len(key) > 200:
+                raise LegacyAgentPayloadError(f"Legacy payload keys are invalid at {path}")
+            nodes += _validate_legacy_payload_resources(item, path=f"{path}.{key}", depth=depth + 1)
+            if nodes > MAX_LEGACY_PAYLOAD_NODES:
+                raise LegacyAgentPayloadError(f"Legacy payload exceeds {MAX_LEGACY_PAYLOAD_NODES} total nodes")
+        return nodes
+    raise LegacyAgentPayloadError(f"Legacy payload contains a non-JSON-compatible value at {path}")

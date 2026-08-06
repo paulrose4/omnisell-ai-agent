@@ -13,9 +13,12 @@ from cryptography.fernet import Fernet
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from api.release_profiles import ReleaseProfile, normalize_release_profile
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PLACEHOLDER_MARKERS = ("change-me", "replace-", "generate-")
 _LEGACY_MODEL_WARNING_EMITTED = False
+LEGACY_MODEL_CONFIG_REMOVAL_VERSION = "2.0.0"
 
 
 def _default_agent_budget_profiles() -> dict[str, dict[str, Any]]:
@@ -80,6 +83,10 @@ class Settings(BaseSettings):
 
     app_name: str = "OmniSell AI API"
     environment: str = "development"
+    release_profile: ReleaseProfile = Field(
+        default=ReleaseProfile.FULL_DEVELOPMENT,
+        validation_alias=AliasChoices("release_profile", "RELEASE_PROFILE"),
+    )
     api_key: str = Field(default="dev_api_key_12345", validation_alias=AliasChoices("api_key", "API_KEY"))
     auth_mode: str = Field(default="api_key", validation_alias=AliasChoices("auth_mode", "AUTH_MODE"))
     oidc_issuer: str = Field(default="", validation_alias=AliasChoices("oidc_issuer", "OIDC_ISSUER"))
@@ -395,7 +402,8 @@ class Settings(BaseSettings):
             global _LEGACY_MODEL_WARNING_EMITTED
             if not _LEGACY_MODEL_WARNING_EMITTED:
                 warnings.warn(
-                    "VLLM_* model configuration is deprecated; migrate to MODEL_BASE_URL, MODEL_NAME, and MODEL_API_KEY.",
+                    "VLLM_* model configuration is deprecated and will be removed in "
+                    f"{LEGACY_MODEL_CONFIG_REMOVAL_VERSION}; migrate to MODEL_BASE_URL, MODEL_NAME, and MODEL_API_KEY.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
@@ -439,6 +447,8 @@ class Settings(BaseSettings):
                     f"at the configured model token rates"
                 )
         if self.environment.lower() == "production":
+            if self.release_profile is not ReleaseProfile.READ_ONLY_PILOT:
+                raise ValueError("Production RELEASE_PROFILE must be read_only_pilot")
             if self.auth_mode != "oidc":
                 raise ValueError("Production requires OIDC authentication; API key and hybrid modes are disabled")
             if not self.oidc_issuer or not self.oidc_jwks_url:
@@ -518,6 +528,11 @@ class Settings(BaseSettings):
         if normalized not in {"api_key", "oidc", "hybrid"}:
             raise ValueError("AUTH_MODE must be api_key, oidc, or hybrid")
         return normalized
+
+    @field_validator("release_profile", mode="before")
+    @classmethod
+    def validate_release_profile(cls, value: object) -> ReleaseProfile:
+        return normalize_release_profile(value)
 
     @field_validator("task_backend")
     @classmethod

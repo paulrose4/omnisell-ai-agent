@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Any, ClassVar, Literal, TypeAlias
+from math import isfinite
+from typing import Annotated, ClassVar, Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 from model_gateway.contracts import ModelBudgetEstimate
 
@@ -27,6 +28,11 @@ LongText: TypeAlias = Annotated[str, Field(min_length=1, max_length=2000)]
 OptionalLongText: TypeAlias = Annotated[str | None, Field(max_length=2000)]
 EvidenceIds: TypeAlias = Annotated[tuple[Identifier, ...], Field(max_length=20)]
 ResourceIds: TypeAlias = Annotated[tuple[Identifier, ...], Field(max_length=20)]
+EvidenceMetadata: TypeAlias = Annotated[dict[Identifier, JsonValue], Field(max_length=64)]
+MAX_EVIDENCE_METADATA_DEPTH = 6
+MAX_EVIDENCE_METADATA_ITEMS = 128
+MAX_EVIDENCE_METADATA_NODES = 256
+MAX_EVIDENCE_METADATA_STRING_CHARS = 2000
 ListingField = Literal[
     "title",
     "bullet_point_1",
@@ -115,6 +121,42 @@ def _require_aware(value: datetime | None) -> datetime | None:
     if value is not None and (value.tzinfo is None or value.utcoffset() is None):
         raise ValueError("datetime must be timezone-aware")
     return value
+
+
+def _validate_json_metadata(value: object, *, path: str = "metadata", depth: int = 0) -> int:
+    if depth > MAX_EVIDENCE_METADATA_DEPTH:
+        raise ValueError(f"{path} exceeds maximum metadata depth {MAX_EVIDENCE_METADATA_DEPTH}")
+    if value is None or isinstance(value, (bool, int)):
+        return 1
+    if isinstance(value, float):
+        if not isfinite(value):
+            raise ValueError(f"{path} must be a finite JSON number")
+        return 1
+    if isinstance(value, str):
+        if len(value) > MAX_EVIDENCE_METADATA_STRING_CHARS:
+            raise ValueError(f"{path} string exceeds {MAX_EVIDENCE_METADATA_STRING_CHARS} characters")
+        return 1
+    if isinstance(value, list):
+        if len(value) > MAX_EVIDENCE_METADATA_ITEMS:
+            raise ValueError(f"{path} exceeds {MAX_EVIDENCE_METADATA_ITEMS} items")
+        nodes = 1
+        for index, item in enumerate(value):
+            nodes += _validate_json_metadata(item, path=f"{path}[{index}]", depth=depth + 1)
+            if nodes > MAX_EVIDENCE_METADATA_NODES:
+                raise ValueError(f"metadata exceeds {MAX_EVIDENCE_METADATA_NODES} total nodes")
+        return nodes
+    if isinstance(value, dict):
+        if len(value) > MAX_EVIDENCE_METADATA_ITEMS:
+            raise ValueError(f"{path} exceeds {MAX_EVIDENCE_METADATA_ITEMS} items")
+        nodes = 1
+        for key, item in value.items():
+            if not isinstance(key, str) or not key or len(key) > 100:
+                raise ValueError(f"{path} keys must be non-empty strings of at most 100 characters")
+            nodes += _validate_json_metadata(item, path=f"{path}.{key}", depth=depth + 1)
+            if nodes > MAX_EVIDENCE_METADATA_NODES:
+                raise ValueError(f"metadata exceeds {MAX_EVIDENCE_METADATA_NODES} total nodes")
+        return nodes
+    raise ValueError(f"{path} must contain only JSON-compatible values")
 
 
 class AgentContractModel(BaseModel):
@@ -217,10 +259,16 @@ class EvidenceReference(AgentContractModel):
     confidence: Decimal = Field(ge=0, le=1)
     verified_amazon_data: bool = False
     content_digest: str = Field(min_length=64, max_length=64)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: EvidenceMetadata = Field(default_factory=dict)
 
     _validate_observed_at = field_validator("observed_at")(_require_aware)
     _validate_collected_at = field_validator("collected_at")(_require_aware)
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def validate_metadata_budget(cls, value: object) -> object:
+        _validate_json_metadata(value)
+        return value
 
     @model_validator(mode="after")
     def validate_source_truthfulness(self) -> EvidenceReference:
