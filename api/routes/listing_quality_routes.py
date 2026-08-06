@@ -320,6 +320,7 @@ async def create_listing_experiment(
         )
 
     if approval_valid:
+        assert approval is not None
         experiment.status = "approved"
         experiment.approval_request_id = approval.request_id
         experiment.updated_at = created_at
@@ -587,7 +588,7 @@ def _serialize(value: Any) -> Any:
         return str(value)
     if isinstance(value, datetime):
         return value.isoformat().replace("+00:00", "Z")
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _serialize(asdict(value))
     if isinstance(value, dict):
         return {str(key): _serialize(item) for key, item in value.items()}

@@ -9,6 +9,7 @@ from fastapi import Request
 from redis.asyncio import Redis
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 from infrastructure.database.session import tenant_context
 
@@ -18,7 +19,7 @@ from .security import bind_tool_caller_context, unbind_tool_caller_context
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """IP rate limiter using Redis in production and process memory in development."""
 
-    def __init__(self, app: object, requests_per_minute: int = 60, redis_url: str | None = None) -> None:
+    def __init__(self, app: ASGIApp, requests_per_minute: int = 60, redis_url: str | None = None) -> None:
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.window_seconds = 60
@@ -49,7 +50,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         window_start = now_ms - self.window_seconds * 1000
         redis_key = f"omnisell:rate:{key}"
         member = f"{now_ms}:{uuid.uuid4().hex}"
-        pipe = self.redis.pipeline(transaction=True)
+        redis = self.redis
+        assert redis is not None
+        pipe = redis.pipeline(transaction=True)
         pipe.zremrangebyscore(redis_key, 0, window_start)
         pipe.zadd(redis_key, {member: now_ms})
         pipe.zcard(redis_key)

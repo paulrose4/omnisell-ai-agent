@@ -10,7 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, m
 
 from model_gateway.contracts import ModelBudgetEstimate
 
-EvidenceSource = Literal[
+EvidenceSource = str
+EVIDENCE_SOURCE_VALUES = (
     "amazon_api",
     "advertising_api",
     "csv_import",
@@ -18,7 +19,7 @@ EvidenceSource = Literal[
     "system_estimate",
     "mock",
     "internal_record",
-]
+)
 FreshnessStatus = Literal["fresh", "stale", "unknown"]
 HypothesisStatus = Literal["hypothesis", "supported", "insufficient_evidence"]
 RiskLevel = Literal["low", "medium", "high", "critical"]

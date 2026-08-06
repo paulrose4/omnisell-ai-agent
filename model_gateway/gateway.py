@@ -92,6 +92,8 @@ class ModelGateway(Protocol):
         max_completion_tokens: int | None = None,
     ) -> StructuredModelResult: ...
 
+    async def close(self) -> None: ...
+
 
 class FakeModelGateway:
     def __init__(

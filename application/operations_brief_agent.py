@@ -460,6 +460,6 @@ def _json_safe(value: Any) -> Any:
         return {str(key): _json_safe(item) for key, item in value.items()}
     if isinstance(value, (list, tuple, set, frozenset)):
         return [_json_safe(item) for item in value]
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _json_safe(asdict(value))
     return str(value)

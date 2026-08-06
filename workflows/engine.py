@@ -72,7 +72,7 @@ class PersistentAgentWorkflow:
     def __init__(
         self,
         *,
-        store: WorkflowStore,
+        store: Any,
         planner: Any | None = None,
         executor: ToolExecutor | None = None,
         policy_engine: PolicyEngine | None = None,

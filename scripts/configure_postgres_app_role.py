@@ -17,7 +17,7 @@ from api.config import get_settings
 
 def _psycopg_url(value: str) -> str:
     url = make_url(value)
-    if not url.drivername.startswith("postgresql"):
+    if not (url.drivername.startswith("postgresql") or url.drivername.startswith("postgres")):
         raise ValueError("PostgreSQL is required for the application RLS role")
     return url.set(drivername="postgresql").render_as_string(hide_password=False)
 

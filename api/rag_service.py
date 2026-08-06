@@ -25,7 +25,6 @@ class RAGService:
             language=language,
             category_filter=category_filter,
             source_type=source_type,
-            tenant_id=tenant_id,
         )
         latency_ms = round((time.perf_counter() - started) * 1000, 2)
         return {

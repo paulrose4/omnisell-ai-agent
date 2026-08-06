@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel, Field, field_validator
@@ -171,11 +172,11 @@ async def calculate_profit_snapshot(payload: ProfitCalculationRequest, request: 
     return _serialize(snapshot)
 
 
-def _serialize(value) -> dict:
-    return _json_safe(asdict(value))
+def _serialize(value: object) -> dict[str, Any]:
+    return _json_safe(asdict(value))  # type: ignore[arg-type]
 
 
-def _json_safe(value):
+def _json_safe(value: object) -> Any:
     if isinstance(value, Decimal):
         return str(value)
     if isinstance(value, datetime):
@@ -185,5 +186,5 @@ def _json_safe(value):
     if isinstance(value, list):
         return [_json_safe(item) for item in value]
     if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
+        return {str(key): _json_safe(item) for key, item in value.items()}
     return value

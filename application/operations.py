@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from domain.models import OperationalIssue, RecommendedAction, utc_now
 from domain.operations import OperationalIssueDetector
@@ -97,8 +98,8 @@ class OperationalIssueService:
         )
 
     @staticmethod
-    def _latest_by_sku(snapshots: list) -> list:
-        latest: dict[tuple[str, str], object] = {}
+    def _latest_by_sku(snapshots: list[Any]) -> list[Any]:
+        latest: dict[tuple[str, str], Any] = {}
         for snapshot in snapshots:
             key = (snapshot.marketplace_id, snapshot.seller_sku)
             current = latest.get(key)

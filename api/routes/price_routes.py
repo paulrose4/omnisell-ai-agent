@@ -194,6 +194,7 @@ async def calculate_profit_constrained_price(
             and approval.payload.get("action_hash") == recommendation.action_hash
         )
         if approval_valid:
+            assert approval is not None
             recommendation.status = "approved"
             recommendation.approval_request_id = approval.request_id
             approval_request = approval.to_dict()
@@ -270,11 +271,11 @@ async def list_persistent_price_recommendations(
     return {"items": [_serialize(item) for item in items], "total": len(items)}
 
 
-def _serialize(value) -> dict:
-    return _json_safe(asdict(value))
+def _serialize(value: object) -> dict[str, Any]:
+    return _json_safe(asdict(value))  # type: ignore[arg-type]
 
 
-def _json_safe(value):
+def _json_safe(value: object) -> Any:
     if isinstance(value, Decimal):
         return str(value)
     if isinstance(value, datetime):
@@ -284,5 +285,5 @@ def _json_safe(value):
     if isinstance(value, list):
         return [_json_safe(item) for item in value]
     if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
+        return {str(key): _json_safe(item) for key, item in value.items()}
     return value

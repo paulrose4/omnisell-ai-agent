@@ -91,9 +91,10 @@ class QueuedAgentWorkflow:
             return existing
         if self.execution_workflow is None:
             raise RuntimeError("In-memory Agent dispatch requires an execution workflow")
+        workflow = self.execution_workflow
 
         async def execute() -> dict[str, Any]:
-            return await self.execution_workflow.run_advisory(
+            return await workflow.run_advisory(
                 tenant_id=tenant_id,
                 actor_id=actor_id,
                 workflow_type=workflow_type,

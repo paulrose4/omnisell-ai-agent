@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -86,13 +85,15 @@ def _create_task_queue(settings: Settings, metrics: MetricsRegistry, task_reposi
 
 
 def _create_agent_quota_limiter(settings: Settings):
-    quota_arguments = {
-        "per_minute": settings.agent_tenant_quota_per_minute,
-        "per_day": settings.agent_tenant_quota_per_day,
-    }
+    per_minute = settings.agent_tenant_quota_per_minute
+    per_day = settings.agent_tenant_quota_per_day
     if settings.task_backend == "celery":
-        return RedisAgentQuotaLimiter.from_url(redis_url=settings.redis_url, **quota_arguments)
-    return InMemoryAgentQuotaLimiter(**quota_arguments)
+        return RedisAgentQuotaLimiter.from_url(
+            redis_url=settings.redis_url,
+            per_minute=per_minute,
+            per_day=per_day,
+        )
+    return InMemoryAgentQuotaLimiter(per_minute=per_minute, per_day=per_day)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -360,10 +361,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-        detail: Any = exc.detail
+        detail = exc.detail
         content = detail if isinstance(detail, dict) else {"error": "http_error", "message": str(detail)}
         content.setdefault("path", request.url.path)
-        content.setdefault("correlation_id", getattr(request.state, "request_id", None))
+        content.setdefault("correlation_id", getattr(request.state, "request_id", None) or "")
         return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)

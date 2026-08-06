@@ -170,7 +170,7 @@ class CostCSVImporter:
                 exchange_rate_buffer_rate=self._decimal(row, "exchange_rate_buffer_rate"),
                 target_margin_rate=self._decimal(row, "target_margin_rate"),
                 minimum_margin_rate=self._decimal(row, "minimum_margin_rate"),
-                effective_from=self._datetime(row, "effective_from"),
+                effective_from=self._datetime(row, "effective_from") or datetime.now(UTC),
                 effective_to=self._datetime(row, "effective_to", required=False),
                 source=source,
             )

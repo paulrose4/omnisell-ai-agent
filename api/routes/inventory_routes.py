@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
@@ -246,11 +247,11 @@ def _require_read(request: Request) -> None:
         raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "read scope is required."})
 
 
-def _serialize(value) -> dict:
-    return _json_safe(asdict(value))
+def _serialize(value: object) -> dict[str, Any]:
+    return _json_safe(asdict(value))  # type: ignore[arg-type]
 
 
-def _json_safe(value):
+def _json_safe(value: object) -> Any:
     if isinstance(value, Decimal):
         return str(value)
     if isinstance(value, datetime):
@@ -260,5 +261,5 @@ def _json_safe(value):
     if isinstance(value, list):
         return [_json_safe(item) for item in value]
     if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
+        return {str(key): _json_safe(item) for key, item in value.items()}
     return value
