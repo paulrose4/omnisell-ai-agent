@@ -325,21 +325,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - name: Build API image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: api/Dockerfile
           load: true
           tags: omnisell-api:ci
       - name: Build frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           file: frontend/Dockerfile
           load: true
           tags: omnisell-frontend:ci
       - name: Build Mock Seller Central image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: mock_platform
           file: mock_platform/Dockerfile
@@ -348,7 +348,7 @@ jobs:
           cache-from: type=gha,scope=mock-platform
           cache-to: type=gha,mode=max,scope=mock-platform
       - name: Build local OIDC and Amazon mock image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: local_e2e_mock/Dockerfile
