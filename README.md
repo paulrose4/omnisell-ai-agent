@@ -1,114 +1,277 @@
 # OmniSell AI
 
-OmniSell is a platform-neutral, multi-tenant commerce Agent backend. The first production adapter targets Amazon US SP-API, with FBA read workflows and FBM-compatible domain models.
+[![CI](https://github.com/paulrose4/omnisell-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/paulrose4/omnisell-ai-agent/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)
+![Amazon](https://img.shields.io/badge/Amazon_SP--API-read--only_pilot-FF9900?logo=amazon&logoColor=white)
 
-## Implemented production foundation
+**Evidence-driven Amazon operations, with deterministic business controls and bounded AI advisors.**
 
-- Platform-neutral domain models for tenants, products, variants, listings, orders, inventory, approvals, Agent runs and events.
-- Hexagonal commerce ports and a first Amazon SP-API adapter.
-- Amazon LWA authorization, encrypted refresh-token storage abstraction, token refresh, operation-scoped rate limiting and normalized errors.
-- PostgreSQL/SQLAlchemy persistence, Alembic migration, tenant columns, PostgreSQL RLS policies, Inbox/Outbox and durable task records.
-- Redis/Celery worker backend with PostgreSQL as task source of truth; memory queue remains for local tests.
-- OIDC JWT authentication with API-key compatibility for local development.
-- Explicit Agent workflow state machine, deterministic policy engine, action hashes and structured model gateway.
-- Tenant-scoped task APIs and RAG filtering.
-- Production and development Compose files, locked Python dependencies, CI security checks and operations runbook.
+OmniSell is an Amazon operations control tower, not a free-chat product. It turns commerce data into tenant-scoped facts, prioritized operational issues, approval-bound plans, and auditable execution records. LLM output is advisory: deterministic code owns money, inventory, permissions, policy, approvals, action hashes, and state transitions.
 
-## Architecture
+面向 Amazon 运营团队的安全型 AI 控制塔：模型负责解释证据和生成有界建议，确定性代码负责业务事实、权限、审批与执行边界。
+
+> **Current release posture:** interview-grade engineering candidate and read-only pilot foundation. Real Amazon writes remain disabled. Mock, imported, estimated, and externally unverified data are always identified as such.
+
+## What OmniSell Does
+
+| Capability | Current implementation |
+| --- | --- |
+| Profitability | Versioned cost profiles, CSV dry runs, `Decimal`-based SKU profit snapshots, missing-input and provenance reporting |
+| Inventory health | Weighted demand, days of supply, stockout date, reorder point, MOQ/case-pack-aware replenishment recommendations |
+| Operations control tower | Deduplicated issues, quantified impact, recommended actions, work queues, daily briefs, and SKU health views |
+| Approval-safe execution | Policy decisions, risk levels, immutable approved plans, action hashes, idempotency keys, audit, and recovery semantics |
+| Bounded AI advisors | Operations brief, customer case, Listing optimization, and reconciliation workflows with evidence, confidence, freshness, and strict schemas |
+| Pricing and Listing | Profit-constrained pricing recommendations and approval-bound Listing experiments with before/after guardrails |
+| Customer service and reconciliation | Tenant-scoped case workflows, response drafts, discrepancy investigation, and operator handoff |
+| Learning loop | Advertising and voice-of-customer findings, operator feedback, manual execution evidence, and bounded outcome attribution |
+| Amazon integration | LWA authorization, encrypted refresh-token storage, SP-API adapter, rate limiting, normalized errors, and read-only synchronization |
+| Release governance | Versioned route catalog, OpenAPI/BFF drift checks, `full_development`, `golden_demo`, and `read_only_pilot` profiles |
+
+The primary artifact is a **verified operational decision record**, not a chat transcript.
+
+## Golden Workflow
+
+The reference workflow is a stockout-risk loop that proves the model cannot silently become the system of record or execution authority.
 
 ```mermaid
 flowchart LR
-  UI --> API[FastAPI API]
-  API --> IAM[OIDC / Tenant RBAC]
-  API --> APP[Application Services]
-  APP --> DOMAIN[Platform-neutral Domain]
-  DOMAIN --> PORTS[Commerce Ports]
-  PORTS --> AMAZON[Amazon SP-API Adapter]
-  APP --> PG[(PostgreSQL)]
-  APP --> REDIS[(Redis / Celery)]
-  APP --> MODEL[Model Gateway]
-  AMAZON --> EVENTS[Inbox / Outbox]
+    A[Amazon or labeled Mock data] --> B[Sync and normalize]
+    B --> C[Deterministic metrics]
+    C --> D[Issue and work item]
+    D --> E[Bounded advisor]
+    E --> F[Policy evaluation]
+    F --> G[Independent approval]
+    G --> H[Immutable approved plan]
+    H --> I[Idempotent manual execution]
+    I --> J[Event ingestion and re-sync]
+    J --> K[Deterministic verification]
+    E -. evidence, confidence, missing data .-> D
+    K -->|resolved| D
 ```
 
-## Local development
+1. Sync Amazon-shaped data and detect a SKU stockout risk.
+2. Calculate inventory facts with versioned deterministic formulas.
+3. Ask a bounded advisor to explain cited evidence without changing business values.
+4. Bind tenant, connection, marketplace, issue, action, evidence, policy version, and action hash into an approval request.
+5. Require an independent approver; critical actions require two distinct approvers.
+6. Rebuild execution only from the server-side approved plan and enforce idempotency.
+7. Re-sync facts and close the issue only when deterministic verification passes.
 
-Start the complete local UI, API, PostgreSQL, Redis/Celery, Mock OIDC and Mock Amazon stack without domains or TLS:
+## Architecture
+
+OmniSell is a modular monolith with hexagonal boundaries around external commerce and model providers.
+
+```mermaid
+flowchart TB
+    UI[Next.js operations console] --> API[FastAPI API and BFF]
+    API --> IAM[OIDC, MFA claims, tenant RBAC]
+    API --> APP[Application services]
+    APP --> DOMAIN[Deterministic domain rules]
+    APP --> AGENT[Bounded advisor runtime]
+    APP --> SAFETY[Policy, HITL, action hash, audit]
+    APP --> WORKFLOW[Persistent workflows and recovery]
+    DOMAIN --> PORTS[Commerce ports]
+    PORTS --> AMAZON[Amazon SP-API adapter]
+    PORTS --> MOCK[High-fidelity Mock adapters]
+    APP --> PG[(PostgreSQL 16 and RLS)]
+    APP --> REDIS[(Redis and Celery)]
+    AGENT --> MODEL[OpenAI-compatible model gateway]
+    API --> OTEL[OpenTelemetry and Prometheus]
+```
+
+**Boundary rule:** adapters collect or execute, application services orchestrate, domain code calculates, workflows persist state, policy decides, and advisors explain. A model never calculates price floors, bypasses tenant scope, approves itself, or assembles arbitrary side-effect parameters.
+
+### Release Profiles
+
+| Profile | Purpose | Registered backend routes | External write posture |
+| --- | --- | ---: | --- |
+| `full_development` | Local development and extended modules | 136 | Still subject to auth, policy, approval, and adapter gates |
+| `golden_demo` | Focused stockout demo and Mock Seller Central loop | 77 | Mock/internal workflow only |
+| `read_only_pilot` | Production-shaped Amazon pilot | 119 | Real Amazon writes blocked |
+
+Route counts come from the versioned FastAPI inventory, not text search. The frontend also versions 69 BFF files and 83 handlers, with generated profile manifests and drift checks.
+
+## Tech Stack
+
+| Layer | Technologies | Role |
+| --- | --- | --- |
+| Frontend | Next.js 15.5, React 19, TypeScript 5.7, Tailwind CSS 3.4, TanStack Query, NextAuth 5, Lucide | Operations console, OIDC sessions, profile-aware navigation, typed BFF routes |
+| API | Python 3.12, FastAPI 0.135, Pydantic 2, Uvicorn | Tenant-scoped REST APIs, validation, dependency injection, health and admin surfaces |
+| Domain and application | Python dataclasses/Pydantic, hexagonal ports, persistent workflow engine | Deterministic commerce rules, orchestration, approvals, execution contracts, recovery |
+| Data | PostgreSQL 16, SQLAlchemy 2, Alembic, PostgreSQL RLS | Durable tenant data, constraints, frozen migration baseline, row-level isolation |
+| Async runtime | Redis 7, Celery 5.5 | Durable work dispatch, workers, scheduler, retries, and task recovery |
+| AI runtime | OpenAI Python SDK, OpenAI-compatible providers, strict JSON Schema, Pydantic contracts | Bounded structured generation, token/cost budgets, schema repair, controlled failover |
+| Amazon | Login with Amazon OAuth, Selling Partner API, encrypted secrets | Read synchronization, connection lifecycle, rate-limited platform adapter |
+| Security | OIDC JWT, MFA/AMR checks, tenant RBAC, Fernet encryption, policy engine, HITL | Authentication, authorization, secret protection, approval and execution integrity |
+| Observability | OpenTelemetry, Prometheus, Grafana LGTM | Correlated traces, metrics, agent usage, latency, cost, and operational diagnostics |
+| Quality | Pytest, pytest-xdist, branch coverage, Ruff, Pyright, Playwright | Unit, contract, SQLite/PostgreSQL integration, security, E2E, static and browser validation |
+| Supply chain | Docker Compose, Caddy, GitHub Actions, pip-audit, Trivy, Gitleaks, SBOM | Reproducible local/production-shaped stacks and CI security gates |
+
+## Safety Model
+
+OmniSell treats AI as an untrusted advisory subsystem inside a governed business workflow.
+
+| Deterministic code owns | Advisors may provide |
+| --- | --- |
+| Money and fee calculations | Evidence-bound explanations |
+| Inventory calculations and thresholds | Root-cause hypotheses |
+| Tenant scope and permissions | Draft operator summaries |
+| Policy and risk decisions | Draft customer or Listing content |
+| Approval state and approver separation | Explicit confidence and missing-data notes |
+| Action hashes and immutable execution plans | Recommendations that still require validation |
+| Idempotency, audit, recovery, and final state | No direct side effects |
+
+Hard boundaries include:
+
+- Every business query and persistent record is tenant-scoped; PostgreSQL RLS provides a database-level backstop.
+- Money uses `Decimal` with ISO 4217 currency codes; timestamps are timezone-aware UTC.
+- Side effects require authorization, policy evaluation, idempotency, action hash, audit, and recovery semantics.
+- Refunds, payment reversals, autonomous cancellation, cross-tenant operations, and arbitrary tool execution are blocked.
+- Real Amazon writes are disabled in the current `read_only_pilot` release posture.
+- Mock, imported, estimated, and stale data cannot be presented as verified Amazon facts.
+
+See the [threat model](docs/security/THREAT_MODEL.md), [bounded advisor runtime](docs/AGENT_RUNTIME.md), and [read-only pilot ADR](docs/adr/ADR-004-read-only-amazon-pilot.md).
+
+## Quick Start
+
+### Prerequisites
+
+- Windows PowerShell or PowerShell 7
+- Python 3.12
+- Docker Desktop with the Docker engine running
+- Node.js 22 only when running frontend checks outside Docker
+
+### Bootstrap the development environment
 
 ```powershell
-./scripts/start_local.ps1
+git clone https://github.com/paulrose4/omnisell-ai-agent.git
+cd omnisell-ai-agent
+./scripts/bootstrap_dev.ps1
 ```
 
-Open `http://localhost:3000` and choose a local persona. Stop with `./scripts/stop_local.ps1`; add `-ResetData` only when local PostgreSQL and Redis data should be deleted. See `docs/LOCAL_DEVELOPMENT.md` for configuration layers and cloud replacement boundaries.
+The bootstrap script creates `.venv`, installs hash-locked dependencies, runs dependency and compile checks, validates the Alembic baseline, and executes focused security smoke tests.
 
-For Python-only development, create a virtual environment, install `requirements.txt`, and use SQLite/memory queue settings from `.env.example`.
-
-The default dependency set intentionally excludes the legacy in-process Chroma and local transformer stack because those optional packages currently have unresolved security advisories. Customer-service retrieval uses the deterministic FAQ fallback unless a separately reviewed vector service/client is supplied.
-
-## Production startup
+### Start the complete local stack
 
 ```powershell
-docker compose build
-docker compose run --rm migrate
-docker compose up -d api worker scheduler
+./scripts/start_local.ps1 -ReleaseProfile golden_demo
 ```
 
-Production requires PostgreSQL, Redis, OIDC configuration, a Fernet `SECRET_ENCRYPTION_KEY`, and Amazon Draft application credentials. Keep `AUTO_CREATE_SCHEMA=false`; migrations are the only production schema mechanism.
+The first run creates the ignored `.env.local` from `.env.local.example` and starts:
 
-The full local stack uses the same production-shaped backend with Mock OIDC and Mock Amazon. See `docs/LOCAL_DEVELOPMENT.md` for normal local use and `docs/MOCK_PRODUCTION_PILOT.md` for the integration contract details.
+| Service | URL |
+| --- | --- |
+| Operations console | `http://localhost:3000` |
+| FastAPI | `http://localhost:8080` |
+| Mock OIDC and Amazon cloud | `http://localhost:9000` |
+| PostgreSQL | `localhost:55432` |
 
-## Amazon MVP boundaries
+The sign-in page provides local Owner, Operator, Approver, and Viewer personas backed by real OIDC JWT, MFA-claim, membership, tenant, and RBAC checks.
 
-- Marketplace: Amazon US (`ATVPDKIKX0DER`).
-- Orders, Listings Item lookup and FBA inventory are implemented as read paths.
-- Listing updates require structured patches and should be invoked only after policy approval.
-- Direct refunds, payment reversal and autonomous order cancellation are blocked.
-- FBM is represented in the domain but complete shipping/PII/RDT flows remain out of the MVP.
-- Real SP-API integration tests require a Draft application and a controlled seller account.
+```powershell
+# Keep local data
+./scripts/stop_local.ps1
 
-## Operations
+# Remove containers and local PostgreSQL/Redis data
+./scripts/stop_local.ps1 -ResetData
+```
 
-See `docs/RUNBOOK.md` for deployment, rollback, alerting, backup and incident procedures.
+Detailed configuration and cloud replacement boundaries are in [Local Development](docs/LOCAL_DEVELOPMENT.md).
 
-## SKU cost and profit foundation
+## Verification
 
-Milestone 1 adds tenant-scoped cost CSV import and deterministic SKU profit snapshots. See `docs/product/milestone_1_profitability_foundation.md` and `docs/templates/sku_cost_profile.csv`. These APIs expose missing inputs, confidence, source/estimate status and formula version; they do not claim Amazon-verified profit unless the supplied inputs have been reconciled externally.
+### Backend
 
-## Inventory health foundation
+```powershell
+./.venv/Scripts/python.exe -m pytest
+./.venv/Scripts/python.exe -m ruff check .
+./.venv/Scripts/python.exe -m ruff format --check .
+./.venv/Scripts/python.exe -m pyright
+./.venv/Scripts/python.exe -m compileall api application commerce domain infrastructure model_gateway workflows safety agents rag scripts
+```
 
-Milestone 2 adds versioned inventory policies and deterministic inventory-health snapshots with weighted sales, days of supply, stockout date, reorder point and MOQ/case-pack recommendations. See `docs/product/milestone_2_inventory_health.md`. Replenishment remains recommendation-only.
+### Frontend
 
-### Milestone 3: unified operational issues
+```powershell
+cd frontend
+npm ci
+npm run check:bff-inventory
+npm run check:api-types
+npm run typecheck
+npm run build
+```
 
-OmniSell now converts persisted inventory-health and SKU-profit snapshots into tenant-scoped, deduplicated `OperationalIssue` records and structured `RecommendedAction` records. Issues expose severity, quantified impact, evidence, confidence, freshness, missing data and lifecycle state. Recommendations remain internal and recommendation-only; they do not execute Amazon or supplier writes.
+### Current local verification
 
-See `docs/product/milestone_3_operational_issues.md` for rules, API and rollback details.
+The 2026-08-10 verification run records:
 
-### Milestone 4: daily operations control tower
+- 766 backend tests passed, 10 conditional tests skipped, and 0 tests failed on Python 3.12.13.
+- The clean bootstrap passed hash-locked installation, `pip check`, runtime/development `pip-audit`, compileall, schema fingerprint validation, migration roundtrip, and 66 focused safety tests.
+- Ruff check/format and Pyright completed cleanly; dependency locks reproduced with the pinned `uv` 0.12.1 toolchain.
+- Frontend BFF inventory, generated OpenAPI types, TypeScript checks, and the Next.js production build passed.
+- npm registry signatures verified and both production and full dependency audits reported 0 vulnerabilities.
+- SQLite Alembic `upgrade -> check -> downgrade -> upgrade -> check` passed.
 
-OmniSell now persists a tenant-scoped daily operations brief, ranks current profit/inventory/Listing/data-quality issues, separates financial impact by currency and exposes SKU health summaries. The Next.js console includes `/dashboard` and `/sku-health`; all recommended actions remain recommendation-only.
+### Versioned infrastructure evidence
 
-See `docs/product/milestone_4_daily_operations_control_tower.md` for rules, APIs and rollback details.
+The 2026-08-06 committed evidence additionally records:
 
-### Milestone 5: profit-constrained pricing
+- PostgreSQL 16 migration upgrade/downgrade roundtrip produced a stable schema fingerprint.
+- Ten non-owner PostgreSQL RLS tests passed with an `omnisell_app` `NOBYPASSRLS` role.
+- The Playwright golden stockout workflow passed with four independent OIDC personas.
+- Critical-path coverage gates and 90% changed-line coverage policy were enabled.
 
-OmniSell now produces persistent price recommendations from versioned cost profiles, profit snapshots and inventory-health snapshots. Prices below break-even or discounts during critical stockout risk are blocked; below-minimum-margin and degraded-evidence cases require action-hash-bound HITL approval. The legacy competitor-only monitor remains compatible but cannot auto-write prices.
+The CI pipeline additionally shards backend suites, verifies migration and route inventories, audits dependencies, builds containers, generates SBOMs, scans images with Trivy, and scans history with Gitleaks.
 
-See `docs/product/milestone_5_profit_constrained_pricing.md` and `evals/pricing_guardrails.json`.
+### External verification gaps
 
-### Milestone 6: Listing quality experiments
+These remain explicit and are not represented as completed:
 
-OmniSell now persists deterministic Listing quality snapshots and approval-bound optimization experiments with before/after business guardrails. The `/listing-quality` workbench covers issue review, exact-change approval, manual execution evidence, conversion/return evaluation and keep/rollback decisions. Conversion degradation or return-rate increase creates a rollback recommendation and critical operational issue. The workflow intentionally does not call Amazon Listing update APIs in this milestone.
+- Real Amazon SP-API write operations have not been exercised and remain blocked.
+- Real model-provider quality, latency, repair rate, and cost need a fresh controlled evaluation before a release go decision.
+- A real enterprise OIDC issuer and named operator sign-off are still external gates.
+- Business impact and adoption require a 2-4 week read-only operator pilot; Mock data does not prove seller outcomes.
 
-See `docs/product/milestone_6_listing_quality_experiments.md` and `evals/listing_experiment_guardrails.json`.
+## Project Structure
 
-## Bounded advisor runtime
+```text
+omnisell-ai-agent/
+|-- agents/             # Bounded advisors, prompts, contracts, evidence validation
+|-- api/                # FastAPI composition, security, route catalog, release profiles
+|-- application/        # Use cases, orchestration, workers, sync, execution contracts
+|-- commerce/           # Platform-neutral ports plus Amazon and Mock adapters
+|-- domain/             # Deterministic inventory, profit, pricing, issues, and work items
+|-- infrastructure/     # SQLAlchemy models, tenant-scoped repositories, persistence
+|-- model_gateway/      # Structured generation, budgets, failover, provider errors
+|-- safety/             # Policy, HITL, authorization, audit, write and refund gates
+|-- workflows/          # Persistent state machines and recovery semantics
+|-- alembic/            # Frozen baseline migration with tenant indexes and RLS
+|-- frontend/           # Next.js operations console and Playwright golden workflow
+|-- evals/              # Versioned safety and advisor-quality datasets and scorers
+|-- docs/               # Product specs, ADRs, evidence, runbooks, and interview package
+|-- scripts/            # Bootstrap, verification, staging smoke, backup, and restore tools
+`-- tests/              # Unit, contract, integration, PostgreSQL, security, and E2E suites
+```
 
-Production analysis uses four tenant-scoped, evidence-validated bounded advisors through the persistent workflow engine; Legacy AutoGen GroupChat is not a production runtime. See `docs/AGENT_RUNTIME.md` for architecture, evidence contracts, APIs, model configuration, recovery semantics, deployment requirements and external verification gaps.
+Legacy AutoGen demos are isolated under `legacy/autogen_demo/` and are not part of the production runtime.
 
-For the repeatable Amazon operations demo, four architecture diagrams, eight Mock scenarios and the 10-minute interview walkthrough, see `docs/INTERVIEW_DEMO_RUNBOOK.md`.
+## Documentation
 
-## Operations learning loop
+- [One-page project overview](docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md)
+- [Interview package index](docs/interview/INTERVIEW_PACKAGE_INDEX.md)
+- [Product and architecture overview](docs/product/amazon_operations_control_tower.md)
+- [Bounded advisor runtime](docs/AGENT_RUNTIME.md)
+- [Local development](docs/LOCAL_DEVELOPMENT.md)
+- [Operations runbook](docs/RUNBOOK.md)
+- [Threat model](docs/security/THREAT_MODEL.md)
+- [Production readiness audit](docs/PRODUCTION_READINESS_AUDIT.md)
+- [External staging verification](docs/EXTERNAL_STAGING_VERIFICATION_RUNBOOK.md)
+- [Operator acceptance criteria](docs/OPERATOR_PRODUCTION_ACCEPTANCE.md)
+- [Architecture decisions](docs/adr/ADR-001-freeze-alembic-baseline-before-default-branch-merge.md)
 
-The test-first operations learning loop connects normalized advertising/VOC facts to deterministic findings, three operator queues, explicit touch-time evidence, structured false-positive/missed-issue feedback, manual-only execution records and bounded outcome attribution. Mock and future Amazon sources implement the same port; Mock facts remain visibly unverified and no learning workflow performs Amazon writes.
+## Production Boundaries
 
-See `docs/product/operations_learning_loop.md` for the adapter contract, local drill, APIs, metrics, production gates and rollback.
+The current production-shaped deployment requires PostgreSQL, Redis, an OIDC provider, a Fernet `SECRET_ENCRYPTION_KEY`, Amazon application credentials, and an OpenAI-compatible model endpoint. Schema creation is migration-only: keep `AUTO_CREATE_SCHEMA=false` and run the dedicated Alembic migration job before API and worker rollout.
+
+Deployment, rollback, backups, alerts, and incident procedures are documented in the [operations runbook](docs/RUNBOOK.md). No real Amazon write capability should be enabled without a separate action-specific security release, operator decision, and verified recovery path.
