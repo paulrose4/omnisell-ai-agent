@@ -215,16 +215,16 @@ jobs:
       - run: pip-audit -r requirements.lock.txt
       - run: pip-audit -r mock_platform/requirements.lock.txt
       - run: pip-audit -r local_e2e_mock/requirements.lock.txt
-      - uses: hadolint/hadolint-action@v3.1.0
+      - uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: api/Dockerfile
-      - uses: hadolint/hadolint-action@v3.1.0
+      - uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: frontend/Dockerfile
-      - uses: hadolint/hadolint-action@v3.1.0
+      - uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: mock_platform/Dockerfile
-      - uses: hadolint/hadolint-action@v3.1.0
+      - uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: local_e2e_mock/Dockerfile
       - name: Upload migration evidence
