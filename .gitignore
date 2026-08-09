@@ -61,6 +61,7 @@ frontend/.next/
 artifacts/
 frontend/.env*
 !frontend/.env.example
+!frontend/.env.mock.example
 !frontend/.env.production.example
 
 # Local prompt backups
@@ -73,4 +74,3 @@ frontend/test-results/
 
 # Coverage generated data
 /coverage.json
-

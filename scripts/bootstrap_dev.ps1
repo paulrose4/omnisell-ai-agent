@@ -21,12 +21,16 @@ function Get-Python312 {
     $launcher = Get-Command py -ErrorAction SilentlyContinue
     if ($launcher) {
         & py -3.12 -c "import sys; assert sys.version_info[:2] == (3, 12)" 2>$null
-        if ($LASTEXITCODE -eq 0) { return @("py", "-3.12") }
+        if ($LASTEXITCODE -eq 0) {
+            return [pscustomobject]@{ Executable = "py"; Arguments = @("-3.12") }
+        }
     }
     $python = Get-Command python -ErrorAction SilentlyContinue
     if ($python) {
         & python -c "import sys; assert sys.version_info[:2] == (3, 12)" 2>$null
-        if ($LASTEXITCODE -eq 0) { return @("python") }
+        if ($LASTEXITCODE -eq 0) {
+            return [pscustomobject]@{ Executable = "python"; Arguments = @() }
+        }
     }
     throw "Python 3.12 is required. Install it and ensure py -3.12 or python resolves to it."
 }
@@ -56,11 +60,9 @@ try {
     [Console]::InputEncoding = $utf8Encoding
     [Console]::OutputEncoding = $utf8Encoding
     $env:PYTHONUTF8 = "1"
-    if ($pythonCommand.Count -eq 2) {
-        & $pythonCommand[0] $pythonCommand[1] -m venv $targetPath
-    } else {
-        & $pythonCommand[0] -m venv $targetPath
-    }
+    $pythonExecutable = [string]$pythonCommand.Executable
+    $pythonArguments = @($pythonCommand.Arguments) + @("-m", "venv", $targetPath)
+    & $pythonExecutable @pythonArguments
     if ($LASTEXITCODE -ne 0) { throw "Python 3.12 failed to create the virtual environment." }
 
     $venvPython = Join-Path $targetPath "Scripts/python.exe"

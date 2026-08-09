@@ -1262,6 +1262,8 @@ def test_development_bootstrap_creates_and_verifies_python_312_environment():
     assert "compileall" in bootstrap
     assert "alembic upgrade head" in bootstrap
     assert "test_safety.py" in bootstrap
+    assert "$pythonCommand.Executable" in bootstrap
+    assert "$pythonCommand.Arguments" in bootstrap
 
 
 def test_versioned_clean_bootstrap_evidence_matches_current_dependency_locks():
