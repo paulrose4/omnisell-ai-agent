@@ -4,6 +4,7 @@
 | --- | --- | --- |
 | One-page project overview | `docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md` | Elevator pitch, who / what / why / success criteria. |
 | API + demo scope | `docs/interview/API_AND_DEMO_SCOPE.md` | Which routes / pages the candidate owns, which are out of scope. |
+| Schema repair latency incident | `docs/interview/INCIDENT_01_SCHEMA_REPAIR_LATENCY.md` | Real-provider schema repair latency and the resulting no-go boundary. |
 | Approval execution binding incident | `docs/interview/INCIDENT_02_APPROVAL_EXECUTION_BINDING.md` | Walkthrough of the immutability + replay defence. |
 | Failover 504 incident | `docs/interview/incidents/INCIDENT_01_PROVIDER_504_RECOVERY.md` | Recovery from a real provider outage using bounded failover. |
 | Schema repair backlog incident | `docs/interview/incidents/INCIDENT_03_SCHEMA_REPAIR_BACKLOG.md` | Honest accounting of remaining provider-quality work. |
@@ -18,6 +19,15 @@
 | Agent contract evidence | `docs/evidence/agent-contracts/schema-size-v1-v2.json`, `PAYLOAD_COMPATIBILITY_SCAN.md` | Contract evolution + payload audit fixture. |
 | Operator review template | `docs/evidence/agent-evals/operator-review-template-v1.csv` | Spreadsheet for the planned human reviewer sign-off. |
 | Optimisation plan | `docs/PROJECT_INTERVIEW_OPTIMIZATION_PLAN.md` | Master tracking document, refreshed after every PR. |
+
+## Versioned evidence and external gaps
+
+- Agent evaluation: [`../evidence/agent-evals/EVALUATION_REPORT.md`](../evidence/agent-evals/EVALUATION_REPORT.md).
+- Golden demo: [`../INTERVIEW_DEMO_RUNBOOK.md`](../INTERVIEW_DEMO_RUNBOOK.md).
+- PostgreSQL 16 migration and non-owner RLS evidence is versioned under `docs/evidence/migrations/`.
+- 真实 Amazon 写入仍未执行，当前发布姿态保持 `read_only_pilot`。
+- 真实模型质量、延迟、repair rate 与成本仍需重新完成受控评测。
+- 真实 OIDC、具名 operator 签字和 2 至 4 周只读 Pilot 仍属于外部门禁。
 
 ## How to review in 30 minutes
 1. Open `docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md`.

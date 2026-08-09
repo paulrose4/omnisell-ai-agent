@@ -4,6 +4,14 @@ The matrix below is the source of truth for "which parts of this repository did
 the candidate actually design and own". Every row references the commit, the
 modules touched and how the work was verified.
 
+## Authorship and verification boundary
+
+- The target GitHub repository is published under `paulrose4`, but repository ownership alone cannot prove the authorship of every line.
+- 候选人需确认 each ownership statement below against commit history, local work records, and the code they can personally explain.
+- AI 辅助 must be disclosed per workstream; generated drafts are not treated as independently authored or verified implementation.
+- Uncommitted work, squashed changes, pair work, and tool-assisted edits 不能从 Git 自动证明 and require explicit candidate confirmation.
+- The preserved baseline commit by `Ava <elovedollssale@gmail.com>` remains attributed to Ava and is not claimed by the candidate.
+
 ## 1. Production foundation
 
 - **Scope**: tenant-scoped repositories, RLS bootstrap, deterministic business
