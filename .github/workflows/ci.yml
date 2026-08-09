@@ -105,7 +105,7 @@ jobs:
           --durations=50
       - name: Upload test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.suite }}
           path: test-results/
@@ -147,7 +147,7 @@ jobs:
           --html-report test-results/diff-coverage.html
       - name: Upload coverage evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-evidence
           path: test-results/
@@ -229,7 +229,7 @@ jobs:
           dockerfile: local_e2e_mock/Dockerfile
       - name: Upload migration evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: postgres-schema-fingerprint
           path: test-results/postgres-schema-fingerprint-before-roundtrip.json
@@ -302,7 +302,7 @@ jobs:
           docker compose --env-file .env.local.example -f docker-compose.e2e.yml -f docker-compose.local.yml logs --no-color > test-results/compose.log
       - name: Upload golden demo evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: golden-demo-e2e
           path: |
@@ -414,7 +414,7 @@ jobs:
           exit-code: "1"
       - name: Upload SBOM evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: container-sboms
           path: sbom-*.spdx.json
