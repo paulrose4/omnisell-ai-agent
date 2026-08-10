@@ -2,13 +2,77 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  classify-changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      full: ${{ steps.changes.outputs.full }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Classify affected validation surfaces
+        id: changes
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch --no-tags origin "$BASE_REF:refs/remotes/origin/$BASE_REF"
+          git diff --name-only --diff-filter=ACMRT "origin/$BASE_REF...HEAD" > /tmp/changed-files.txt
+
+          backend=false
+          frontend=false
+          full=false
+          while IFS= read -r path; do
+            case "$path" in
+              docs/*|*.md|.github/dependabot.yml|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md)
+                ;;
+              .github/workflows/*)
+                backend=true
+                frontend=true
+                full=true
+                ;;
+              frontend/*)
+                frontend=true
+                full=true
+                ;;
+              *)
+                backend=true
+                full=true
+                ;;
+            esac
+          done < /tmp/changed-files.txt
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+
   backend-tests:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.backend == 'true'
     name: backend-${{ matrix.suite }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -113,6 +177,8 @@ jobs:
           retention-days: 14
 
   backend-coverage:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -155,6 +221,8 @@ jobs:
           retention-days: 30
 
   backend-quality:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -237,6 +305,8 @@ jobs:
           retention-days: 30
 
   frontend:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -258,6 +328,8 @@ jobs:
       - run: npm run build
 
   golden-demo-e2e:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -319,6 +391,8 @@ jobs:
           down -v
 
   container-security:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -429,3 +503,38 @@ jobs:
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
+
+  required-ci-gate:
+    name: required-ci-gate
+    if: always()
+    needs:
+      - classify-changes
+      - backend-tests
+      - backend-coverage
+      - backend-quality
+      - frontend
+      - golden-demo-e2e
+      - container-security
+      - secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every applicable validation surface to pass
+        shell: bash
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          results = json.loads(os.environ["JOB_RESULTS"])
+          failures = {
+              name: details["result"]
+              for name, details in results.items()
+              if details["result"] not in ("success", "skipped")
+          }
+          if failures:
+              print(f"Required CI jobs did not pass: {failures}")
+              raise SystemExit(1)
+          PY
