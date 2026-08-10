@@ -186,3 +186,7 @@ def test_hadolint_ignores_only_the_digest_pinned_build_arg_false_positive() -> N
         dockerfile = (ROOT / relative_path).read_text(encoding="utf-8")
         image_argument = next(line for line in dockerfile.splitlines() if line.startswith("ARG ") and "_IMAGE=" in line)
         assert "@sha256:" in image_argument, f"{relative_path} must pin its default base image by digest"
+
+    for relative_path in ("api/Dockerfile", "mock_platform/Dockerfile", "local_e2e_mock/Dockerfile"):
+        dockerfile = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "PIP_NO_CACHE_DIR=1" in dockerfile, f"{relative_path} must not retain pip caches in its runtime image"
