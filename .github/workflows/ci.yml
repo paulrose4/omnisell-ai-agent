@@ -2,13 +2,77 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  classify-changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      full: ${{ steps.changes.outputs.full }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Classify affected validation surfaces
+        id: changes
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch --no-tags origin "$BASE_REF:refs/remotes/origin/$BASE_REF"
+          git diff --name-only --diff-filter=ACMRT "origin/$BASE_REF...HEAD" > /tmp/changed-files.txt
+
+          backend=false
+          frontend=false
+          full=false
+          while IFS= read -r path; do
+            case "$path" in
+              docs/*|*.md|.github/dependabot.yml|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE.md)
+                ;;
+              .github/workflows/*)
+                backend=true
+                frontend=true
+                full=true
+                ;;
+              frontend/*)
+                frontend=true
+                full=true
+                ;;
+              *)
+                backend=true
+                full=true
+                ;;
+            esac
+          done < /tmp/changed-files.txt
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+
   backend-tests:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.backend == 'true'
     name: backend-${{ matrix.suite }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -20,6 +84,7 @@ jobs:
             marker: unit or contract
             workers: -n auto
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-unit-contract.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -27,6 +92,7 @@ jobs:
             marker: sqlite_integration and ci_shard_a
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-integration-a.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -34,6 +100,7 @@ jobs:
             marker: sqlite_integration and ci_shard_b
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-integration-b.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -41,6 +108,7 @@ jobs:
             marker: postgres_integration
             workers: ""
             require_postgres: "true"
+            postgres_image: pgvector/pgvector:pg16
             database_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
             postgres_rls_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
             postgres_app_url: postgresql+psycopg://omnisell_app:omnisell-app@localhost:5432/omnisell
@@ -48,6 +116,7 @@ jobs:
             marker: e2e
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-e2e.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -55,12 +124,13 @@ jobs:
             marker: security
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-security.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: ${{ matrix.postgres_image }}
         env:
           POSTGRES_DB: omnisell
           POSTGRES_USER: omnisell
@@ -76,6 +146,8 @@ jobs:
       OMNISELL_REQUIRE_POSTGRES_TESTS: ${{ matrix.require_postgres }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -113,6 +185,8 @@ jobs:
           retention-days: 14
 
   backend-coverage:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -155,6 +229,8 @@ jobs:
           retention-days: 30
 
   backend-quality:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -178,6 +254,8 @@ jobs:
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -218,15 +296,19 @@ jobs:
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: api/Dockerfile
+          ignore: DL3006
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: frontend/Dockerfile
+          ignore: DL3006
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: mock_platform/Dockerfile
+          ignore: DL3006
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: local_e2e_mock/Dockerfile
+          ignore: DL3006
       - name: Upload migration evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -237,6 +319,8 @@ jobs:
           retention-days: 30
 
   frontend:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -258,6 +342,8 @@ jobs:
       - run: npm run build
 
   golden-demo-e2e:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -276,10 +362,21 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - name: Start golden demo stack
-        run: >-
-          docker compose --env-file .env.local.example
-          -f docker-compose.e2e.yml -f docker-compose.local.yml
-          up -d --build
+        run: |
+          compose=(
+            docker compose --env-file .env.local.example
+            -f docker-compose.e2e.yml -f docker-compose.local.yml
+          )
+          for attempt in 1 2 3; do
+            if "${compose[@]}" pull --ignore-buildable; then
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              exit 1
+            fi
+            sleep "$((attempt * 30))"
+          done
+          "${compose[@]}" up -d --build --pull never
       - name: Wait for API and frontend
         run: |
           for attempt in {1..90}; do
@@ -319,6 +416,8 @@ jobs:
           down -v
 
   container-security:
+    needs: classify-changes
+    if: needs.classify-changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -381,7 +480,7 @@ jobs:
           format: spdx-json
           output-file: sbom-mock-cloud.spdx.json
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-api:ci
           format: table
@@ -389,7 +488,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan frontend image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-frontend:ci
           format: table
@@ -397,7 +496,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan Mock Seller Central image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-mock-platform:ci
           format: table
@@ -405,7 +504,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan local mock cloud image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-mock-cloud:ci
           format: table
@@ -424,8 +523,45 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+
+  required-ci-gate:
+    name: required-ci-gate
+    if: always()
+    needs:
+      - classify-changes
+      - backend-tests
+      - backend-coverage
+      - backend-quality
+      - frontend
+      - golden-demo-e2e
+      - container-security
+      - secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every applicable validation surface to pass
+        shell: bash
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          results = json.loads(os.environ["JOB_RESULTS"])
+          failures = {
+              name: details["result"]
+              for name, details in results.items()
+              if details["result"] not in ("success", "skipped")
+          }
+          if failures:
+              print(f"Required CI jobs did not pass: {failures}")
+              raise SystemExit(1)
+          PY

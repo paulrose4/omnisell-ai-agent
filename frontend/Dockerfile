@@ -19,7 +19,7 @@ ENV NEXT_PUBLIC_ENVIRONMENT=${NEXT_PUBLIC_ENVIRONMENT} \
     NEXT_PUBLIC_REFRESH_INTERVAL_MS=${NEXT_PUBLIC_REFRESH_INTERVAL_MS}
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN mkdir -p public && npm run build
 
 FROM ${NODE_IMAGE} AS runtime
 WORKDIR /app

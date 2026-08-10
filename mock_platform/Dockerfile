@@ -4,7 +4,8 @@ FROM ${PYTHON_IMAGE}
 ARG PIP_INDEX_URL=https://pypi.org/simple
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
 RUN useradd --create-home --uid 10001 mock
 WORKDIR /app

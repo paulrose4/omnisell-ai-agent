@@ -263,6 +263,7 @@ Legacy AutoGen demos are isolated under `legacy/autogen_demo/` and are not part 
 - [Product and architecture overview](docs/product/amazon_operations_control_tower.md)
 - [Bounded advisor runtime](docs/AGENT_RUNTIME.md)
 - [Local development](docs/LOCAL_DEVELOPMENT.md)
+- [Dependency maintenance and branch lifecycle](docs/DEPENDENCY_MAINTENANCE.md)
 - [Operations runbook](docs/RUNBOOK.md)
 - [Threat model](docs/security/THREAT_MODEL.md)
 - [Production readiness audit](docs/PRODUCTION_READINESS_AUDIT.md)
