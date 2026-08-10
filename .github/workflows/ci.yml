@@ -296,15 +296,19 @@ jobs:
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: api/Dockerfile
+          ignore: DL3006
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: frontend/Dockerfile
+          ignore: DL3006
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: mock_platform/Dockerfile
+          ignore: DL3006
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: local_e2e_mock/Dockerfile
+          ignore: DL3006
       - name: Upload migration evidence
         if: always()
         uses: actions/upload-artifact@v4

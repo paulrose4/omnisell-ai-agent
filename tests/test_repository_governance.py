@@ -164,3 +164,25 @@ def test_frontend_container_supports_an_application_without_static_public_assets
 
     assert "RUN mkdir -p public" in dockerfile
     assert "COPY --chown=node:node --from=build /app/public ./public" in dockerfile
+
+
+def test_hadolint_ignores_only_the_digest_pinned_build_arg_false_positive() -> None:
+    workflow = _load_yaml(".github/workflows/ci.yml")
+    hadolint_steps = [
+        step
+        for step in workflow["jobs"]["backend-quality"]["steps"]
+        if step.get("uses") == "hadolint/hadolint-action@v3.1.0"
+    ]
+
+    assert len(hadolint_steps) == 4
+    assert {step["with"].get("ignore") for step in hadolint_steps} == {"DL3006"}
+
+    for relative_path in (
+        "api/Dockerfile",
+        "frontend/Dockerfile",
+        "mock_platform/Dockerfile",
+        "local_e2e_mock/Dockerfile",
+    ):
+        dockerfile = (ROOT / relative_path).read_text(encoding="utf-8")
+        image_argument = next(line for line in dockerfile.splitlines() if line.startswith("ARG ") and "_IMAGE=" in line)
+        assert "@sha256:" in image_argument, f"{relative_path} must pin its default base image by digest"
