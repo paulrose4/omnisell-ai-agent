@@ -3,6 +3,7 @@
 [![CI](https://github.com/paulrose4/omnisell-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/paulrose4/omnisell-ai-agent/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)
+![Tests](https://img.shields.io/badge/automated_tests-770%2B-087F5B)
 ![Amazon](https://img.shields.io/badge/Amazon_SP--API-read--only_pilot-FF9900?logo=amazon&logoColor=white)
 
 **Evidence-driven Amazon operations, with deterministic business controls and bounded AI advisors.**
@@ -12,6 +13,17 @@ OmniSell is an Amazon operations control tower, not a free-chat product. It turn
 面向 Amazon 运营团队的安全型 AI 控制塔：模型负责解释证据和生成有界建议，确定性代码负责业务事实、权限、审批与执行边界。
 
 > **Current release posture:** interview-grade engineering candidate and read-only pilot foundation. Real Amazon writes remain disabled. Mock, imported, estimated, and externally unverified data are always identified as such.
+
+## Interview in 90 seconds
+
+[![OmniSell Golden Mock operations control tower](docs/assets/omnisell-control-tower.png)](docs/interview/START_HERE.md)
+
+- **Business problem:** turn scattered inventory, profitability, Listing, customer-service, and reconciliation signals into prioritized operational work.
+- **Engineering decision:** deterministic code owns money, inventory, tenant scope, policy, approval, action hashes, idempotency, and final state; four bounded AI advisors explain evidence and draft reviewable recommendations.
+- **Proof:** 770+ automated tests, PostgreSQL RLS with a non-owner role, four-persona Playwright E2E, migration fingerprints, agent evals, SBOM, Trivy, and Gitleaks gates.
+- **Boundary:** the screenshot and golden workflow use labeled synthetic data. Real Amazon writes are blocked, and current real-provider quality remains an explicit external release gate.
+
+Start with the [interview guide](docs/interview/START_HERE.md), then open the [one-page overview](docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md), [approval-integrity incident](docs/interview/INCIDENT_02_APPROVAL_EXECUTION_BINDING.md), or [schema-repair incident](docs/interview/INCIDENT_01_SCHEMA_REPAIR_LATENCY.md).
 
 ## What OmniSell Does
 
@@ -206,7 +218,7 @@ npm run build
 
 The 2026-08-10 verification run records:
 
-- 766 backend tests passed, 10 conditional tests skipped, and 0 tests failed on Python 3.12.13.
+- 770+ automated tests are maintained. The latest dated run recorded 776 passed, 10 PostgreSQL-dependent tests skipped, and 0 failed on Python 3.12.10; see the [verification summary](docs/evidence/verification/verification-summary-2026-08-10.md).
 - The clean bootstrap passed hash-locked installation, `pip check`, runtime/development `pip-audit`, compileall, schema fingerprint validation, migration roundtrip, and 66 focused safety tests.
 - Ruff check/format and Pyright completed cleanly; dependency locks reproduced with the pinned `uv` 0.12.1 toolchain.
 - Frontend BFF inventory, generated OpenAPI types, TypeScript checks, and the Next.js production build passed.
@@ -259,6 +271,7 @@ Legacy AutoGen demos are isolated under `legacy/autogen_demo/` and are not part 
 ## Documentation
 
 - [One-page project overview](docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md)
+- [Interview in 90 seconds](docs/interview/START_HERE.md)
 - [Interview package index](docs/interview/INTERVIEW_PACKAGE_INDEX.md)
 - [Product and architecture overview](docs/product/amazon_operations_control_tower.md)
 - [Bounded advisor runtime](docs/AGENT_RUNTIME.md)

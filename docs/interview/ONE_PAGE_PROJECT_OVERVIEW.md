@@ -36,7 +36,7 @@ OmniSell 是面向 Amazon 运营团队的安全型只读运营控制塔，不是
 
 | 指标 | 当前结果 | 证据边界 |
 | --- | ---: | --- |
-| 后端全量测试 | 753 passed，8 skipped | 本地 SQLite 与 Mock；PostgreSQL 外部项跳过 |
+| 自动化测试 | 770+ maintained；最近一次 776 passed，10 skipped | 2026-08-10 的 Python 3.12.10 运行；详见版本化验证摘要 |
 | 覆盖率 | branch-aware total 86.62%，diff coverage 90% | statement 89.58%，branch-only 74.21%；13 个关键模块门禁通过 |
 | 关键模块门禁 | 13/13 通过 | adapters、contracts、evidence、release profiles、route catalog、payload audit、deterministic domain、gateway contract、HITL、policy、workflow |
 | 发布面治理 | 136 backend routes | `golden_demo=77`、`read_only_pilot=119`；前端 69 个 BFF 文件/83 个 handler 全部分类 |
@@ -45,6 +45,8 @@ OmniSell 是面向 Amazon 运营团队的安全型只读运营控制塔，不是
 | clean bootstrap | passed | Windows 中文路径、Python 3.12、hash lock |
 
 真实模型曾出现四个案例全部触发 Schema repair，延迟约 35.8 至 89.3 秒。因此当前 Agent 评测 release decision 明确为 no-go，必须重新完成真实 provider 批量评测后才能升级结论。
+
+最新统一证据口径见 [`../evidence/verification/verification-summary-2026-08-10.md`](../evidence/verification/verification-summary-2026-08-10.md)。公开入口使用“770+ 自动化测试”，精确数字只作为带日期的运行结果引用。
 
 ## Pilot 核心 KPI
 
