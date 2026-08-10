@@ -84,6 +84,7 @@ jobs:
             marker: unit or contract
             workers: -n auto
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-unit-contract.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -91,6 +92,7 @@ jobs:
             marker: sqlite_integration and ci_shard_a
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-integration-a.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -98,6 +100,7 @@ jobs:
             marker: sqlite_integration and ci_shard_b
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-integration-b.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -105,6 +108,7 @@ jobs:
             marker: postgres_integration
             workers: ""
             require_postgres: "true"
+            postgres_image: pgvector/pgvector:pg16
             database_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
             postgres_rls_url: postgresql+psycopg://omnisell:omnisell@localhost:5432/omnisell
             postgres_app_url: postgresql+psycopg://omnisell_app:omnisell-app@localhost:5432/omnisell
@@ -112,6 +116,7 @@ jobs:
             marker: e2e
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-e2e.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
@@ -119,12 +124,13 @@ jobs:
             marker: security
             workers: ""
             require_postgres: "false"
+            postgres_image: ""
             database_url: sqlite:////tmp/omnisell-security.sqlite
             postgres_rls_url: ""
             postgres_app_url: ""
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: ${{ matrix.postgres_image }}
         env:
           POSTGRES_DB: omnisell
           POSTGRES_USER: omnisell
@@ -140,6 +146,8 @@ jobs:
       OMNISELL_REQUIRE_POSTGRES_TESTS: ${{ matrix.require_postgres }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -246,6 +254,8 @@ jobs:
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -348,10 +358,21 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - name: Start golden demo stack
-        run: >-
-          docker compose --env-file .env.local.example
-          -f docker-compose.e2e.yml -f docker-compose.local.yml
-          up -d --build
+        run: |
+          compose=(
+            docker compose --env-file .env.local.example
+            -f docker-compose.e2e.yml -f docker-compose.local.yml
+          )
+          for attempt in 1 2 3; do
+            if "${compose[@]}" pull --ignore-buildable; then
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              exit 1
+            fi
+            sleep "$((attempt * 30))"
+          done
+          "${compose[@]}" up -d --build --pull never
       - name: Wait for API and frontend
         run: |
           for attempt in {1..90}; do
@@ -455,7 +476,7 @@ jobs:
           format: spdx-json
           output-file: sbom-mock-cloud.spdx.json
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-api:ci
           format: table
@@ -463,7 +484,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan frontend image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-frontend:ci
           format: table
@@ -471,7 +492,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan Mock Seller Central image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-mock-platform:ci
           format: table
@@ -479,7 +500,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan local mock cloud image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: omnisell-mock-cloud:ci
           format: table
@@ -498,11 +519,13 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
 
   required-ci-gate:
     name: required-ci-gate
