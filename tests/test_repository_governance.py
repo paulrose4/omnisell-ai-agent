@@ -35,6 +35,14 @@ def test_dependabot_batches_routine_updates_and_bounds_open_pull_requests() -> N
     ]
     assert updates["docker"]["groups"]["docker-minor-patch"]["update-types"] == ["minor", "patch"]
 
+    assert "directory" not in updates["docker"]
+    assert updates["docker"]["directories"] == [
+        "/api",
+        "/frontend",
+        "/mock_platform",
+        "/local_e2e_mock",
+    ]
+
 
 def test_dependabot_routes_major_version_work_to_the_operator_process() -> None:
     config = _load_yaml(".github/dependabot.yml")

@@ -58,7 +58,11 @@ updates:
           - version-update:semver-major
 
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /api
+      - /frontend
+      - /mock_platform
+      - /local_e2e_mock
     schedule:
       interval: monthly
       time: "04:30"
