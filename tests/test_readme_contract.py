@@ -50,3 +50,22 @@ def test_readme_core_documentation_links_resolve() -> None:
     for relative_path in required_links:
         assert f"]({relative_path})" in readme
         assert (REPOSITORY_ROOT / relative_path).is_file()
+
+
+def test_public_showcase_leads_with_current_interview_evidence() -> None:
+    readme = README_PATH.read_text(encoding="utf-8")
+
+    for claim in (
+        "Interview in 90 seconds",
+        "docs/assets/omnisell-control-tower.png",
+        "docs/interview/START_HERE.md",
+        "bounded AI advisors",
+        "770+ automated tests",
+    ):
+        assert claim in readme, f"README is missing public showcase evidence: {claim}"
+
+    assert (REPOSITORY_ROOT / "docs/assets/omnisell-control-tower.png").is_file()
+    assert (REPOSITORY_ROOT / "docs/interview/START_HERE.md").is_file()
+
+    for stale_claim in ("88/88", "Production Ready", "3 Agent", "AutoGen GroupChat"):
+        assert stale_claim not in readme

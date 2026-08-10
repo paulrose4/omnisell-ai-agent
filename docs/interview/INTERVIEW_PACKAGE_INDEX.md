@@ -2,6 +2,7 @@
 
 | Artefact | Path | Purpose |
 | --- | --- | --- |
+| Start here | `docs/interview/START_HERE.md` | 90-second pitch, 5-minute demo, 15-minute architecture path, and mandatory disclosures. |
 | One-page project overview | `docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md` | Elevator pitch, who / what / why / success criteria. |
 | API + demo scope | `docs/interview/API_AND_DEMO_SCOPE.md` | Which routes / pages the candidate owns, which are out of scope. |
 | Schema repair latency incident | `docs/interview/INCIDENT_01_SCHEMA_REPAIR_LATENCY.md` | Real-provider schema repair latency and the resulting no-go boundary. |
@@ -18,6 +19,8 @@
 | Agent evaluation report | `docs/evidence/agent-evals/EVALUATION_REPORT.md` (and `evaluation-report-v1.json`) | Mock / deterministic / real-provider metrics. |
 | Agent contract evidence | `docs/evidence/agent-contracts/schema-size-v1-v2.json`, `PAYLOAD_COMPATIBILITY_SCAN.md` | Contract evolution + payload audit fixture. |
 | Operator review template | `docs/evidence/agent-evals/operator-review-template-v1.csv` | Spreadsheet for the planned human reviewer sign-off. |
+| Dated verification summary | `docs/evidence/verification/verification-summary-2026-08-10.md` | Public source of truth for 770+ tests and current external gates. |
+| Interview release notes | `docs/releases/v0.1.0-interview.md` | Candidate release scope, verification, and known boundaries. |
 | Optimisation plan | `docs/PROJECT_INTERVIEW_OPTIMIZATION_PLAN.md` | Master tracking document, refreshed after every PR. |
 
 ## Versioned evidence and external gaps
@@ -30,7 +33,7 @@
 - 真实 OIDC、具名 operator 签字和 2 至 4 周只读 Pilot 仍属于外部门禁。
 
 ## How to review in 30 minutes
-1. Open `docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md`.
+1. Open `docs/interview/START_HERE.md`, then `docs/interview/ONE_PAGE_PROJECT_OVERVIEW.md`.
 2. Skim `docs/INTERVIEW_DEMO_RUNBOOK.md` for the demo flow.
 3. Run `pwsh scripts/start_local.ps1 -Profile golden_demo` and reproduce the
    golden stockout loop via `npm run test:e2e:golden`.
