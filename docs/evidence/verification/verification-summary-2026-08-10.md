@@ -34,7 +34,7 @@ Advisor output remains advisory. Money, fees, inventory, authorization, policy, 
 ## External gates still open
 
 - Real Amazon write operations remain blocked in the `read_only_pilot` profile.
-- Real-provider first-pass schema success, repair rate, P50/P95 latency, token use, and cost require a new controlled 30-50 case run.
+- Real-provider first-pass schema success, repair rate, P50/P95 latency, token use, and cost first require a controlled 30-50 case calibration run. Formal sample verification requires at least 25 normal and 5 adversarial cases per Advisor (120 total), matching the implemented evaluator.
 - The current real-provider quality conclusion remains **no-go / not_verified**.
 - Named operator sign-off and a 2-4 week read-only pilot are required before any production-readiness claim.
 
