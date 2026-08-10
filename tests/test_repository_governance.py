@@ -120,7 +120,9 @@ def test_ci_fetches_quality_baselines_and_starts_postgres_only_when_required() -
     workflow = _load_yaml(".github/workflows/ci.yml")
     jobs = workflow["jobs"]
 
-    quality_checkout = next(step for step in jobs["backend-quality"]["steps"] if step.get("uses") == "actions/checkout@v4")
+    quality_checkout = next(
+        step for step in jobs["backend-quality"]["steps"] if step.get("uses") == "actions/checkout@v4"
+    )
     assert quality_checkout["with"]["fetch-depth"] == 0
 
     backend = jobs["backend-tests"]
@@ -136,20 +138,29 @@ def test_ci_retries_external_images_and_pins_security_actions() -> None:
     workflow = _load_yaml(".github/workflows/ci.yml")
     jobs = workflow["jobs"]
 
-    golden_start = next(step for step in jobs["golden-demo-e2e"]["steps"] if step.get("name") == "Start golden demo stack")
+    golden_start = next(
+        step for step in jobs["golden-demo-e2e"]["steps"] if step.get("name") == "Start golden demo stack"
+    )
     assert "for attempt in 1 2 3" in golden_start["run"]
     assert "pull --ignore-buildable" in golden_start["run"]
     assert "--pull never" in golden_start["run"]
 
     trivy_uses = [
-        step["uses"]
-        for step in jobs["container-security"]["steps"]
-        if step.get("name", "").startswith("Scan ")
+        step["uses"] for step in jobs["container-security"]["steps"] if step.get("name", "").startswith("Scan ")
     ]
     assert trivy_uses
     assert set(trivy_uses) == {"aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1"}
 
     secret_scan = jobs["secret-scan"]
     assert secret_scan["env"]["GITHUB_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
-    gitleaks = next(step for step in secret_scan["steps"] if step.get("uses", "").startswith("gitleaks/gitleaks-action@"))
+    gitleaks = next(
+        step for step in secret_scan["steps"] if step.get("uses", "").startswith("gitleaks/gitleaks-action@")
+    )
     assert gitleaks["uses"] == "gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
+
+
+def test_frontend_container_supports_an_application_without_static_public_assets() -> None:
+    dockerfile = (ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "RUN mkdir -p public" in dockerfile
+    assert "COPY --chown=node:node --from=build /app/public ./public" in dockerfile
