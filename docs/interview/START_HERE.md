@@ -4,7 +4,7 @@ OmniSell is an evidence-driven Amazon operations control tower with four bounded
 
 ## 90-second pitch
 
-> I built OmniSell to answer a production question: how can an operations team use an LLM without giving an uncertain model authority over inventory, money, or approvals? The platform turns Amazon-shaped operational facts into tenant-scoped Issues, evidence-backed Advisor recommendations, immutable approval plans, and audited manual execution. FastAPI, Next.js, PostgreSQL RLS, Redis, and Celery provide the full-stack control plane. The Agent Runtime enforces strict Pydantic schemas plus evidence, context, token, cost, and timeout budgets. I also fixed an approval-integrity flaw where a client could theoretically approve plan A but submit parameters for plan B; execution now rebuilds its command only from the server-side approved snapshot and action hash. The repository maintains 770+ automated tests, but the current public posture remains a read-only pilot: Golden Mock data is synthetic, real Amazon writes are blocked, and real-provider quality is still a no-go gate until a fresh 30-50 case evaluation is completed.
+> I built OmniSell to answer a production question: how can an operations team use an LLM without giving an uncertain model authority over inventory, money, or approvals? The platform turns Amazon-shaped operational facts into tenant-scoped Issues, evidence-backed Advisor recommendations, immutable approval plans, and audited manual execution. FastAPI, Next.js, PostgreSQL RLS, Redis, and Celery provide the full-stack control plane. The Agent Runtime enforces strict Pydantic schemas plus evidence, context, token, cost, and timeout budgets. I also fixed an approval-integrity flaw where a client could theoretically approve plan A but submit parameters for plan B; execution now rebuilds its command only from the server-side approved snapshot and action hash. The repository maintains 770+ automated tests, but the current public posture remains a read-only pilot: Golden Mock data is synthetic, real Amazon writes are blocked, and real-provider quality remains no-go. A 30-50 case batch is only the calibration stage; the implemented release gate requires at least 25 normal and 5 adversarial cases for each of the four Advisors, plus named operator review.
 
 ## 5-minute demo
 
@@ -32,6 +32,7 @@ For the reproducible local workflow, use [`../INTERVIEW_DEMO_RUNBOOK.md`](../INT
 - The current release profile is `read_only_pilot`; real Amazon writes, refunds, payment reversals, autonomous cancellation, and cross-tenant operations remain blocked.
 - `776 passed, 10 skipped` is a dated automated verification result, not a production business outcome.
 - Fixed-fixture Agent success proves the evaluator and contracts only. Real-provider quality, latency, repair rate, and cost remain `not_verified` and the release decision remains `no-go`.
+- The real-provider plan is staged: 30-50 cases for calibration, then at least 120 cases for the evaluator's formal sample floor. See [`../evidence/agent-evals/REAL_PROVIDER_EVALUATION_PLAN.md`](../evidence/agent-evals/REAL_PROVIDER_EVALUATION_PLAN.md).
 - The accurate contribution statement is **personally led the architecture refactor and engineering delivery**, not sole authorship of every historical commit.
 
 ## Three stories to lead with

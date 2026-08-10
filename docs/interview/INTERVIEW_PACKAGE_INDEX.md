@@ -19,6 +19,7 @@
 | Agent evaluation report | `docs/evidence/agent-evals/EVALUATION_REPORT.md` (and `evaluation-report-v1.json`) | Mock / deterministic / real-provider metrics. |
 | Agent contract evidence | `docs/evidence/agent-contracts/schema-size-v1-v2.json`, `PAYLOAD_COMPATIBILITY_SCAN.md` | Contract evolution + payload audit fixture. |
 | Operator review template | `docs/evidence/agent-evals/operator-review-template-v1.csv` | Spreadsheet for the planned human reviewer sign-off. |
+| Real-provider evaluation plan | `docs/evidence/agent-evals/REAL_PROVIDER_EVALUATION_PLAN.md` | Two-stage calibration and release-gate procedure aligned with the evaluator's actual sample floor. |
 | Dated verification summary | `docs/evidence/verification/verification-summary-2026-08-10.md` | Public source of truth for 770+ tests and current external gates. |
 | Interview release notes | `docs/releases/v0.1.0-interview.md` | Candidate release scope, verification, and known boundaries. |
 | Optimisation plan | `docs/PROJECT_INTERVIEW_OPTIMIZATION_PLAN.md` | Master tracking document, refreshed after every PR. |
